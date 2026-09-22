@@ -3,11 +3,13 @@ using static Microsoft.VisualBasic.Constants;
 using static Microsoft.VisualBasic.FileSystem;
 using static Microsoft.VisualBasic.Interaction;
 using static Microsoft.VisualBasic.Strings;
-using static modUtils;
-using static VBExtension;
+using static Vb6ToCSharp.Modules.ModUtils;
+using static Vb6ToCSharp.VbExtension;
 
 
-static class modTextFiles
+namespace Vb6ToCSharp.Modules;
+
+static class ModTextFiles
 {
     // Option Explicit
     //@NO-LINT-DEPR
@@ -33,31 +35,31 @@ static class modTextFiles
     //:
     //:::SEE ALSO
     //:    - modXML, modCSV, modPath
-    private static dynamic mFSO = null;
+    private static dynamic mFso = null;
 
 
-    static dynamic FSO
+    static dynamic Fso
     {
         get
         {
-            if (mFSO == null)
+            if (mFso == null)
             {
-                mFSO = CreateObject("Scripting.FileSystemObject");
+                mFso = CreateObject("Scripting.FileSystemObject");
             }
-            var FSO = mFSO;
+            var fso = mFso;
 
-            return FSO;
+            return fso;
         }
     }
 
 
     public static bool DeleteFileIfExists(string sFIle, bool bNoAttributeClearing = false)
     {
-        bool DeleteFileIfExists = false;
+        bool deleteFileIfExists = false;
         // TODO (not supported): On Error Resume Next
         if (!FileExists(sFIle))
         {
-            return DeleteFileIfExists;
+            return deleteFileIfExists;
 
         }
         if (!bNoAttributeClearing)
@@ -69,13 +71,13 @@ static class modTextFiles
             System.IO.File.Delete(sFIle);
         }
         //  DeleteFileIfExists = FileExists(sFile)
-        DeleteFileIfExists = true;
-        return DeleteFileIfExists;
+        deleteFileIfExists = true;
+        return deleteFileIfExists;
     }
 
     public static string ReadEntireFile(string tFileName)
     {
-        string ReadEntireFile =
+        string readEntireFile =
             //::::ReadEntireFile
             //:::SUMMARY
             //:Read an entire file.
@@ -88,11 +90,11 @@ static class modTextFiles
             //:::SEE ALSO
             //:  ReadFile, WriteFile, ReadEntireFileAndDelete
             // TODO (not supported): On Error Resume Next
-            FSO.OpenTextFile(tFileName, 1).ReadAll;
+            Fso.OpenTextFile(tFileName, 1).ReadAll;
 
-        if (FileLen(tFileName) / 10 != Len(ReadEntireFile) / 10)
+        if (FileLen(tFileName) / 10 != Len(readEntireFile) / 10)
         {
-            MsgBox("ReadEntireFile was short: " + FileLen(tFileName) + " vs " + Len(ReadEntireFile));
+            MsgBox("ReadEntireFile was short: " + FileLen(tFileName) + " vs " + Len(readEntireFile));
         }
 
         //  Dim intFile As Long
@@ -101,12 +103,12 @@ static class modTextFiles
         //  Open tFileName For Input As #intFile
         //  ReadEntireFile = Input$(LOF(intFile), #intFile)  '  LOF returns Length of File
         //  Close #intFile
-        return ReadEntireFile;
+        return readEntireFile;
     }
 
     public static string ReadEntireFileAndDelete(string tFileName)
     {
-        string ReadEntireFileAndDelete = "";
+        string readEntireFileAndDelete = "";
         //::::ReadEntireFileAndDelete
         //:::SUMMARY
         //:Read an entire file and safely delete it..
@@ -124,23 +126,23 @@ static class modTextFiles
         // TODO (not supported): On Error Resume Next
         try
         {
-            ReadEntireFileAndDelete = ReadEntireFile(tFileName);
+            readEntireFileAndDelete = ReadEntireFile(tFileName);
             System.IO.File.Delete(tFileName);
         }
         catch (Exception e)
         {
             Console.WriteLine(e);
         }
-        return ReadEntireFileAndDelete;
+        return readEntireFileAndDelete;
     }
 
-    private static string CacheFileName = "";
-    private static DateTime CacheFileDate;
-    private static string[] CacheFileLoad = null;
+    private static string cacheFileName = "";
+    private static DateTime cacheFileDate;
+    private static string[] cacheFileLoad = null;
 
-    public static string ReadFile(string tFileName, int Startline = 1, int NumLines = 0)
+    public static string ReadFile(string tFileName, int startline = 1, int numLines = 0)
     {//, Optional ByRef WasEOF As Boolean = False)
-        string ReadFile = "";
+        string readFile = "";
         //::::ReadFile
         //:::SUMMARY
         //:Random Access Read a given file based on line number.
@@ -157,45 +159,45 @@ static class modTextFiles
         //:  String - The string contents of the file.
         //:::SEE ALSO
         //:  ReadEntireFile, WriteFile, CountLines, TailFile, HeadFile
-        int FNum = 0;
-        string Line = "";
-        int LineNum = 0;
-        int Count = 0;
+        int fNum = 0;
+        string line = "";
+        int lineNum = 0;
+        int count = 0;
 
 
         if (tFileName == "" || !FileExists(tFileName))
         {
             //    WasEOF = True
-            return ReadFile;
+            return readFile;
 
         }
 
-        if (tFileName == CacheFileName)
+        if (tFileName == cacheFileName)
         {
-            if (FileDateTime(tFileName) != CacheFileDate)
+            if (FileDateTime(tFileName) != cacheFileDate)
             {
-                CacheFileName = "";
+                cacheFileName = "";
             }
         }
 
-        if (tFileName != CacheFileName)
+        if (tFileName != cacheFileName)
         {
-            CacheFileName = tFileName;
-            CacheFileDate = FileDateTime(tFileName);
-            CacheFileLoad = Split(Replace(ReadEntireFile(tFileName), vbLf, ""), vbCr);
+            cacheFileName = tFileName;
+            cacheFileDate = FileDateTime(tFileName);
+            cacheFileLoad = Split(Replace(ReadEntireFile(tFileName), vbLf, ""), vbCr);
         }
 
-        if (Startline == 1 && NumLines == 0)
+        if (startline == 1 && numLines == 0)
         {
-            ReadFile = Join(CacheFileLoad, vbCrLf);
+            readFile = Join(cacheFileLoad, vbCrLf);
         }
         else
         {
-            ReadFile = Join(SubArr(CacheFileLoad, Startline - 1, NumLines), vbCrLf);
+            readFile = Join(SubArr(cacheFileLoad, startline - 1, numLines), vbCrLf);
             //    ReadFile = LineByNumber(CacheFileLoad, Startline, NumLines)
         }
 
-        return ReadFile;
+        return readFile;
 
 
         //  If Startline < 1 Then Startline = 1
@@ -215,12 +217,12 @@ static class modTextFiles
         //'  WasEOF = True
         //Done:
         //  Close #FNum
-        return ReadFile;
+        return readFile;
     }
 
-    public static int CountFileLines(string SourceFile, bool IgnoreBlank = false, string IgnorePrefix = "")
+    public static int CountFileLines(string sourceFile, bool ignoreBlank = false, string ignorePrefix = "")
     {
-        var CountFileLines =
+        var countFileLines =
             //::::CountFileLines
             //:::SUMMARY
             //:Returns the number of lines in a given file.
@@ -240,13 +242,13 @@ static class modTextFiles
             //:  Long - The number of lines.
             //:::SEE ALSO
             //:  WriteFile, ReadFile, VBFileCountLines, CountLines
-            CountLines(ReadEntireFile(SourceFile), IgnoreBlank, IgnorePrefix);
-        return CountFileLines;
+            CountLines(ReadEntireFile(sourceFile), ignoreBlank, ignorePrefix);
+        return countFileLines;
     }
 
-    public static int CountLines(string Source, bool IgnoreBlank = true, string IgnorePrefix = "'")
+    public static int CountLines(string source, bool ignoreBlank = true, string ignorePrefix = "'")
     {
-        int CountLines = 0;
+        int countLines = 0;
         //::::CountLines
         //:::SUMMARY
         //:Returns the number of lines in a given string (not a file).
@@ -267,29 +269,29 @@ static class modTextFiles
         //:::SEE ALSO
         //:  WriteFile, ReadFile, VBFileCountLines, CountFileLines, LineByNumber
 
-        Source = Replace(Source, vbLf, "");
-        foreach (var iterL in Split(Source, vbCr))
+        source = Replace(source, vbLf, "");
+        foreach (var iterL in Split(source, vbCr))
         {
-            dynamic L = iterL;
-            if (Trim(L) == "" & IgnoreBlank)
+            dynamic l = iterL;
+            if (Trim(l) == "" & ignoreBlank)
             {
                 // Don't count...
             }
-            else if (IgnorePrefix != "" && Left(LTrim(L), Len(IgnorePrefix)) == IgnorePrefix)
+            else if (ignorePrefix != "" && Left(LTrim(l), Len(ignorePrefix)) == ignorePrefix)
             {
                 // Don't count...
             }
             else
             {
-                CountLines = CountLines + 1;
+                countLines = countLines + 1;
             }
         }
-        return CountLines;
+        return countLines;
     }
 
-    public static string LineByNumber(string Source, int Startline, int NumLines_UNUSED = 0, string NL = vbCrLf)
+    public static string LineByNumber(string source, int startline, int numLinesUnused = 0, string nl = vbCrLf)
     {
-        string LineByNumber = "";
+        string lineByNumber = "";
         //::::LineByNumber
         //:::SUMMARY
         //:Returns the line(s) specified by the <StartLine> and <NumLines> parameters from a given <Source> string.
@@ -313,52 +315,52 @@ static class modTextFiles
 
         int I = 0;
 
-        var A = 0;
-        if (Startline <= 0)
+        var a = 0;
+        if (startline <= 0)
         {
-            Startline = 1;
+            startline = 1;
         }
 
-        if (Startline == 1)
+        if (startline == 1)
         {
-            A = 1;
+            a = 1;
         }
         else
         {
-            for (I = 1; I <= Startline - 1; I++)
+            for (I = 1; I <= startline - 1; I++)
             {
-                A = InStr(A + 1, Source, NL);
-                if (A == 0)
+                a = InStr(a + 1, source, nl);
+                if (a == 0)
                 {
-                    return LineByNumber;
+                    return lineByNumber;
 
                 }
             }
-            A = A + Len(NL);
+            a = a + Len(nl);
         }
 
-        var B = A;
-        if (Left(Mid(Source, A), Len(NL)) != NL)
+        var b = a;
+        if (Left(Mid(source, a), Len(nl)) != nl)
         {
-            for (I = 1; I <= NumLines_UNUSED; I++)
+            for (I = 1; I <= numLinesUnused; I++)
             {
-                B = InStr(B + 1, Source, NL);
-                if (B == 0)
+                b = InStr(b + 1, source, nl);
+                if (b == 0)
                 {
-                    LineByNumber = Mid(Source, A);
-                    return LineByNumber;
+                    lineByNumber = Mid(source, a);
+                    return lineByNumber;
 
                 }
             }
         }
 
-        LineByNumber = Mid(Source, A, B - A);
-        return LineByNumber;
+        lineByNumber = Mid(source, a, b - a);
+        return lineByNumber;
     }
 
-    public static bool VBFileCountLines(string tFileName, ref int Totl, ref int Code, ref int Blnk, ref int Cmnt)
+    public static bool VbFileCountLines(string tFileName, ref int totl, ref int code, ref int blnk, ref int cmnt)
     {
-        bool VBFileCountLines = false;
+        bool vbFileCountLines = false;
         //::::VBFileCountLines
         //:::SUMMARY
         //:Count lines in a VB6 file.
@@ -382,25 +384,25 @@ static class modTextFiles
         //:::SEE ALSO
         //:  ReadEntireFile, WriteFile, CountLines, VBFileCountLines_Stat
 
-        Totl = 0;
-        Code = 0;
-        Blnk = 0;
-        Cmnt = 0;
+        totl = 0;
+        code = 0;
+        blnk = 0;
+        cmnt = 0;
 
         // TODO (not supported): On Error Resume Next
         if (!FileExists(tFileName))
         {
-            return VBFileCountLines;
+            return vbFileCountLines;
 
         }
-        var S = ReadEntireFile(tFileName);
-        Totl = CountLines(S, false, "");
-        Code = CountLines(S);
-        var N = CountLines(S, true, "");
-        Cmnt = N - Code;
-        Blnk = Totl - N;
-        VBFileCountLines = true;
-        return VBFileCountLines;
+        var s = ReadEntireFile(tFileName);
+        totl = CountLines(s, false, "");
+        code = CountLines(s);
+        var n = CountLines(s, true, "");
+        cmnt = n - code;
+        blnk = totl - n;
+        vbFileCountLines = true;
+        return vbFileCountLines;
     }
 
     public static void VBFileCountLines_Stat(string tFileName)
@@ -416,13 +418,13 @@ static class modTextFiles
         //:::SEE ALSO
         //:  ReadEntireFile, WriteFile, CountLines, VBFileCountLines
         int T = 0;
-        int C = 0;
-        int B = 0;
-        int M = 0;
+        int c = 0;
+        int b = 0;
+        int m = 0;
 
-        if (VBFileCountLines(tFileName, ref T, ref C, ref B, ref M))
+        if (VbFileCountLines(tFileName, ref T, ref c, ref b, ref m))
         {
-            MsgBox("File Line Stat: " + vbCrLf + " Totl: " + T + vbCrLf + "Code: " + C + vbCrLf + "Blnk: " + B + vbCrLf + "Cmnt: " + M, vbMsgBoxRtlReading);
+            MsgBox("File Line Stat: " + vbCrLf + " Totl: " + T + vbCrLf + "Code: " + c + vbCrLf + "Blnk: " + b + vbCrLf + "Cmnt: " + m, vbMsgBoxRtlReading);
         }
         else
         {
@@ -430,7 +432,7 @@ static class modTextFiles
         }
     }
 
-    public static bool WriteFile(string File, string Str, bool OverWrite = false, bool PreventNL = false)
+    public static bool WriteFile(string file, string str, bool overWrite = false, bool preventNl = false)
     {
         //::::WriteFile
         //:::SUMMARY
@@ -451,28 +453,28 @@ static class modTextFiles
         //:::SEE ALSO
         //:  ReadEntireFile, WriteFile, CountLines
 
-        var FNo =
+        var fNo =
             // TODO (not supported): On Error Resume Next
             FreeFile(); ;
-        if (OverWrite)
+        if (overWrite)
         {
-            System.IO.File.Delete(File);
-            VBOpenFile(FNo, File); ;
+            System.IO.File.Delete(file);
+            VBOpenFile(fNo, file); ;
         }
         else
         {
-            VBOpenFile(FNo, File); ;
+            VBOpenFile(fNo, file); ;
         }
-        if (PreventNL || Right(Str, 2) == vbCrLf)
+        if (preventNl || Right(str, 2) == vbCrLf)
         {
-            VBWriteFile(FNo, Str); ;
+            VBWriteFile(fNo, str); ;
         }
         else
         {
-            VBWriteFile(FNo, Str); ;
+            VBWriteFile(fNo, str); ;
         }
-        VBCloseFile(FNo);
-        var WriteFile = true;
-        return WriteFile;
+        VBCloseFile(fNo);
+        var writeFile = true;
+        return writeFile;
     }
 }

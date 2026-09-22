@@ -1,10 +1,10 @@
 ﻿using System.Collections.Generic;
-using static Microsoft.VisualBasic.Information;
-using static Microsoft.VisualBasic.Interaction;
-using static VBExtension;
+using static Vb6ToCSharp.VbExtension;
 
 
-static class modRegEx
+namespace Vb6ToCSharp.Modules;
+
+static class ModRegEx
 {
     // Option Explicit
     private static dynamic mRegEx = null;
@@ -19,67 +19,67 @@ static class modRegEx
                 mRegEx = CreateObject("vbscript.regexp");
                 mRegEx.Global = true;
             }
-            var RegEx = mRegEx;
+            var regEx = mRegEx;
 
-            return RegEx;
+            return regEx;
         }
     }
 
 
-    public static bool RegExTest(string Src, string Find)
+    public static bool RegExTest(string src, string find)
     {
         // TODO (not supported): On Error Resume Next
-        RegEx.Pattern = Find;
-        bool RegExTest = RegEx.test(Src);
-        return RegExTest;
+        RegEx.Pattern = find;
+        bool regExTest = RegEx.test(src);
+        return regExTest;
     }
 
-    public static int RegExCount(string Src, string Find)
+    public static int RegExCount(string src, string find)
     {
         // TODO (not supported): On Error Resume Next
-        RegEx.Pattern = Find;
+        RegEx.Pattern = find;
         RegEx.Global = true;
-        int RegExCount = RegEx.Execute(Src).Count;
-        return RegExCount;
+        int regExCount = RegEx.Execute(src).Count;
+        return regExCount;
     }
 
-    public static int RegExNPos(string Src, string Find, int N = 0)
+    public static int RegExNPos(string src, string find, int n = 0)
     {
         // TODO (not supported): On Error Resume Next
-        dynamic RegM = null;
+        dynamic regM = null;
         string tempStr = "";
         string tempStr2 = "";
 
-        RegEx.Pattern = Find;
+        RegEx.Pattern = find;
         RegEx.Global = true;
-        int RegExNPos = RegEx.Execute(Src).Item(N).FirstIndex + 1;
-        return RegExNPos;
+        int regExNPos = RegEx.Execute(src).Item(n).FirstIndex + 1;
+        return regExNPos;
     }
 
-    public static string RegExNMatch(string Src, string Find, int N = 0)
+    public static string RegExNMatch(string src, string find, int n = 0)
     {
         // TODO (not supported): On Error Resume Next
-        dynamic RegM = null;
+        dynamic regM = null;
         string tempStr = "";
         string tempStr2 = "";
 
-        RegEx.Pattern = Find;
+        RegEx.Pattern = find;
         RegEx.Global = true;
-        string RegExNMatch = RegEx.Execute(Src).Item(N).Value;
-        return RegExNMatch;
+        string regExNMatch = RegEx.Execute(src).Item(n).Value;
+        return regExNMatch;
     }
 
-    public static string RegExReplace(string Src, string Find, string Repl)
+    public static string RegExReplace(string src, string find, string repl)
     {
         // TODO (not supported): On Error Resume Next
-        dynamic RegM = null;
+        dynamic regM = null;
         string tempStr = "";
         string tempStr2 = "";
 
-        RegEx.Pattern = Find;
+        RegEx.Pattern = find;
         RegEx.Global = true;
-        string RegExReplace = RegEx.Replace(Src, Repl);
-        return RegExReplace;
+        string regExReplace = RegEx.Replace(src, repl);
+        return regExReplace;
     }
 
     public static dynamic RegExSplit(string szStr, string szPattern)
@@ -108,8 +108,8 @@ static class modRegEx
         } while (true);
 
         oAl.Reverse();
-        var RegExSplit = oAl.ToArray();
-        return RegExSplit;
+        var regExSplit = oAl.ToArray();
+        return regExSplit;
     }
 
     public static int RegExSplitCount(string szStr, string szPattern)
@@ -118,7 +118,7 @@ static class modRegEx
         List<dynamic> T = new List<dynamic> { }; // TODO - Specified Minimum Array Boundary Not Supported:   Dim T() As Variant
 
         T = RegExSplit(szStr, szPattern);
-        var RegExSplitCount = UBound(T) - LBound(T) + 1;
-        return RegExSplitCount;
+        var regExSplitCount = UBound(T) - LBound(T) + 1;
+        return regExSplitCount;
     }
 }

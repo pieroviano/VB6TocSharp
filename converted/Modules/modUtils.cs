@@ -1,22 +1,21 @@
-using Microsoft.VisualBasic;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using VB2CS.Forms;
+using Microsoft.VisualBasic;
+using Vb6ToCSharp.Forms;
 using static Microsoft.VisualBasic.Constants;
 using static Microsoft.VisualBasic.FileSystem;
 using static Microsoft.VisualBasic.Information;
-using static Microsoft.VisualBasic.Interaction;
 using static Microsoft.VisualBasic.Strings;
 using static Microsoft.VisualBasic.VBMath;
-using static modConfig;
-using static modRegEx;
-using static modTextFiles;
-using static VBExtension;
+using static Vb6ToCSharp.Modules.ModConfig;
+using static Vb6ToCSharp.Modules.ModRegEx;
+using static Vb6ToCSharp.Modules.ModTextFiles;
+using static Vb6ToCSharp.VbExtension;
 
 
-static class modUtils
+namespace Vb6ToCSharp.Modules;
+
+static class ModUtils
 {
     // Option Explicit
     public const string patToken = "([a-zA-Z_][a-zA-Z_0-9]*)";
@@ -25,119 +24,119 @@ static class modUtils
     public const string vbCrLf2 = vbCrLf + vbCrLf;
     public const string vbCrLf3 = vbCrLf + vbCrLf + vbCrLf;
     public const string vbCrLf4 = vbCrLf + vbCrLf + vbCrLf + vbCrLf;
-    public const string STR_CHR_UCASE = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    public const string STR_CHR_LCASE = "abcdefghijklmnopqrstuvwxyz";
-    public const string STR_CHR_DIGIT = "1234567890";
+    public const string strChrUcase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    public const string strChrLcase = "abcdefghijklmnopqrstuvwxyz";
+    public const string strChrDigit = "1234567890";
 
 
-    public static bool IsNotInStr(string S, string Fnd)
+    public static bool IsNotInStr(string s, string fnd)
     {
-        var IsNotInStr = !IsInStr(S, Fnd);
-        return IsNotInStr;
+        var isNotInStr = !IsInStr(s, fnd);
+        return isNotInStr;
     }
 
-    public static bool FileExists(string FN)
+    public static bool FileExists(string fn)
     {
-        var FileExists = FN != "" && Dir(FN) != "";
-        return FileExists;
+        var fileExists = fn != "" && Dir(fn) != "";
+        return fileExists;
     }
 
-    public static bool DirExists(string FN)
+    public static bool DirExists(string fn)
     {
-        var DirExists = FN != "" && Dir(FN, vbDirectory) != "";
-        return DirExists;
+        var dirExists = fn != "" && Dir(fn, vbDirectory) != "";
+        return dirExists;
     }
 
-    public static string tFileName(string FN)
+    public static string TFileName(string fn)
     {
-        var tFileName = Mid(FN, InStrRev(FN, "\\") + 1);
+        var tFileName = Mid(fn, InStrRev(fn, "\\") + 1);
         return tFileName;
     }
 
-    public static string FileBaseName(string FN)
+    public static string FileBaseName(string fn)
     {
-        var FileBaseName = Left(tFileName(FN), InStrRev(tFileName(FN), ".") - 1);
-        return FileBaseName;
+        var fileBaseName = Left(TFileName(fn), InStrRev(TFileName(fn), ".") - 1);
+        return fileBaseName;
     }
 
-    public static string FilePath(string FN)
+    public static string FilePath(string fn)
     {
-        var FilePath = Left(FN, InStrRev(FN, "\\"));
-        return FilePath;
+        var filePath = Left(fn, InStrRev(fn, "\\"));
+        return filePath;
     }
 
-    public static string ChgExt(string FN, string NewExt)
+    public static string ChgExt(string fn, string newExt)
     {
-        var ChgExt = Left(FN, InStrRev(FN, ".") - 1) + NewExt;
-        return ChgExt;
+        var chgExt = Left(fn, InStrRev(fn, ".") - 1) + newExt;
+        return chgExt;
     }
 
-    public static string tLeft(string Str, int N)
+    public static string TLeft(string str, int n)
     {
-        var tLeft = Left(Trim(Str), N);
+        var tLeft = Left(Trim(str), n);
         return tLeft;
     }
 
-    public static string tMid(string Str, int N, int M = 0)
+    public static string TMid(string str, int n, int m = 0)
     {
-        var tMid = IIf(M == 0, Mid(Trim(Str), N), Mid(Trim(Str), N, M));
+        var tMid = IIf(m == 0, Mid(Trim(str), n), Mid(Trim(str), n, m));
         return tMid;
     }
 
-    public static int StrCnt(string Src, string Str)
+    public static int StrCnt(string src, string str)
     {
-        var StrCnt = (Len(Src) - Len(Replace(Src, Str, ""))) / Len(Str);
-        return StrCnt;
+        var strCnt = (Len(src) - Len(Replace(src, str, ""))) / Len(str);
+        return strCnt;
     }
 
-    public static bool LMatch(string Src, string tMatch)
+    public static bool LMatch(string src, string tMatch)
     {
-        var LMatch = Left(Src, Len(tMatch)) == tMatch;
-        return LMatch;
+        var lMatch = Left(src, Len(tMatch)) == tMatch;
+        return lMatch;
     }
 
-    public static bool tLMatch(string Src, string tMatch)
+    public static bool TLMatch(string src, string tMatch)
     {
-        var tLMatch = Left(LTrim(Src), Len(tMatch)) == tMatch;
+        var tLMatch = Left(LTrim(src), Len(tMatch)) == tMatch;
         return tLMatch;
     }
 
-    public static int Px(double Twips)
+    public static int Px(double twips)
     {
         // VB6: Long = Twips / 14 (floating division, banker's rounding on assignment)
-        return (int)Math.Round(Twips / 14, MidpointRounding.ToEven);
+        return (int)Math.Round(twips / 14, MidpointRounding.ToEven);
     }
 
-    public static int Px(string Twips)
+    public static int Px(string twips)
     {
-        return Px(Conversion.Val(Twips));
+        return Px(Conversion.Val(twips));
     }
 
-    public static string Quote(object S)
+    public static string Quote(object s)
     {
-        var Quote = "\"" + S + "\"";
-        return Quote;
+        var quote = "\"" + s + "\"";
+        return quote;
     }
 
-    public static string AlignString(string S, int N)
+    public static string AlignString(string s, int n)
     {
-        var AlignString = Left(S + Space(N), N);
-        return AlignString;
+        var alignString = Left(s + Space(n), n);
+        return alignString;
     }
 
-    public static string Capitalize(string S)
+    public static string Capitalize(string s)
     {
-        var Capitalize = UCase(Left(S, 1)) + Mid(S, 2);
-        return Capitalize;
+        var capitalize = UCase(Left(s, 1)) + Mid(s, 2);
+        return capitalize;
     }
 
     public static string DevelopmentFolder()
     {
-        var DevelopmentFolder = AppDomain.CurrentDomain.BaseDirectory + "\\";
-        return DevelopmentFolder;
+        var developmentFolder = AppDomain.CurrentDomain.BaseDirectory + "\\";
+        return developmentFolder;
     }
 
-    public static bool IsIDE()
+    public static bool IsIde()
     {
         //IsIDE = False
         //Exit Function
@@ -145,379 +144,379 @@ static class modUtils
         // works on a very simple princicple... debug statements don't get compiled...
         // TODO (not supported):   On Error GoTo IDEInUse
         Debugger.Break(); //division by zero error
-        var IsIDE = false;
-        return IsIDE;
+        var isIde = false;
+        return isIde;
 
         IDEInUse:;
-        IsIDE = true;
-        return IsIDE;
+        isIde = true;
+        return isIde;
     }
 
-    public static bool IsIn(string S, params dynamic[] K_UNUSED)
+    public static bool IsIn(string s, params dynamic[] kUnused)
     {
-        bool IsIn = false;
+        bool isIn = false;
 
-        foreach (var iterL in K_UNUSED)
+        foreach (var iterL in kUnused)
         {
-            var L = iterL;
-            if (S == L)
+            var l = iterL;
+            if (s == l)
             {
-                IsIn = true;
-                return IsIn;
+                isIn = true;
+                return isIn;
 
             }
         }
-        return IsIn;
+        return isIn;
     }
 
-    public static bool WriteOut(string F, string S, string O = "")
+    public static bool WriteOut(string f, string s, string o = "")
     {
-        bool WriteOut = false;
-        if (!IsConverted(F, O))
+        bool writeOut = false;
+        if (!IsConverted(f, o))
         {
-            WriteOut = WriteFile(OutputFolder(O) + F, S, true);
+            writeOut = WriteFile(OutputFolder(o) + f, s, true);
         }
         else
         {
-            Console.WriteLine("Already converted: " + F);
+            Console.WriteLine("Already converted: " + f);
         }
-        return WriteOut;
+        return writeOut;
     }
 
-    public static bool IsConverted(string F, string O = "")
+    public static bool IsConverted(string f, string o = "")
     {
-        var IsConverted = IsInStr(Left(ReadEntireFile(OutputFolder(O) + F), 100), "### CONVERTED");
-        return IsConverted;
+        var isConverted = IsInStr(Left(ReadEntireFile(OutputFolder(o) + f), 100), "### CONVERTED");
+        return isConverted;
     }
 
-    public static string FileExt(string FN, bool vLCase = true)
+    public static string FileExt(string fn, bool vLCase = true)
     {
-        string FileExt = "";
-        if (FN == "")
+        string fileExt = "";
+        if (fn == "")
         {
-            return FileExt;
+            return fileExt;
 
         }
-        if (InStr(FN, ".") == 0)
+        if (InStr(fn, ".") == 0)
         {
-            return FileExt;
+            return fileExt;
 
         }
-        FileExt = Mid(FN, InStrRev(FN, "."));
-        FileExt = IIf(vLCase, LCase(FileExt), FileExt);
-        return FileExt;
+        fileExt = Mid(fn, InStrRev(fn, "."));
+        fileExt = IIf(vLCase, LCase(fileExt), fileExt);
+        return fileExt;
     }
 
-    public static string deQuote(string Src)
+    public static string DeQuote(string src)
     {
-        if (Left(Src, 1) == "\"")
+        if (Left(src, 1) == "\"")
         {
-            Src = Mid(Src, 2);
+            src = Mid(src, 2);
         }
-        if (Right(Src, 1) == "\"")
+        if (Right(src, 1) == "\"")
         {
-            Src = Left(Src, Len(Src) - 1);
+            src = Left(src, Len(src) - 1);
         }
-        var deQuote = Src;
+        var deQuote = src;
         return deQuote;
     }
 
-    public static string deWS(string S)
+    public static string DeWs(string s)
     {
-        while (IsInStr(S, " " + vbCrLf))
+        while (IsInStr(s, " " + vbCrLf))
         {
-            S = Replace(S, " " + vbCrLf, vbCrLf);
+            s = Replace(s, " " + vbCrLf, vbCrLf);
         }
-        while (IsInStr(S, vbCrLf4))
+        while (IsInStr(s, vbCrLf4))
         {
-            S = Replace(S, vbCrLf4, vbCrLf3);
+            s = Replace(s, vbCrLf4, vbCrLf3);
         }
 
-        S = Replace(S, "{" + vbCrLf2, "{" + vbCrLf);
-        S = RegExReplace(S, "(" + vbCrLf2 + ")([ ]*{)", vbCrLf + "$2");
-        S = RegExReplace(S, "([ ]*case .*:)" + vbCrLf2, "$1" + vbCrLf);
-        var deWS = S;
-        return deWS;
+        s = Replace(s, "{" + vbCrLf2, "{" + vbCrLf);
+        s = RegExReplace(s, "(" + vbCrLf2 + ")([ ]*{)", vbCrLf + "$2");
+        s = RegExReplace(s, "([ ]*case .*:)" + vbCrLf2, "$1" + vbCrLf);
+        var deWs = s;
+        return deWs;
     }
 
-    public static string nlTrim(string Str)
+    public static string NlTrim(string str)
     {
-        while (InStr(" " + vbTab + vbCr + vbLf, Left(Str, 1)) != 0 & Str != "")
+        while (InStr(" " + vbTab + vbCr + vbLf, Left(str, 1)) != 0 & str != "")
         {
-            Str = Mid(Str, 2);
+            str = Mid(str, 2);
         }
-        while (InStr(" " + vbTab + vbCr + vbLf, Right(Str, 1)) != 0 & Str != "")
+        while (InStr(" " + vbTab + vbCr + vbLf, Right(str, 1)) != 0 & str != "")
         {
-            Str = Mid(Str, 1, Len(Str) - 1);
+            str = Mid(str, 1, Len(str) - 1);
         }
-        var nlTrim = Str;
+        var nlTrim = str;
         return nlTrim;
     }
 
-    public static string sSpace(int N)
+    public static string SSpace(int n)
     {
         var sSpace =
             // TODO (not supported): On Error Resume Next
-            Space(N);
+            Space(n);
         return sSpace;
     }
 
-    public static string nextBy(string Src, string Del = "\"", int Ind = 1, bool ProcessVBComments_UNUSED = false)
+    public static string NextBy(string src, string del = "\"", int ind = 1, bool processVbCommentsUnused = false)
     {
         string nextBy = "";
 
         DoEvents();
-        var L = InStr(Src, Del);
-        if (L == 0)
+        var l = InStr(src, del);
+        if (l == 0)
         {
-            nextBy = IIf(Ind <= 1, Src, "");
+            nextBy = IIf(ind <= 1, src, "");
             return nextBy;
 
         }
-        if (Ind <= 1)
+        if (ind <= 1)
         {
-            nextBy = Left(Src, L - 1);
+            nextBy = Left(src, l - 1);
         }
         else
         {
-            nextBy = modUtils.nextBy(Mid(Src, L + Len(Del)), Del, Ind - 1);
+            nextBy = ModUtils.NextBy(Mid(src, l + Len(del)), del, ind - 1);
         }
         return nextBy;
     }
 
-    public static int StrQCnt(string Src, string Str)
+    public static int StrQCnt(string src, string str)
     {
-        bool Q = false;
+        bool q = false;
 
 
-        var StrQCnt = 0;
-        var N = Len(Src);
-        for (var I = 1; I <= N; I++)
+        var strQCnt = 0;
+        var n = Len(src);
+        for (var I = 1; I <= n; I++)
         {
-            var C = Mid(Src, I, 1);
-            if (C == "\"")
+            var c = Mid(src, I, 1);
+            if (c == "\"")
             {
-                Q = !Q;
+                q = !q;
             }
             else
             {
-                if (!Q)
+                if (!q)
                 {
-                    if (LMatch(Mid(Src, I), Str))
+                    if (LMatch(Mid(src, I), str))
                     {
-                        StrQCnt = StrQCnt + 1;
+                        strQCnt = strQCnt + 1;
                     }
                 }
             }
         }
-        return StrQCnt;
+        return strQCnt;
     }
 
-    public static int nextByPCt(string Src, string Del = "\"", int Ind_UNUSED = 1)
+    public static int NextByPCt(string src, string del = "\"", int indUnused = 1)
     {
-        int M = 0;
+        int m = 0;
 
-        var N = 0;
+        var n = 0;
         do
         {
-            N = N + 1;
-            if (N > 1000)
+            n = n + 1;
+            if (n > 1000)
             {
                 break;
             }
-            var F = nextByP(Src, Del, N);
-            if (F == "")
+            var f = NextByP(src, del, n);
+            if (f == "")
             {
-                M = M + 1;
-                if (M >= 10)
+                m = m + 1;
+                if (m >= 10)
                 {
                     break;
                 }
             }
             else
             {
-                M = 0;
+                m = 0;
             }
         } while (!(true));
-        var nextByPCt = N - M;
+        var nextByPCt = n - m;
         return nextByPCt;
     }
 
-    public static string nextByP(string Src, string Del = "\"", int Ind = 1)
+    public static string NextByP(string src, string del = "\"", int ind = 1)
     {
         string nextByP = "";
-        int M = 0;
+        int m = 0;
 
-        string R = "";
+        string r = "";
 
-        var N = 0;
-        var F = "";
+        var n = 0;
+        var f = "";
         do
         {
-            M = M + 1;
-            if (M > 100)
+            m = m + 1;
+            if (m > 100)
             {
                 break;
             }
-            N = N + 1;
-            var T = nextBy(Src, Del, N);
-            R = R + IIf(Len(R) == 0, "", Del) + T;
-        } while (!(StrQCnt(R, "(") == StrQCnt(R, ")")));
-        if (Ind <= 1)
+            n = n + 1;
+            var T = NextBy(src, del, n);
+            r = r + IIf(Len(r) == 0, "", del) + T;
+        } while (!(StrQCnt(r, "(") == StrQCnt(r, ")")));
+        if (ind <= 1)
         {
-            nextByP = R;
+            nextByP = r;
         }
         else
         {
-            nextByP = modUtils.nextByP(Mid(Src, Len(R) + Len(Del) + 1), Del, Ind - 1);
+            nextByP = ModUtils.NextByP(Mid(src, Len(r) + Len(del) + 1), del, ind - 1);
         }
         return nextByP;
     }
 
-    public static string NextByOp(string Src, int Ind, ref string Op)
+    public static string NextByOp(string src, int ind, ref string op)
     {
-        var A = nextByP(Src, " + ");
-        var S = nextByP(Src, " - ");
-        var M = nextByP(Src, " * ");
-        var D = nextByP(Src, " / ");
-        var I = nextByP(Src, " \\ ");
-        var C = nextByP(Src, " & ");
-        var E = nextByP(Src, " ^ ");
+        var a = NextByP(src, " + ");
+        var s = NextByP(src, " - ");
+        var m = NextByP(src, " * ");
+        var d = NextByP(src, " / ");
+        var I = NextByP(src, " \\ ");
+        var c = NextByP(src, " & ");
+        var e = NextByP(src, " ^ ");
 
-        var cNE = nextByP(Src, " <> ");
-        var cLT = nextByP(Src, " < ");
-        var cGT = nextByP(Src, " > ");
-        var cLE = nextByP(Src, " <= ");
-        var cGE = nextByP(Src, " >= ");
-        var cEQ = nextByP(Src, " = ");
+        var cNe = NextByP(src, " <> ");
+        var cLt = NextByP(src, " < ");
+        var cGt = NextByP(src, " > ");
+        var cLe = NextByP(src, " <= ");
+        var cGe = NextByP(src, " >= ");
+        var cEq = NextByP(src, " = ");
 
-        var lA = nextByP(Src, " And ");
-        var lO = nextByP(Src, " Or ");
-        var lM = nextByP(Src, " Mod ");
-        var LL = nextByP(Src, " Like ");
+        var lA = NextByP(src, " And ");
+        var lO = NextByP(src, " Or ");
+        var lM = NextByP(src, " Mod ");
+        var ll = NextByP(src, " Like ");
 
-        var xIs = nextByP(Src, " Is ");
-        var xLk = nextByP(Src, " Like ");
+        var xIs = NextByP(src, " Is ");
+        var xLk = NextByP(src, " Like ");
 
-        var P = A;
-        var K = 3;
-        if (Len(P) > Len(S))
+        var p = a;
+        var k = 3;
+        if (Len(p) > Len(s))
         {
-            P = S;
-            K = 3;
+            p = s;
+            k = 3;
         }
-        if (Len(P) > Len(M))
+        if (Len(p) > Len(m))
         {
-            P = M;
-            K = 3;
+            p = m;
+            k = 3;
         }
-        if (Len(P) > Len(D))
+        if (Len(p) > Len(d))
         {
-            P = D;
-            K = 3;
+            p = d;
+            k = 3;
         }
-        if (Len(P) > Len(I))
+        if (Len(p) > Len(I))
         {
-            P = I;
-            K = 3;
+            p = I;
+            k = 3;
         }
-        if (Len(P) > Len(C))
+        if (Len(p) > Len(c))
         {
-            P = C;
-            K = 3;
+            p = c;
+            k = 3;
         }
-        if (Len(P) > Len(E))
+        if (Len(p) > Len(e))
         {
-            P = E;
-            K = 3;
-        }
-
-        if (Len(P) > Len(cNE))
-        {
-            P = cNE;
-            K = 4;
-        }
-        if (Len(P) > Len(cLT))
-        {
-            P = cLT;
-            K = 3;
-        }
-        if (Len(P) > Len(cGT))
-        {
-            P = cGT;
-            K = 3;
-        }
-        if (Len(P) > Len(cLE))
-        {
-            P = cLE;
-            K = 4;
-        }
-        if (Len(P) > Len(cGE))
-        {
-            P = cGE;
-            K = 4;
-        }
-        if (Len(P) > Len(cEQ))
-        {
-            P = cEQ;
-            K = 3;
+            p = e;
+            k = 3;
         }
 
-        if (Len(P) > Len(lA))
+        if (Len(p) > Len(cNe))
         {
-            P = lA;
-            K = 5;
+            p = cNe;
+            k = 4;
         }
-        if (Len(P) > Len(lO))
+        if (Len(p) > Len(cLt))
         {
-            P = lO;
-            K = 4;
+            p = cLt;
+            k = 3;
         }
-        if (Len(P) > Len(lM))
+        if (Len(p) > Len(cGt))
         {
-            P = lM;
-            K = 5;
+            p = cGt;
+            k = 3;
         }
-        if (Len(P) > Len(LL))
+        if (Len(p) > Len(cLe))
         {
-            P = LL;
-            K = 6;
+            p = cLe;
+            k = 4;
+        }
+        if (Len(p) > Len(cGe))
+        {
+            p = cGe;
+            k = 4;
+        }
+        if (Len(p) > Len(cEq))
+        {
+            p = cEq;
+            k = 3;
         }
 
-        if (Len(P) > Len(xLk))
+        if (Len(p) > Len(lA))
         {
-            P = xLk;
-            K = 6;
+            p = lA;
+            k = 5;
         }
-        if (Len(P) > Len(xIs))
+        if (Len(p) > Len(lO))
         {
-            P = xIs;
-            K = 4;
+            p = lO;
+            k = 4;
+        }
+        if (Len(p) > Len(lM))
+        {
+            p = lM;
+            k = 5;
+        }
+        if (Len(p) > Len(ll))
+        {
+            p = ll;
+            k = 6;
         }
 
-        var NextByOp = P;
-        Op = null;
-        if (Ind <= 1)
+        if (Len(p) > Len(xLk))
         {
-            Op = Mid(Src, Len(P) + 1, K);
-            NextByOp = P;
+            p = xLk;
+            k = 6;
+        }
+        if (Len(p) > Len(xIs))
+        {
+            p = xIs;
+            k = 4;
+        }
+
+        var nextByOp = p;
+        op = null;
+        if (ind <= 1)
+        {
+            op = Mid(src, Len(p) + 1, k);
+            nextByOp = p;
         }
         else
         {
-            NextByOp = modUtils.NextByOp(Trim(Mid(Src, Len(P) + 3)), Ind - 1, ref Op);
+            nextByOp = ModUtils.NextByOp(Trim(Mid(src, Len(p) + 3)), ind - 1, ref op);
         }
-        return NextByOp;
+        return nextByOp;
     }
 
-    public static string ReplaceToken(string Src, string OrigToken, string NewToken)
+    public static string ReplaceToken(string src, string origToken, string newToken)
     {
-        var ReplaceToken = RegExReplace(Src, "([^a-zA-Z_0-9])(" + OrigToken + ")([^a-zA-Z_0-9])", "$1" + NewToken + "$3");
-        return ReplaceToken;
+        var replaceToken = RegExReplace(src, "([^a-zA-Z_0-9])(" + origToken + ")([^a-zA-Z_0-9])", "$1" + newToken + "$3");
+        return replaceToken;
     }
 
-    public static string SplitWord(string Source, int N = 1, string Space = " ", bool TrimResult = true, bool IncludeRest = false)
+    public static string SplitWord(string source, int n = 1, string space = " ", bool trimResult = true, bool includeRest = false)
     {
-        string SplitWord = "";
+        string splitWord = "";
 
         //::::SplitWord
         //:::SUMMARY
@@ -540,43 +539,43 @@ static class modUtils
         //:::SEE ALSO
         //: Split, CountWords
 
-        N = N - 1;
-        if (Source == "")
+        n = n - 1;
+        if (source == "")
         {
-            return SplitWord;
+            return splitWord;
 
         }
-        var S = Split(Source, Space);
-        if (N < 0)
+        var s = Split(source, space);
+        if (n < 0)
         {
-            N = UBound(S) + N + 2;
+            n = UBound(s) + n + 2;
         }
-        if (N < LBound(S) || N > UBound(S))
+        if (n < LBound(s) || n > UBound(s))
         {
-            return SplitWord;
+            return splitWord;
 
         }
-        if (!IncludeRest)
+        if (!includeRest)
         {
-            SplitWord = S[N];
+            splitWord = s[n];
         }
         else
         {
-            for (var I = N; I <= UBound(S); I++)
+            for (var I = n; I <= UBound(s); I++)
             {
-                SplitWord = SplitWord + IIf(Len(SplitWord) > 0, Space, "") + S[I];
+                splitWord = splitWord + IIf(Len(splitWord) > 0, space, "") + s[I];
             }
         }
-        if (TrimResult)
+        if (trimResult)
         {
-            SplitWord = Trim(SplitWord);
+            splitWord = Trim(splitWord);
         }
-        return SplitWord;
+        return splitWord;
     }
 
-    public static int CountWords(string Source, string Space = " ")
+    public static int CountWords(string source, string space = " ")
     {
-        int CountWords = 0;
+        int countWords = 0;
         //::::CountWords
         //:::SUMMARY
         //: Returns the number of words in a string (determined by <Space> parameter)
@@ -595,15 +594,15 @@ static class modUtils
 
         // Count actual words.  Blank spaces don't count, before, after, or in the middle.
         // Only a simple split and loop--there may be faster ways...
-        foreach (var iterL in Split(Source, Space))
+        foreach (var iterL in Split(source, space))
         {
-            dynamic L = iterL;
-            if (L != "")
+            dynamic l = iterL;
+            if (l != "")
             {
-                CountWords = CountWords + 1;
+                countWords = countWords + 1;
             }
         }
-        return CountWords;
+        return countWords;
     }
 
     public static dynamic ArrSlice(dynamic sourceArray, int fromIndex, int toIndex)
@@ -613,129 +612,129 @@ static class modUtils
             return null;
         }
 
-        Array Src = (Array)sourceArray;
-        fromIndex = FitRange(Src.GetLowerBound(0), fromIndex, Src.GetUpperBound(0));
-        toIndex = FitRange(fromIndex, toIndex, Src.GetUpperBound(0));
+        Array src = (Array)sourceArray;
+        fromIndex = FitRange(src.GetLowerBound(0), fromIndex, src.GetUpperBound(0));
+        toIndex = FitRange(fromIndex, toIndex, src.GetUpperBound(0));
 
-        Array tempList = Array.CreateInstance(Src.GetType().GetElementType(), Math.Max(0, toIndex - fromIndex + 1));
-        Array.Copy(Src, fromIndex, tempList, 0, tempList.Length);
+        Array tempList = Array.CreateInstance(src.GetType().GetElementType(), Math.Max(0, toIndex - fromIndex + 1));
+        Array.Copy(src, fromIndex, tempList, 0, tempList.Length);
         return tempList;
     }
 
-    public static void ArrAdd(ref dynamic[] Arr, dynamic Item)
+    public static void ArrAdd(ref dynamic[] arr, dynamic item)
     {
-        if (Arr == null)
+        if (arr == null)
         {
-            Arr = new dynamic[] { Item };
+            arr = new dynamic[] { item };
             return;
         }
-        Array.Resize(ref Arr, Arr.Length + 1);
-        Arr[Arr.Length - 1] = Item;
+        Array.Resize(ref arr, arr.Length + 1);
+        arr[arr.Length - 1] = item;
     }
 
     public static dynamic SubArr(dynamic sourceArray, int fromIndex, int copyLength)
     {
-        var SubArr = ArrSlice(sourceArray, fromIndex, fromIndex + copyLength - 1);
-        return SubArr;
+        var subArr = ArrSlice(sourceArray, fromIndex, fromIndex + copyLength - 1);
+        return subArr;
     }
 
-    public static bool InRange(dynamic LBnd, dynamic CHK, dynamic UBnd, bool IncludeBounds = true)
+    public static bool InRange(dynamic lBnd, dynamic chk, dynamic uBnd, bool includeBounds = true)
     {
-        bool InRange = false;
+        bool inRange = false;
         // TODO (not supported): On Error Resume Next // because we're doing this as variants..
-        if (IncludeBounds)
+        if (includeBounds)
         {
-            InRange = (CHK >= LBnd) && (CHK <= UBnd);
+            inRange = (chk >= lBnd) && (chk <= uBnd);
         }
         else
         {
-            InRange = (CHK > LBnd) && (CHK < UBnd);
+            inRange = (chk > lBnd) && (chk < uBnd);
         }
-        return InRange;
+        return inRange;
     }
 
-    public static dynamic FitRange(dynamic LBnd, dynamic CHK, dynamic UBnd)
+    public static dynamic FitRange(dynamic lBnd, dynamic chk, dynamic uBnd)
     {
-        dynamic FitRange = null;
+        dynamic fitRange = null;
         // TODO (not supported): On Error Resume Next
-        if (CHK < LBnd)
+        if (chk < lBnd)
         {
-            FitRange = LBnd;
+            fitRange = lBnd;
         }
-        else if (CHK > UBnd)
+        else if (chk > uBnd)
         {
-            FitRange = UBnd;
+            fitRange = uBnd;
         }
         else
         {
-            FitRange = CHK;
+            fitRange = chk;
         }
-        return FitRange;
+        return fitRange;
     }
 
-    public static int CodeSectionLoc(string S)
+    public static int CodeSectionLoc(string s)
     {
-        int CodeSectionLoc = 0;
-        const string Token = "Attribute VB_Name";
-        int K = 0;
+        int codeSectionLoc = 0;
+        const string token = "Attribute VB_Name";
+        int k = 0;
 
 
-        var N = InStr(S, Token);
-        if (N == 0)
+        var n = InStr(s, token);
+        if (n == 0)
         {
-            return CodeSectionLoc;
+            return codeSectionLoc;
 
         }
         do
         {
-            N = InStr(N, S, vbLf) + 1;
-            if (N <= 1)
+            n = InStr(n, s, vbLf) + 1;
+            if (n <= 1)
             {
-                return CodeSectionLoc;
+                return codeSectionLoc;
 
             }
-        } while (!(Mid(S, N, 10) == "Attribute "));
+        } while (!(Mid(s, n, 10) == "Attribute "));
 
-        CodeSectionLoc = N;
-        return CodeSectionLoc;
+        codeSectionLoc = n;
+        return codeSectionLoc;
     }
 
-    public static int CodeSectionGlobalEndLoc(string S)
+    public static int CodeSectionGlobalEndLoc(string s)
     {
-        int CodeSectionGlobalEndLoc = 0;
+        int codeSectionGlobalEndLoc = 0;
         do
         {
-            CodeSectionGlobalEndLoc = CodeSectionGlobalEndLoc + RegExNPos(Mid(S, CodeSectionGlobalEndLoc + 1), "([^a-zA-Z0-9_]Function |[^a-zA-Z0-9_]Sub |[^a-zA-Z0-9_]Property )") + 1;
-            if (CodeSectionGlobalEndLoc == 1)
+            codeSectionGlobalEndLoc = codeSectionGlobalEndLoc + RegExNPos(Mid(s, codeSectionGlobalEndLoc + 1), "([^a-zA-Z0-9_]Function |[^a-zA-Z0-9_]Sub |[^a-zA-Z0-9_]Property )") + 1;
+            if (codeSectionGlobalEndLoc == 1)
             {
-                CodeSectionGlobalEndLoc = Len(S);
-                return CodeSectionGlobalEndLoc;
+                codeSectionGlobalEndLoc = Len(s);
+                return codeSectionGlobalEndLoc;
 
             }
-        } while (!(Mid(S, CodeSectionGlobalEndLoc - 8, 8) == "Declare "));
-        if (CodeSectionGlobalEndLoc >= 8)
+        } while (!(Mid(s, codeSectionGlobalEndLoc - 8, 8) == "Declare "));
+        if (codeSectionGlobalEndLoc >= 8)
         {
-            if (Mid(S, CodeSectionGlobalEndLoc - 7, 7) == "Friend ")
+            if (Mid(s, codeSectionGlobalEndLoc - 7, 7) == "Friend ")
             {
-                CodeSectionGlobalEndLoc = CodeSectionGlobalEndLoc - 7;
+                codeSectionGlobalEndLoc = codeSectionGlobalEndLoc - 7;
             }
-            if (Mid(S, CodeSectionGlobalEndLoc - 7, 7) == "Public ")
+            if (Mid(s, codeSectionGlobalEndLoc - 7, 7) == "Public ")
             {
-                CodeSectionGlobalEndLoc = CodeSectionGlobalEndLoc - 7;
+                codeSectionGlobalEndLoc = codeSectionGlobalEndLoc - 7;
             }
-            if (Mid(S, CodeSectionGlobalEndLoc - 8, 8) == "Private ")
+            if (Mid(s, codeSectionGlobalEndLoc - 8, 8) == "Private ")
             {
-                CodeSectionGlobalEndLoc = CodeSectionGlobalEndLoc - 8;
+                codeSectionGlobalEndLoc = codeSectionGlobalEndLoc - 8;
             }
         }
-        CodeSectionGlobalEndLoc = CodeSectionGlobalEndLoc - 1;
-        return CodeSectionGlobalEndLoc;
+        codeSectionGlobalEndLoc = codeSectionGlobalEndLoc - 1;
+        return codeSectionGlobalEndLoc;
     }
 
-    public static bool isOperator(string S)
+    public static bool IsOperator(string s)
     {
         bool isOperator = false;
-        switch (Trim(S))
+        switch (Trim(s))
         {
             case "+":
                 isOperator = true;
@@ -747,129 +746,129 @@ static class modUtils
         return isOperator;
     }
 
-    public static void Prg(int Val = -1, int Max = -1, string Cap = "#")
+    public static void Prg(int val = -1, int max = -1, string cap = "#")
     {
-        frm.instance.Prg(Val, Max, Cap);
+        Frm.Instance.Prg(val, max, cap);
     }
 
-    public static string cVal(ref Collection Coll, string Key, string Def = "")
+    public static string CVal(ref Collection coll, string key, string def = "")
     {
         var cVal =
             // TODO (not supported):   On Error Resume Next
-            Def;
-        cVal = Coll.Item(LCase(Key));
+            def;
+        cVal = coll.Item(LCase(key));
         return cVal;
     }
 
-    public static string cValP(ref Collection Coll, string Key, string Def = "")
+    public static string CValP(ref Collection coll, string key, string def = "")
     {
-        var cValP = P(deQuote(cVal(ref Coll, Key, Def)));
+        var cValP = P(DeQuote(CVal(ref coll, key, def)));
         return cValP;
     }
 
-    public static string P(string Str)
+    public static string P(string str)
     {
-        Str = Replace(Str, "&", "&amp;");
-        Str = Replace(Str, "<", "&lt;");
-        Str = Replace(Str, ">", "&gt;");
-        var P = Str;
-        return P;
+        str = Replace(str, "&", "&amp;");
+        str = Replace(str, "<", "&lt;");
+        str = Replace(str, ">", "&gt;");
+        var p = str;
+        return p;
     }
 
-    public static string ModuleName(string S)
+    public static string ModuleName(string s)
     {
-        const string NameTag = "Attribute VB_Name = \"";
-        var J = InStr(S, NameTag) + Len(NameTag);
-        var K = InStr(J, S, "\"") - J;
-        var ModuleName = Mid(S, J, K);
-        return ModuleName;
+        const string nameTag = "Attribute VB_Name = \"";
+        var j = InStr(s, nameTag) + Len(nameTag);
+        var k = InStr(j, s, "\"") - j;
+        var moduleName = Mid(s, j, k);
+        return moduleName;
     }
 
-    public static bool IsInCode(string Src, int N_UNUSED)
+    public static bool IsInCode(string src, int nUnused)
     {
-        bool Qu = false;
+        bool qu = false;
 
-        var IsInCode = false;
-        for (var I = N_UNUSED; I > 0; I--)
+        var isInCode = false;
+        for (var I = nUnused; I > 0; I--)
         {
-            var C = Mid(Src, I, 1);
-            if (C == vbCr || C == vbLf)
+            var c = Mid(src, I, 1);
+            if (c == vbCr || c == vbLf)
             {
-                IsInCode = true;
-                return IsInCode;
+                isInCode = true;
+                return isInCode;
 
             }
-            else if (C == "\"")
+            else if (c == "\"")
             {
-                Qu = !Qu;
+                qu = !qu;
             }
-            else if (C == "'")
+            else if (c == "'")
             {
-                if (!Qu)
+                if (!qu)
                 {
-                    return IsInCode;
+                    return isInCode;
 
                 }
             }
         }
-        IsInCode = true;
-        return IsInCode;
+        isInCode = true;
+        return isInCode;
     }
 
-    public static string TokenList(string S)
+    public static string TokenList(string s)
     {
-        string TokenList = "";
+        string tokenList = "";
 
-        var N = RegExCount(S, patToken);
-        for (var I = 0; I <= N - 1; I++)
+        var n = RegExCount(s, patToken);
+        for (var I = 0; I <= n - 1; I++)
         {
-            var T = RegExNMatch(S, patToken, I);
-            TokenList = TokenList + "," + T;
+            var T = RegExNMatch(s, patToken, I);
+            tokenList = tokenList + "," + T;
         }
-        return TokenList;
+        return tokenList;
     }
 
-    public static int Random(int Max = 10000)
+    public static int Random(int max = 10000)
     {
         Randomize();
-        var Random = (int)((Rnd() * Max) + 1);
-        return Random;
+        var random = (int)((Rnd() * max) + 1);
+        return random;
     }
 
-    public static string Stack(ref string Src, string Val = "##REM##", bool Peek = false)
+    public static string Stack(ref string src, string val = "##REM##", bool peek = false)
     {
-        string Stack = "";
-        if (Val == "##REM##")
+        string stack = "";
+        if (val == "##REM##")
         {
-            Stack = nextBy(Src, ",");
-            if (!Peek)
+            stack = NextBy(src, ",");
+            if (!peek)
             {
-                Src = Mid(Src, Len(Stack) + 2);
+                src = Mid(src, Len(stack) + 2);
             }
-            Stack = Replace(Stack, "\"\"", "\"");
-            if (Left(Stack, 1) == "\"")
+            stack = Replace(stack, "\"\"", "\"");
+            if (Left(stack, 1) == "\"")
             {
-                Stack = Mid(Stack, 2);
-                Stack = Left(Stack, Len(Stack) - 1);
+                stack = Mid(stack, 2);
+                stack = Left(stack, Len(stack) - 1);
             }
         }
         else
         {
-            Src = "\"" + Replace(Val, "\"", "\"\"") + "\"," + Src;
-            Stack = Val;
+            src = "\"" + Replace(val, "\"", "\"\"") + "\"," + src;
+            stack = val;
         }
-        return Stack;
+        return stack;
     }
 
-    public static string QuoteXML(string S)
+    public static string QuoteXml(string s)
     {
-        var QuoteXML = S;
-        QuoteXML = Replace(S, "\"", "&quot;");
-        QuoteXML = Quote(QuoteXML);
-        return QuoteXML;
+        var quoteXml = s;
+        quoteXml = Replace(s, "\"", "&quot;");
+        quoteXml = Quote(quoteXml);
+        return quoteXml;
     }
 
-    public static string ReduceString(string Src, string Allowed = "", string Subst = "-", int MaxLen = 0, bool bLCase = true)
+    public static string ReduceString(string src, string allowed = "", string subst = "-", int maxLen = 0, bool bLCase = true)
     {
         //::::ReduceString
         //:::SUMMARY
@@ -896,42 +895,42 @@ static class modUtils
         //:::SEE ALSO
         //:  ArrangeString, StringNumerals, slug, CleanANI
 
-        if (Allowed == "")
+        if (allowed == "")
         {
-            Allowed = STR_CHR_UCASE + STR_CHR_LCASE + STR_CHR_DIGIT;
+            allowed = strChrUcase + strChrLcase + strChrDigit;
         }
-        var ReduceString = "";
-        var N = Len(Src);
-        for (var I = 1; I <= N; I++)
+        var reduceString = "";
+        var n = Len(src);
+        for (var I = 1; I <= n; I++)
         {
-            var C = Mid(Src, I, 1);
-            ReduceString = ReduceString + IIf(IsInStr(Allowed, C), C, Subst);
-        }
-
-        if (Subst != "")
-        {
-            while (IsInStr(ReduceString, Subst + Subst))
-            {
-                ReduceString = Replace(ReduceString, Subst + Subst, Subst);
-            }
-            while (Left(ReduceString, Len(Subst)) == Subst)
-            {
-                ReduceString = Mid(ReduceString, Len(Subst) + 1);
-            }
-            while (Right(ReduceString, Len(Subst)) == Subst)
-            {
-                ReduceString = Left(ReduceString, Len(ReduceString) - Len(Subst));
-            }
+            var c = Mid(src, I, 1);
+            reduceString = reduceString + IIf(IsInStr(allowed, c), c, subst);
         }
 
-        if (MaxLen > 0)
+        if (subst != "")
         {
-            ReduceString = Left(ReduceString, MaxLen);
+            while (IsInStr(reduceString, subst + subst))
+            {
+                reduceString = Replace(reduceString, subst + subst, subst);
+            }
+            while (Left(reduceString, Len(subst)) == subst)
+            {
+                reduceString = Mid(reduceString, Len(subst) + 1);
+            }
+            while (Right(reduceString, Len(subst)) == subst)
+            {
+                reduceString = Left(reduceString, Len(reduceString) - Len(subst));
+            }
+        }
+
+        if (maxLen > 0)
+        {
+            reduceString = Left(reduceString, maxLen);
         }
         if (bLCase)
         {
-            ReduceString = LCase(ReduceString);
+            reduceString = LCase(reduceString);
         }
-        return ReduceString;
+        return reduceString;
     }
 }

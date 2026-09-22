@@ -1,20 +1,21 @@
 using System.Windows;
+using Vb6ToCSharp.Modules;
 using static Microsoft.VisualBasic.Constants;
 using static Microsoft.VisualBasic.FileSystem;
 using static Microsoft.VisualBasic.Interaction;
 using static Microsoft.VisualBasic.Strings;
-using static modConfig;
+using static Vb6ToCSharp.Modules.ModConfig;
 
 
-namespace VB2CS.Forms
+namespace Vb6ToCSharp.Forms
 {
-    public partial class frmConfig : Window
+    public partial class FrmConfig : Window
     {
-        private static frmConfig _instance;
-        public static frmConfig instance { set { _instance = null; } get { return _instance ?? (_instance = new frmConfig()); } }
-        public static void Load() { if (_instance == null) { dynamic A = frmConfig.instance; } }
-        public static void Unload() { if (_instance != null) instance.Close(); _instance = null; }
-        public frmConfig() { InitializeComponent(); }
+        private static FrmConfig _instance;
+        public static FrmConfig Instance { set { _instance = null; } get { return _instance ?? (_instance = new FrmConfig()); } }
+        public static void Load() { if (_instance == null) { dynamic a = FrmConfig.Instance; } }
+        public static void Unload() { if (_instance != null) Instance.Close(); _instance = null; }
+        public FrmConfig() { InitializeComponent(); }
 
 
         // Option Explicit //Right Justify
@@ -23,11 +24,11 @@ namespace VB2CS.Forms
         private void Form_Load(object sender, RoutedEventArgs e) { Form_Load(); }
         private void Form_Load()
         {
-            modConfig.Hush = true;
-            txtVBPFile.Text = modConfig.vbpFile;
-            txtOutput.Text = modConfig.OutputFolder();
-            txtAssemblyName.Text = modConfig.AssemblyName();
-            modConfig.Hush = false;
+            ModConfig.hush = true;
+            txtVBPFile.Text = ModConfig.VbpFile;
+            txtOutput.Text = ModConfig.OutputFolder();
+            txtAssemblyName.Text = ModConfig.AssemblyName();
+            ModConfig.hush = false;
         }
 
         private void cmdCancel_Click(object sender, RoutedEventArgs e) { cmdCancel_Click(); }
@@ -39,14 +40,14 @@ namespace VB2CS.Forms
         private void cmdOK_Click(object sender, RoutedEventArgs e) { cmdOK_Click(); }
         private void cmdOK_Click()
         {
-            modINI.INIWrite(INISection_Settings, INIKey_VBPFile, txtVBPFile.Text, INIFile());
-            modINI.INIWrite(INISection_Settings, INIKey_OutputFolder, txtOutput.Text, INIFile());
-            modINI.INIWrite(INISection_Settings, INIKey_AssemblyName, txtAssemblyName.Text, INIFile());
-            modConfig.LoadSettings(true);
+            ModIni.IniWrite(iniSectionSettings, iniKeyVbpFile, txtVBPFile.Text, IniFile());
+            ModIni.IniWrite(iniSectionSettings, iniKeyOutputFolder, txtOutput.Text, IniFile());
+            ModIni.IniWrite(iniSectionSettings, iniKeyAssemblyName, txtAssemblyName.Text, IniFile());
+            ModConfig.LoadSettings(true);
             Unload();
         }
 
-        private void txtOutput_Validate(ref bool Cancel_UNUSED)
+        private void txtOutput_Validate(ref bool cancelUnused)
         {
             if (Dir(txtOutput.Text, vbDirectory) == "")
             {
@@ -54,7 +55,7 @@ namespace VB2CS.Forms
             }
         }
 
-        private void txtVBPFile_Validate(ref bool Cancel_UNUSED)
+        private void txtVBPFile_Validate(ref bool cancelUnused)
         {
             if (Dir(txtVBPFile.Text) == "")
             {
@@ -62,7 +63,7 @@ namespace VB2CS.Forms
             }
         }
 
-        private void txtAssemblyName_Validate(ref bool Cancel_UNUSED)
+        private void txtAssemblyName_Validate(ref bool cancelUnused)
         {
             if (txtAssemblyName.Text == "")
             {

@@ -1,18 +1,18 @@
 using System.Windows;
-using static Microsoft.VisualBasic.Interaction;
+using Vb6ToCSharp.Modules;
 using static Microsoft.VisualBasic.Strings;
-using static VBExtension;
+using static Vb6ToCSharp.VbExtension;
 
 
-namespace VB2CS.Forms
+namespace Vb6ToCSharp.Forms
 {
-    public partial class frmLinter : Window
+    public partial class FrmLinter : Window
     {
-        private static frmLinter _instance;
-        public static frmLinter instance { set { _instance = null; } get { return _instance ?? (_instance = new frmLinter()); } }
-        public static void Load() { if (_instance == null) { dynamic A = frmLinter.instance; } }
-        public static void Unload() { if (_instance != null) instance.Close(); _instance = null; }
-        public frmLinter() { InitializeComponent(); }
+        private static FrmLinter _instance;
+        public static FrmLinter Instance { set { _instance = null; } get { return _instance ?? (_instance = new FrmLinter()); } }
+        public static void Load() { if (_instance == null) { dynamic a = FrmLinter.Instance; } }
+        public static void Unload() { if (_instance != null) Instance.Close(); _instance = null; }
+        public FrmLinter() { InitializeComponent(); }
 
 
         // Option Explicit //Right Justify
@@ -21,7 +21,7 @@ namespace VB2CS.Forms
         private void Form_Load(object sender, RoutedEventArgs e) { Form_Load(); }
         private void Form_Load()
         {
-            txtVBPFile.Text = modConfig.vbpFile;
+            txtVBPFile.Text = ModConfig.VbpFile;
             txtFile.Text = "";
         }
 
@@ -34,26 +34,26 @@ namespace VB2CS.Forms
         private void cmdLint_Click(object sender, RoutedEventArgs e) { cmdLint_Click(); }
         private void cmdLint_Click()
         {
-            string Results = "";
+            string results = "";
 
 
             fraConfig.IsEnabled = false;
             if (txtFile.Text == "")
             {
-                Results = modQuickLint.Lint();
+                results = ModQuickLint.Lint();
             }
             else
             {
-                var File = txtFile.Text;
-                if (InStr(File, "\\") == 0)
+                var file = txtFile.Text;
+                if (InStr(file, "\\") == 0)
                 {
-                    File = Left(txtVBPFile.Text, InStrRev(txtVBPFile.Text, "\\")) + File;
+                    file = Left(txtVBPFile.Text, InStrRev(txtVBPFile.Text, "\\")) + file;
                 }
-                Results = modQuickLint.Lint(File);
+                results = ModQuickLint.Lint(file);
             }
             fraConfig.IsEnabled = true;
 
-            txtResults.Text = IIf(Results == "", "Done.", Results);
+            txtResults.Text = IIf(results == "", "Done.", results);
         }
 
 

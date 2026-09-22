@@ -1,107 +1,106 @@
-using ADODB;
-using Microsoft.VisualBasic;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Windows.Documents;
+using Microsoft.VisualBasic;
 using static Microsoft.VisualBasic.Constants;
 using static Microsoft.VisualBasic.DateAndTime;
 using static Microsoft.VisualBasic.FileSystem;
 using static Microsoft.VisualBasic.Information;
 using static Microsoft.VisualBasic.Interaction;
 using static Microsoft.VisualBasic.Strings;
-using static modProjectFiles;
-using static modRegEx;
-using static VBExtension;
+using static Vb6ToCSharp.Modules.ModProjectFiles;
+using static Vb6ToCSharp.Modules.ModRegEx;
+using static Vb6ToCSharp.VbExtension;
 
 
-static class modQuickLint
+namespace Vb6ToCSharp.Modules;
+
+static class ModQuickLint
 {
     // Option Explicit
-    private const int Idnt = 2;
-    private const int MAX_ERRORS = 50;
-    private const string Attr = "Attribute";
-    private const string Q = "\"";
-    private const string A = "'";
-    private const string S = " ";
-    private const string LintKey = "'@NO-LINT";
-    private const string TY_ALLTY = "AllTy";
-    private const string TY_ERROR = "Error";
-    private const string TY_INDNT = "Indnt";
-    private const string TY_ARGNA = "ArgNa";
-    private const string TY_ARGTY = "ArgTy";
-    private const string TY_FSPNA = "FSPNa";
-    private const string TY_DEPRE = "Depre";
-    private const string TY_MIGRA = "Migra";
-    private const string TY_STYLE = "Style";
-    private const string TY_BLANK = "Blank";
-    private const string TY_EXPLI = "Expli";
-    private const string TY_COMPA = "Compa";
-    private const string TY_TYPEC = "TypeC";
-    private const string TY_NOTYP = "NoTyp";
-    private const string TY_BYRFV = "ByReV";
-    private const string TY_PRIPU = "PriPu";
-    private const string TY_FNCRE = "FncRe";
-    private const string TY_CORRE = "Corre";
-    private const string TY_GOSUB = "GoSub";
-    private const string TY_CSTOP = "CStop";
-    private const string TY_OPDEF = "OpDef";
-    private const string TY_DFCTL = "DfCtl";
-    public static string ErrorPrefix = "";
-    public static string ErrorIgnore = "";
+    private const int idnt = 2;
+    private const int maxErrors = 50;
+    private const string attr = "Attribute";
+    private const string q = "\"";
+    private const string a = "'";
+    private const string s = " ";
+    private const string lintKey = "'@NO-LINT";
+    private const string tyAllty = "AllTy";
+    private const string tyError = "Error";
+    private const string tyIndnt = "Indnt";
+    private const string tyArgna = "ArgNa";
+    private const string tyArgty = "ArgTy";
+    private const string tyFspna = "FSPNa";
+    private const string tyDepre = "Depre";
+    private const string tyMigra = "Migra";
+    private const string tyStyle = "Style";
+    private const string tyBlank = "Blank";
+    private const string tyExpli = "Expli";
+    private const string tyCompa = "Compa";
+    private const string tyTypec = "TypeC";
+    private const string tyNotyp = "NoTyp";
+    private const string tyByrfv = "ByReV";
+    private const string tyPripu = "PriPu";
+    private const string tyFncre = "FncRe";
+    private const string tyCorre = "Corre";
+    private const string tyGosub = "GoSub";
+    private const string tyCstop = "CStop";
+    private const string tyOpdef = "OpDef";
+    private const string tyDfctl = "DfCtl";
+    public static string errorPrefix = "";
+    public static string errorIgnore = "";
 
 
     public static dynamic ErrorTypes()
     {
-        dynamic ErrorTypes = new[]{ TY_ALLTY, TY_ERROR, TY_INDNT, TY_ARGNA, TY_ARGTY, TY_FSPNA, TY_DEPRE, TY_MIGRA, TY_STYLE,
-            TY_BLANK, TY_EXPLI, TY_COMPA, TY_TYPEC, TY_NOTYP, TY_BYRFV, TY_PRIPU, TY_FNCRE, TY_CORRE, TY_GOSUB,
-            TY_CSTOP, TY_OPDEF, TY_DFCTL };
-        return ErrorTypes;
+        dynamic errorTypes = new[]{ tyAllty, tyError, tyIndnt, tyArgna, tyArgty, tyFspna, tyDepre, tyMigra, tyStyle,
+            tyBlank, tyExpli, tyCompa, tyTypec, tyNotyp, tyByrfv, tyPripu, tyFncre, tyCorre, tyGosub,
+            tyCstop, tyOpdef, tyDfctl };
+        return errorTypes;
     }
 
-    public static string Lint(string FileName = "", bool Alert_UNUSED = true)
+    public static string Lint(string fileName = "", bool alertUnused = true)
     {
-        if (FileName == "")
+        if (fileName == "")
         {
-            FileName = "prj.vbp";
+            fileName = "prj.vbp";
         }
-        if (InStr(FileName, "\\") == 0)
+        if (InStr(fileName, "\\") == 0)
         {
-            FileName = AppDomain.CurrentDomain.BaseDirectory + "\\" + FileName;
+            fileName = AppDomain.CurrentDomain.BaseDirectory + "\\" + fileName;
         }
-        var FileList = IIf(Right(FileName, 4) == ".vbp", VBPCode(FileName), FileName);
+        var fileList = IIf(Right(fileName, 4) == ".vbp", VbpCode(fileName), fileName);
 
-        var Lint = QuickLintFiles(FileList);
-        return Lint;
+        var lint = QuickLintFiles(fileList);
+        return lint;
     }
 
-    public static string QuickLintFiles(string List_UNUSED)
+    public static string QuickLintFiles(string listUnused)
     {
-        string QuickLintFiles = "";
+        string quickLintFiles = "";
         const int lintDotsPerRow = 50;
 
         int x = 0;
 
-        DateTime StartTime = DateTime.MinValue;
+        DateTime startTime = DateTime.MinValue;
 
-        StartTime = DateTime.Now; ;
+        startTime = DateTime.Now; ;
 
-        foreach (var iterL in Split(List_UNUSED, vbCrLf))
+        foreach (var iterL in Split(listUnused, vbCrLf))
         {
-            dynamic L = iterL;
+            dynamic l = iterL;
 
-            string Result = QuickLintFile(L);
-            if (Result != "")
+            string result = QuickLintFile(l);
+            if (result != "")
             {
-                Console.WriteLine(vbCrLf + "Done (" + DateDiff("s", StartTime, DateTime.Now) +"s).  To re-run for failing file, hit enter on the line below:");
-                string S = "LINT FAILED: " + L + vbCrLf + Result + vbCrLf + "?Lint(\"" + L + "\")";
-                QuickLintFiles = S;
-                return QuickLintFiles;
+                Console.WriteLine(vbCrLf + "Done (" + DateDiff("s", startTime, DateTime.Now) +"s).  To re-run for failing file, hit enter on the line below:");
+                string s = "LINT FAILED: " + l + vbCrLf + result + vbCrLf + "?Lint(\"" + l + "\")";
+                quickLintFiles = s;
+                return quickLintFiles;
 
             }
             else
             {
-                Console.Write(Switch(Right(L, 3) == "frm", "o", Right(L, 3) == "cls", "x", true, "."));
+                Console.Write(Switch(Right(l, 3) == "frm", "o", Right(l, 3) == "cls", "x", true, "."));
             }
             x = x + 1;
             if (x >= lintDotsPerRow)
@@ -111,106 +110,106 @@ static class modQuickLint
             }
             DoEvents();
         }
-        Console.WriteLine(vbCrLf + "Done (" + DateDiff("s", StartTime, DateTime.Now) +"s).");
-        QuickLintFiles = "";
-        return QuickLintFiles;
+        Console.WriteLine(vbCrLf + "Done (" + DateDiff("s", startTime, DateTime.Now) +"s).");
+        quickLintFiles = "";
+        return quickLintFiles;
     }
 
-    public static string QuickLintFile(string File)
+    public static string QuickLintFile(string file)
     {
-        string QuickLintFile = "";
-        if (InStr(File, "\\") == 0)
+        string quickLintFile = "";
+        if (InStr(file, "\\") == 0)
         {
-            File = AppDomain.CurrentDomain.BaseDirectory + "\\" + File;
+            file = AppDomain.CurrentDomain.BaseDirectory + "\\" + file;
         }
 
-        var FName = Mid(File, InStrRev(File, "\\") + 1);
-        var CheckName = Replace(Replace(Replace(FName, ".bas", ""), ".cls", ""), ".frm", "");
-        ErrorPrefix = Right(Space(18) + FName, 18) + " ";
-        var Contents = ReadEntireFile(File);
-        var GivenName = RegExNMatch(Contents, "Attribute VB_Name = \"([^\"]+)\"", 0);
-        GivenName = Replace(Replace(GivenName, "Attribute VB_Name = ", ""), "\"", "");
-        if (CheckName != GivenName)
+        var fName = Mid(file, InStrRev(file, "\\") + 1);
+        var checkName = Replace(Replace(Replace(fName, ".bas", ""), ".cls", ""), ".frm", "");
+        errorPrefix = Right(Space(18) + fName, 18) + " ";
+        var contents = ReadEntireFile(file);
+        var givenName = RegExNMatch(contents, "Attribute VB_Name = \"([^\"]+)\"", 0);
+        givenName = Replace(Replace(givenName, "Attribute VB_Name = ", ""), "\"", "");
+        if (checkName != givenName)
         {
-            QuickLintFile = "Module name [" + GivenName + "] must match file name [" + FName + "].  Rename module or class to match the other";
-            return QuickLintFile;
+            quickLintFile = "Module name [" + givenName + "] must match file name [" + fName + "].  Rename module or class to match the other";
+            return quickLintFile;
 
         }
-        QuickLintFile = QuickLintContents(Contents);
-        return QuickLintFile;
+        quickLintFile = QuickLintContents(contents);
+        return quickLintFile;
     }
 
-    public static string QuickLintContents(string Contents)
+    public static string QuickLintContents(string contents)
     {
-        List<string> Lines = new List<string> { }; // TODO - Specified Minimum Array Boundary Not Supported:   Dim Lines() As String, LL As Variant, L As String
+        List<string> lines = new List<string> { }; // TODO - Specified Minimum Array Boundary Not Supported:   Dim Lines() As String, LL As Variant, L As String
 
         // TODO (not supported): On Error GoTo LintError
-        ErrorIgnore = "";
-        Lines.AddRange(Split(Replace(Contents, vbCr, ""), vbLf));
+        errorIgnore = "";
+        lines.AddRange(Split(Replace(contents, vbCr, ""), vbLf));
 
-        bool InAttributes = false;
-        bool InBody = false;
-
-
-        string MultiLine = "";
-
-        int LineN = 0;
-
-        string Errors = "";
-        int ErrorCount = 0;
-
-        int BlankLineCount = 0;
-
-        Collection Options = new Collection();
+        bool inAttributes = false;
+        bool inBody = false;
 
 
-        var Indent = 0;
+        string multiLine = "";
 
-        TestDefaultControlNames(ref Errors, ref ErrorCount, 0, Contents);
+        int lineN = 0;
+
+        string errors = "";
+        int errorCount = 0;
+
+        int blankLineCount = 0;
+
+        Collection options = new Collection();
 
 
-        foreach (var iterLL in Lines)
+        var indent = 0;
+
+        TestDefaultControlNames(ref errors, ref errorCount, 0, contents);
+
+
+        foreach (var iterLl in lines)
         {
-            var LL = iterLL; // TODO - Specified Minimum Array Boundary Not Supported:   Dim Lines() As String, LL As Variant, L As String
-            if (ErrorCount >= MAX_ERRORS)
+            var ll = iterLl; // TODO - Specified Minimum Array Boundary Not Supported:   Dim Lines() As String, LL As Variant, L As String
+            if (errorCount >= maxErrors)
             {
                 break;
             }
 
-            if (Right(LL, 2) == " _")
+            if (Right(ll, 2) == " _")
             {
-                var Portion = Left(LL, Len(LL) - 2);
-                if (MultiLine != "")
+                var portion = Left(ll, Len(ll) - 2);
+                if (multiLine != "")
                 {
-                    Portion = Trim(Portion);
+                    portion = Trim(portion);
                 }
-                MultiLine = MultiLine + Portion;
-                LineN = LineN + 1;
+                multiLine = multiLine + portion;
+                lineN = lineN + 1;
                 goto NextLine;
             }
-            else if (MultiLine != "")
+            else if (multiLine != "")
             {
-                LL = MultiLine + Trim(LL);
-                MultiLine = "";
+                ll = multiLine + Trim(ll);
+                multiLine = "";
             }
 
-            TestBlankLines(ref Errors, ref ErrorCount, LineN, LL, ref BlankLineCount);
-            TestLintControl(LL);
-            var L = CleanLine(LL); // TODO - Specified Minimum Array Boundary Not Supported:   Dim Lines() As String, LL As Variant, L As String
+            TestBlankLines(ref errors, ref errorCount, lineN, ll, ref blankLineCount);
+            TestLintControl(ll);
+            var l = CleanLine(ll); // TODO - Specified Minimum Array Boundary Not Supported:   Dim Lines() As String, LL As Variant, L As String
 
-            if (!InBody)
+            if (!inBody)
             {
-                var IsAttribute = Left(L, 10) == "Attribute ";
-                if (!InAttributes && IsAttribute)
+                var isAttribute = Left(l, 10) == "Attribute ";
+                if (!inAttributes && isAttribute)
                 {
-                    InAttributes = true;
+                    inAttributes = true;
                     goto NextLine;
                 }
-                else if (InAttributes && !IsAttribute)
+                else if (inAttributes && !isAttribute)
                 {
-                    InAttributes = false;
-                    InBody = true;
-                    LineN = 0;
+                    inAttributes = false;
+                    inBody = true;
+                    lineN = 0;
                 }
                 else
                 {
@@ -218,586 +217,586 @@ static class modQuickLint
                 }
             }
 
-            LineN = LineN + 1;
+            lineN = lineN + 1;
             //If LineN = 15 Then Stop
 
-            bool UnindentedAlready = false;
+            bool unindentedAlready = false;
 
-            if (RegExTest(L, "^Option "))
+            if (RegExTest(l, "^Option "))
             {
-                Options.Add("true", Replace(L, "Options ", ""));
+                options.Add("true", Replace(l, "Options ", ""));
             }
-            else if (RegExTest(L, "^[ ]*(Else|ElseIf .* Then)$"))
+            else if (RegExTest(l, "^[ ]*(Else|ElseIf .* Then)$"))
             {
-                Indent = Indent - Idnt;
+                indent = indent - idnt;
             }
-            else if (RegExTest(L, "^[ ]*End Select$"))
+            else if (RegExTest(l, "^[ ]*End Select$"))
             {
-                Indent = Indent - Idnt - Idnt;
+                indent = indent - idnt - idnt;
             }
-            else if (RegExTest(L, "^[ ]*(End (If|Function|Sub|Property|Enum|Type)|Next( .*)?|Wend|Loop|Loop (While .*|Until .*))$"))
+            else if (RegExTest(l, "^[ ]*(End (If|Function|Sub|Property|Enum|Type)|Next( .*)?|Wend|Loop|Loop (While .*|Until .*))$"))
             {
-                Indent = Indent - Idnt;
-                UnindentedAlready = true;
+                indent = indent - idnt;
+                unindentedAlready = true;
             }
             else
             {
-                UnindentedAlready = false;
+                unindentedAlready = false;
             }
 
-            var LineIndent = 0;
-            while (Mid(RTrim(L), LineIndent + 1, 1) == S)
+            var lineIndent = 0;
+            while (Mid(RTrim(l), lineIndent + 1, 1) == s)
             {
-                LineIndent = LineIndent + 1;
+                lineIndent = lineIndent + 1;
             }
-            TestIndent(ref Errors, ref ErrorCount, LineN, L, LineIndent, IIf(!RegExTest(L, "^[ ]*Case "), Indent, Indent - Idnt));
+            TestIndent(ref errors, ref errorCount, lineN, l, lineIndent, IIf(!RegExTest(l, "^[ ]*Case "), indent, indent - idnt));
 
-            var Statements = Split(L, ": "); // TODO - Specified Minimum Array Boundary Not Supported:     Dim Statements() As String, SS As Variant, St As String
-            foreach (var iterSS in Statements)
+            var statements = Split(l, ": "); // TODO - Specified Minimum Array Boundary Not Supported:     Dim Statements() As String, SS As Variant, St As String
+            foreach (var iterSs in statements)
             {
-                var SS = iterSS; // TODO - Specified Minimum Array Boundary Not Supported:     Dim Statements() As String, SS As Variant, St As String
-                var St = SS; // TODO - Specified Minimum Array Boundary Not Supported:     Dim Statements() As String, SS As Variant, St As String
+                var ss = iterSs; // TODO - Specified Minimum Array Boundary Not Supported:     Dim Statements() As String, SS As Variant, St As String
+                var st = ss; // TODO - Specified Minimum Array Boundary Not Supported:     Dim Statements() As String, SS As Variant, St As String
 
-                if (RegExTest(L, "^[ ]*(Else|ElseIf .* Then)$"))
+                if (RegExTest(l, "^[ ]*(Else|ElseIf .* Then)$"))
                 {
-                    Indent = Indent + Idnt;
+                    indent = indent + idnt;
                 }
-                else if (RegExTest(St, "^[ ]*(End (If|Function|Sub|Property)|Next|Wend|Loop|Loop .*|Enum|Type|Select)$"))
+                else if (RegExTest(st, "^[ ]*(End (If|Function|Sub|Property)|Next|Wend|Loop|Loop .*|Enum|Type|Select)$"))
                 {
-                    if (!UnindentedAlready)
+                    if (!unindentedAlready)
                     {
-                        Indent = Indent - Idnt;
+                        indent = indent - idnt;
                     }
                 }
-                else if (RegExTest(St, "^[ ]*If "))
+                else if (RegExTest(st, "^[ ]*If "))
                 {
-                    if (!RegExTest(St, "Then "))
+                    if (!RegExTest(st, "Then "))
                     {
-                        Indent = Indent + Idnt;
+                        indent = indent + idnt;
                     }
                 }
-                else if (RegExTest(St, "^[ ]*For "))
+                else if (RegExTest(st, "^[ ]*For "))
                 {
-                    if (!RegExTest(St, " Next"))
+                    if (!RegExTest(st, " Next"))
                     {
-                        Indent = Indent + Idnt;
+                        indent = indent + idnt;
                     }
                 }
-                else if (RegExTest(St, "^[ ]*Next$"))
+                else if (RegExTest(st, "^[ ]*Next$"))
                 {
-                    Indent = Indent - Idnt;
+                    indent = indent - idnt;
                 }
-                else if (RegExTest(St, "^[ ]*Next [a-zA-Z_][a-zA-Z0-9_]*$"))
+                else if (RegExTest(st, "^[ ]*Next [a-zA-Z_][a-zA-Z0-9_]*$"))
                 {
-                    RecordError(ref Errors, ref ErrorCount, TY_STYLE, LineN, "Remove variable from NEXT statement");
-                    Indent = Indent - Idnt;
+                    RecordError(ref errors, ref errorCount, tyStyle, lineN, "Remove variable from NEXT statement");
+                    indent = indent - idnt;
                 }
-                else if (RegExTest(St, "^[ ]*While "))
+                else if (RegExTest(st, "^[ ]*While "))
                 {
-                    RecordError(ref Errors, ref ErrorCount, TY_STYLE, LineN, "Use Do While/Until...Loop in place of While...Wend");
-                    if (!RegExTest(St, " Wend$"))
+                    RecordError(ref errors, ref errorCount, tyStyle, lineN, "Use Do While/Until...Loop in place of While...Wend");
+                    if (!RegExTest(st, " Wend$"))
                     {
-                        Indent = Indent + Idnt;
+                        indent = indent + idnt;
                     }
                 }
-                else if (RegExTest(St, "^[ ]*Do (While|Until)"))
+                else if (RegExTest(st, "^[ ]*Do (While|Until)"))
                 {
-                    if (!RegExTest(St, ": Loop"))
+                    if (!RegExTest(st, ": Loop"))
                     {
-                        Indent = Indent + Idnt;
+                        indent = indent + idnt;
                     }
                 }
-                else if (RegExTest(St, "^[ ]*Loop$"))
+                else if (RegExTest(st, "^[ ]*Loop$"))
                 {
                 }
-                else if (RegExTest(St, "^[ ]*Do$"))
+                else if (RegExTest(st, "^[ ]*Do$"))
                 {
-                    Indent = Indent + Idnt;
+                    indent = indent + idnt;
                 }
-                else if (RegExTest(St, "^[ ]*Loop While"))
+                else if (RegExTest(st, "^[ ]*Loop While"))
                 {
-                    Indent = Indent - Idnt;
+                    indent = indent - idnt;
                 }
-                else if (RegExTest(St, "^[ ]*Select Case "))
+                else if (RegExTest(st, "^[ ]*Select Case "))
                 {
-                    Indent = Indent + Idnt + Idnt;
+                    indent = indent + idnt + idnt;
                 }
-                else if (RegExTest(St, "^[ ]*With "))
+                else if (RegExTest(st, "^[ ]*With "))
                 {
-                    RecordError(ref Errors, ref ErrorCount, TY_MIGRA, LineN, "Remove all uses of WITH.  No migration path exists.");
+                    RecordError(ref errors, ref errorCount, tyMigra, lineN, "Remove all uses of WITH.  No migration path exists.");
                 }
-                else if (RegExTest(St, "^[ ]*(Private |Public )?Declare (Function |Sub )"))
+                else if (RegExTest(st, "^[ ]*(Private |Public )?Declare (Function |Sub )"))
                 {
                     // External Api
                 }
-                else if (RegExTest(St, "^((Private|Public|Friend) )?Function "))
+                else if (RegExTest(st, "^((Private|Public|Friend) )?Function "))
                 {
-                    if (!RegExTest(St, ": End Function"))
+                    if (!RegExTest(st, ": End Function"))
                     {
-                        Indent = Indent + Idnt;
+                        indent = indent + idnt;
                     }
-                    TestSignature(ref Errors, ref ErrorCount, LineN, St);
+                    TestSignature(ref errors, ref errorCount, lineN, st);
                 }
-                else if (RegExTest(St, "^((Private|Public|Friend) )?Sub "))
+                else if (RegExTest(st, "^((Private|Public|Friend) )?Sub "))
                 {
-                    if (!RegExTest(St, ": End Sub"))
+                    if (!RegExTest(st, ": End Sub"))
                     {
-                        Indent = Indent + Idnt;
+                        indent = indent + idnt;
                     }
-                    TestSignature(ref Errors, ref ErrorCount, LineN, St);
+                    TestSignature(ref errors, ref errorCount, lineN, st);
                 }
-                else if (RegExTest(St, "^((Private|Public|Friend) )?Property (Get|Let|Set) "))
+                else if (RegExTest(st, "^((Private|Public|Friend) )?Property (Get|Let|Set) "))
                 {
-                    if (!RegExTest(St, ": End Property"))
+                    if (!RegExTest(st, ": End Property"))
                     {
-                        Indent = Indent + Idnt;
+                        indent = indent + idnt;
                     }
-                    TestSignature(ref Errors, ref ErrorCount, LineN, St);
+                    TestSignature(ref errors, ref errorCount, lineN, st);
                 }
-                else if (RegExTest(St, "^[ ]*(Public |Private )?(Enum |Type )"))
+                else if (RegExTest(st, "^[ ]*(Public |Private )?(Enum |Type )"))
                 {
-                    Indent = Indent + Idnt;
+                    indent = indent + idnt;
                 }
-                else if (RegExTest(St, "^[ ]*(Public |Private )?Declare "))
+                else if (RegExTest(st, "^[ ]*(Public |Private )?Declare "))
                 {
-                    Indent = Indent + Idnt;
+                    indent = indent + idnt;
                 }
-                else if (RegExTest(St, "^[ ]*(Dim|Private|Public|Const|Global) "))
+                else if (RegExTest(st, "^[ ]*(Dim|Private|Public|Const|Global) "))
                 {
-                    TestDeclaration(ref Errors, ref ErrorCount, LineN, St, false);
+                    TestDeclaration(ref errors, ref errorCount, lineN, st, false);
                 }
                 else
                 {
-                    TestCodeLine(ref Errors, ref ErrorCount, LineN, St);
+                    TestCodeLine(ref errors, ref errorCount, lineN, st);
                 }
                 NextStatement:;
             }
             NextLine:;
         }
 
-        TestModuleOptions(ref Errors, ref ErrorCount, Options);
+        TestModuleOptions(ref errors, ref errorCount, options);
 
-        var QuickLintContents = Errors;
-        return QuickLintContents;
+        var quickLintContents = errors;
+        return quickLintContents;
 
         LintError:;
-        RecordError(ref Errors, ref ErrorCount, TY_ERROR, 0, "Linter Error [" + Err().Number + "]: " + Err().Description);
-        QuickLintContents = Errors;
-        return QuickLintContents;
+        RecordError(ref errors, ref errorCount, tyError, 0, "Linter Error [" + Err().Number + "]: " + Err().Description);
+        quickLintContents = errors;
+        return quickLintContents;
     }
 
     private static string ReadEntireFile(string tFileName)
     {
         // TODO (not supported): On Error Resume Next
 
-        var mFSO = CreateObject("Scripting.FileSystemObject");
-        string ReadEntireFile = mFSO.OpenTextFile(tFileName, 1).ReadAll;
+        var mFso = CreateObject("Scripting.FileSystemObject");
+        string readEntireFile = mFso.OpenTextFile(tFileName, 1).ReadAll;
 
-        if (FileLen(tFileName) / 10 != Len(ReadEntireFile) / 10)
+        if (FileLen(tFileName) / 10 != Len(readEntireFile) / 10)
         {
-            MsgBox("ReadEntireFile was short: " + FileLen(tFileName) + " vs " + Len(ReadEntireFile));
+            MsgBox("ReadEntireFile was short: " + FileLen(tFileName) + " vs " + Len(readEntireFile));
         }
-        return ReadEntireFile;
+        return readEntireFile;
     }
 
-    public static string CleanLine(string Line)
+    public static string CleanLine(string line)
     {
         int x = 0;
 
         while (true)
         {
-            x = InStr(Line, Q);
+            x = InStr(line, q);
             if (x == 0)
             {
                 break;
             }
 
-            var Y = InStr(x + 1, Line, Q);
-            while (Mid(Line, Y + 1, 1) == Q)
+            var y = InStr(x + 1, line, q);
+            while (Mid(line, y + 1, 1) == q)
             {
-                Y = InStr(Y + 2, Line, Q);
+                y = InStr(y + 2, line, q);
             }
 
-            if (Y == 0)
+            if (y == 0)
             {
                 break;
             }
-            Line = Left(Line, x - 1) + new String('S',Y - x + 1) + Mid(Line, Y + 1);
+            line = Left(line, x - 1) + new String('S',y - x + 1) + Mid(line, y + 1);
         }
 
-        x = InStr(Line, A);
+        x = InStr(line, a);
         if (x > 0)
         {
-            Line = RTrim(Left(Line, x - 1));
+            line = RTrim(Left(line, x - 1));
         }
 
-        var CleanLine = Line;
-        return CleanLine;
+        var cleanLine = line;
+        return cleanLine;
     }
 
-    public static void RecordError(ref string Errors, ref int ErrorCount, string Typ, int LineN, string Error)
+    public static void RecordError(ref string errors, ref int errorCount, string typ, int lineN, string error)
     {
-        if (InStr(ErrorIgnore, UCase(Typ)) > 0 || InStr(ErrorIgnore, TY_ALLTY) > 0)
+        if (InStr(errorIgnore, UCase(typ)) > 0 || InStr(errorIgnore, tyAllty) > 0)
         {
             return;
 
         }
 
-        if (Len(Errors) != 0)
+        if (Len(errors) != 0)
         {
-            Errors = Errors + vbCrLf;
+            errors = errors + vbCrLf;
         }
-        if (InStr(Join(ErrorTypes(), ","), Typ) == 0)
+        if (InStr(Join(ErrorTypes(), ","), typ) == 0)
         {
-            Errors = Errors + ErrorPrefix + "[" + TY_ERROR + "] Line " + Right(Space(5) + LineN, 5) + ": Unknown error type in linter (add to ErrorTypes): " + Typ;
+            errors = errors + errorPrefix + "[" + tyError + "] Line " + Right(Space(5) + lineN, 5) + ": Unknown error type in linter (add to ErrorTypes): " + typ;
         }
-        Errors = Errors + ErrorPrefix + "[" + Right(Space(5) + Typ, 5) + "] Line " + Right(Space(5) + LineN, 5) + ": " + Error;
-        ErrorCount = ErrorCount + 1;
+        errors = errors + errorPrefix + "[" + Right(Space(5) + typ, 5) + "] Line " + Right(Space(5) + lineN, 5) + ": " + error;
+        errorCount = errorCount + 1;
     }
 
-    public static bool StartsWith(string L, string Find)
+    public static bool StartsWith(string l, string find)
     {
-        var StartsWith = Left(L, Len(Find)) == Find;
-        return StartsWith;
+        var startsWith = Left(l, Len(find)) == find;
+        return startsWith;
     }
 
-    public static string StripLeft(string L, string Find)
+    public static string StripLeft(string l, string find)
     {
-        string StripLeft = "";
-        if (StartsWith(L, Find))
+        string stripLeft = "";
+        if (StartsWith(l, find))
         {
-            StripLeft = Mid(L, Len(Find) + 1);
+            stripLeft = Mid(l, Len(find) + 1);
         }
         else
         {
-            StripLeft = L;
+            stripLeft = l;
         }
-        return StripLeft;
+        return stripLeft;
     }
 
-    public static void TestIndent(ref string Errors, ref int ErrorCount, int LineN, string L, int LineIndent, int ExpectedIndent)
+    public static void TestIndent(ref string errors, ref int errorCount, int lineN, string l, int lineIndent, int expectedIndent)
     {
-        if (RTrim(L) == "")
+        if (RTrim(l) == "")
         {
             return;
 
         }
-        if (RegExTest(L, "^On Error "))
+        if (RegExTest(l, "^On Error "))
         {
             return;
 
         }
-        if (RegExTest(L, "^[a-zA-Z][a-zA-Z0-9]*:$"))
+        if (RegExTest(l, "^[a-zA-Z][a-zA-Z0-9]*:$"))
         {
             return;
 
         }
 
-        if (LineIndent != ExpectedIndent)
+        if (lineIndent != expectedIndent)
         {
-            RecordError(ref Errors, ref ErrorCount, TY_INDNT, LineN, "Incorrect Indent -- expected " + ExpectedIndent + ", got " + LineIndent);
+            RecordError(ref errors, ref errorCount, tyIndnt, lineN, "Incorrect Indent -- expected " + expectedIndent + ", got " + lineIndent);
         }
     }
 
-    public static void TestBlankLines(ref string Errors, ref int ErrorCount, int LineN, string L, ref int BlankLineCount)
+    public static void TestBlankLines(ref string errors, ref int errorCount, int lineN, string l, ref int blankLineCount)
     {
-        if (Trim(L) != "")
+        if (Trim(l) != "")
         {
-            BlankLineCount = 0;
+            blankLineCount = 0;
             return;
 
         }
-        BlankLineCount = BlankLineCount + 1;
-        if (BlankLineCount > 3)
+        blankLineCount = blankLineCount + 1;
+        if (blankLineCount > 3)
         {
-            RecordError(ref Errors, ref ErrorCount, TY_BLANK, LineN, "Too many blank lines.");
+            RecordError(ref errors, ref errorCount, tyBlank, lineN, "Too many blank lines.");
         }
     }
 
-    public static void TestLintControl(string L)
+    public static void TestLintControl(string l)
     {
-        dynamic LL = null;
+        dynamic ll = null;
 
-        if (InStr(L, LintKey) == 0)
+        if (InStr(l, lintKey) == 0)
         {
             return;
 
         }
 
-        var Match = RegExNMatch(L, LintKey + "(-.....)?", 0);
-        var Typ = IIf(Match == LintKey, TY_ALLTY, Replace(Match, LintKey + "-", ""));
-        ErrorIgnore = ErrorIgnore + "," + Typ;
+        var match = RegExNMatch(l, lintKey + "(-.....)?", 0);
+        var typ = IIf(match == lintKey, tyAllty, Replace(match, lintKey + "-", ""));
+        errorIgnore = errorIgnore + "," + typ;
     }
 
-    public static void TestModuleOptions(ref string Errors, ref int ErrorCount, Collection Options)
+    public static void TestModuleOptions(ref string errors, ref int errorCount, Collection options)
     {
         // TODO (not supported): On Error Resume Next
 
-        var Value = Options["Explicit"].ToString();
-        if (Value != "")
+        var value = options["Explicit"].ToString();
+        if (value != "")
         {
-            RecordError(ref Errors, ref ErrorCount, TY_EXPLI, 0, "Option Explicit not set on file");
+            RecordError(ref errors, ref errorCount, tyExpli, 0, "Option Explicit not set on file");
         }
 
-        Value = "";
-        Value = Options["Compare Binary"].ToString();
-        Value = Options["Compare Database"].ToString();
-        if (Value != "")
+        value = "";
+        value = options["Compare Binary"].ToString();
+        value = options["Compare Database"].ToString();
+        if (value != "")
         {
-            RecordError(ref Errors, ref ErrorCount, TY_COMPA, 0, "Use of Option Compare not recommended");
+            RecordError(ref errors, ref errorCount, tyCompa, 0, "Use of Option Compare not recommended");
         }
     }
 
-    public static void TestArgName(ref string Errors, ref int ErrorCount, int LineN, string Name)
+    public static void TestArgName(ref string errors, ref int errorCount, int lineN, string name)
     {
-        var LL = Trim(Name);
+        var ll = Trim(name);
 
-        if (RegExTest(LL, "^[a-z][a-z0-9_]*$"))
+        if (RegExTest(ll, "^[a-z][a-z0-9_]*$"))
         {
-            RecordError(ref Errors, ref ErrorCount, TY_ARGNA, LineN, "Identifier name declared as all lower-case: " + LL);
+            RecordError(ref errors, ref errorCount, tyArgna, lineN, "Identifier name declared as all lower-case: " + ll);
         }
 
-        if (RegExTest(LL, "^[a-zA-Z_][a-zA-Z0-9_]*%$"))
+        if (RegExTest(ll, "^[a-zA-Z_][a-zA-Z0-9_]*%$"))
         { // % Integer Dim L%
-            RecordError(ref Errors, ref ErrorCount, TY_TYPEC, LineN, "Use of Type Character For Integer deprecated: " + LL);
+            RecordError(ref errors, ref errorCount, tyTypec, lineN, "Use of Type Character For Integer deprecated: " + ll);
         }
-        else if (RegExTest(LL, "^[a-zA-Z_][a-zA-Z0-9_]*&$"))
+        else if (RegExTest(ll, "^[a-zA-Z_][a-zA-Z0-9_]*&$"))
         { // & Long  Dim M&
-            RecordError(ref Errors, ref ErrorCount, TY_TYPEC, LineN, "Use of Type Character For Long deprecated: " + LL);
+            RecordError(ref errors, ref errorCount, tyTypec, lineN, "Use of Type Character For Long deprecated: " + ll);
         }
-        else if (RegExTest(LL, "^[a-zA-Z_][a-zA-Z0-9_]*@$"))
+        else if (RegExTest(ll, "^[a-zA-Z_][a-zA-Z0-9_]*@$"))
         { // @ Decimal Const W@ = 37.5
-            RecordError(ref Errors, ref ErrorCount, TY_TYPEC, LineN, "Use of Type Character For Decimal deprecated: " + LL);
+            RecordError(ref errors, ref errorCount, tyTypec, lineN, "Use of Type Character For Decimal deprecated: " + ll);
         }
-        else if (RegExTest(LL, "^[a-zA-Z_][a-TY_TYPEC-Z0-9_]*!$"))
+        else if (RegExTest(ll, "^[a-zA-Z_][a-TY_TYPEC-Z0-9_]*!$"))
         { // ! Single  Dim Q!
-            RecordError(ref Errors, ref ErrorCount, TY_DEPRE, LineN, "Use of Type Character For Single deprecated: " + LL);
+            RecordError(ref errors, ref errorCount, tyDepre, lineN, "Use of Type Character For Single deprecated: " + ll);
         }
-        else if (RegExTest(LL, "^[a-zA-Z_][a-zA-Z0-9_]*#$"))
+        else if (RegExTest(ll, "^[a-zA-Z_][a-zA-Z0-9_]*#$"))
         { // # Double  Dim X#
-            RecordError(ref Errors, ref ErrorCount, TY_TYPEC, LineN, "Use of Type Character For Double deprecated: " + LL);
+            RecordError(ref errors, ref errorCount, tyTypec, lineN, "Use of Type Character For Double deprecated: " + ll);
         }
-        else if (RegExTest(LL, "^[a-zA-Z_][a-zA-Z0-9_]*\\$$"))
+        else if (RegExTest(ll, "^[a-zA-Z_][a-zA-Z0-9_]*\\$$"))
         { // $ String  Dim V$ = "Secret"
-            RecordError(ref Errors, ref ErrorCount, TY_TYPEC, LineN, "Use of Type Character For String deprecated: " + LL);
+            RecordError(ref errors, ref errorCount, tyTypec, lineN, "Use of Type Character For String deprecated: " + ll);
         }
     }
 
-    public static void TestSignatureName(ref string Errors, ref int ErrorCount, int LineN, string Name)
+    public static void TestSignatureName(ref string errors, ref int errorCount, int lineN, string name)
     {
-        var LL = Trim(Name);
+        var ll = Trim(name);
 
-        if (RegExTest(LL, "^[a-z][a-z0-9_]*$"))
+        if (RegExTest(ll, "^[a-z][a-z0-9_]*$"))
         {
-            RecordError(ref Errors, ref ErrorCount, TY_FSPNA, LineN, "Func/Sub/Prop name declared as all lower-case: " + LL);
+            RecordError(ref errors, ref errorCount, tyFspna, lineN, "Func/Sub/Prop name declared as all lower-case: " + ll);
         }
     }
 
-    public static void TestDeclaration(ref string Errors, ref int ErrorCount, int LineN, string L, bool InSignature)
+    public static void TestDeclaration(ref string errors, ref int errorCount, int lineN, string l, bool inSignature)
     {
-        L = Trim(L);
-        L = StripLeft(L, "Dim ");
-        L = StripLeft(L, "Private ");
-        L = StripLeft(L, "Public ");
-        L = StripLeft(L, "Const ");
-        L = StripLeft(L, "Global ");
+        l = Trim(l);
+        l = StripLeft(l, "Dim ");
+        l = StripLeft(l, "Private ");
+        l = StripLeft(l, "Public ");
+        l = StripLeft(l, "Const ");
+        l = StripLeft(l, "Global ");
 
-        foreach (var iterLL in Split(L, ", "))
+        foreach (var iterLl in Split(l, ", "))
         {
-            dynamic LL = iterLL;
-            string ArgName = "";
-            string ArgType = "";
-            string ArgDefault = "";
+            dynamic ll = iterLl;
+            string argName = "";
+            string argType = "";
+            string argDefault = "";
 
 
-            bool IsOptional = StartsWith(LL, "Optional ");
-            LL = StripLeft(LL, "Optional ");
+            bool isOptional = StartsWith(ll, "Optional ");
+            ll = StripLeft(ll, "Optional ");
 
-            bool IsByVal = StartsWith(LL, "ByVal ");
-            LL = StripLeft(LL, "ByVal ");
+            bool isByVal = StartsWith(ll, "ByVal ");
+            ll = StripLeft(ll, "ByVal ");
 
-            bool IsByRef = StartsWith(LL, "ByRef ");
-            LL = StripLeft(LL, "ByRef ");
+            bool isByRef = StartsWith(ll, "ByRef ");
+            ll = StripLeft(ll, "ByRef ");
 
-            bool IsParamArray = StartsWith(LL, "ParamArray ");
-            LL = StripLeft(LL, "ParamArray ");
+            bool isParamArray = StartsWith(ll, "ParamArray ");
+            ll = StripLeft(ll, "ParamArray ");
 
-            int Ix = InStr(LL, " = ");
-            if (Ix > 0)
+            int ix = InStr(ll, " = ");
+            if (ix > 0)
             {
-                ArgDefault = Trim(Mid(LL, Ix + 3));
-                LL = Left(LL, Ix - 1);
+                argDefault = Trim(Mid(ll, ix + 3));
+                ll = Left(ll, ix - 1);
             }
             else
             {
-                ArgDefault = "";
+                argDefault = "";
             }
 
-            Ix = InStr(LL, " As ");
-            if (Ix > 0)
+            ix = InStr(ll, " As ");
+            if (ix > 0)
             {
-                ArgType = Trim(Mid(LL, Ix + 4));
-                LL = Left(LL, Ix - 1);
+                argType = Trim(Mid(ll, ix + 4));
+                ll = Left(ll, ix - 1);
             }
             else
             {
-                ArgType = "";
+                argType = "";
             }
 
             //    If IsParamArray Then Stop
-            if (ArgType == "")
+            if (argType == "")
             {
-                RecordError(ref Errors, ref ErrorCount, TY_NOTYP, LineN, "Local Parameter Missing Type: [" + LL + "]");
+                RecordError(ref errors, ref errorCount, tyNotyp, lineN, "Local Parameter Missing Type: [" + ll + "]");
             }
-            if (InSignature)
+            if (inSignature)
             {
-                if (IsParamArray)
+                if (isParamArray)
                 {
-                    if (Right(LL, 2) != "()")
+                    if (Right(ll, 2) != "()")
                     {
-                        RecordError(ref Errors, ref ErrorCount, TY_STYLE, LineN, "ParamArray variable not declared as an Array.  Add '()': " + LL);
+                        RecordError(ref errors, ref errorCount, tyStyle, lineN, "ParamArray variable not declared as an Array.  Add '()': " + ll);
                     }
                 }
                 else
                 {
-                    if (!IsByVal && !IsByRef)
+                    if (!isByVal && !isByRef)
                     {
-                        RecordError(ref Errors, ref ErrorCount, TY_BYRFV, LineN, "ByVal or ByRef not specified on parameter [" + LL + "] -- specify one or the other");
+                        RecordError(ref errors, ref errorCount, tyByrfv, lineN, "ByVal or ByRef not specified on parameter [" + ll + "] -- specify one or the other");
                     }
                 }
-                if (IsOptional && ArgDefault == "")
+                if (isOptional && argDefault == "")
                 {
-                    RecordError(ref Errors, ref ErrorCount, TY_OPDEF, LineN, "Parameter declared OPTIONAL but no default specified. Must specify default: " + LL);
+                    RecordError(ref errors, ref errorCount, tyOpdef, lineN, "Parameter declared OPTIONAL but no default specified. Must specify default: " + ll);
                 }
             }
 
-            TestArgName(ref Errors, ref ErrorCount, LineN, LL);
+            TestArgName(ref errors, ref errorCount, lineN, ll);
 
-            TestArgType(ref Errors, ref ErrorCount, LineN, LL, ArgType);
+            TestArgType(ref errors, ref errorCount, lineN, ll, argType);
         }
     }
 
-    public static void TestArgType(ref string Errors, ref int ErrorCount, int LineN, string Name, string Typ)
+    public static void TestArgType(ref string errors, ref int errorCount, int lineN, string name, string typ)
     {
-        if (Typ == "Integer")
+        if (typ == "Integer")
         {
-            RecordError(ref Errors, ref ErrorCount, TY_ARGTY, LineN, "Arg [" + Name + "] is of type [" + Typ + "] -- use Long");
+            RecordError(ref errors, ref errorCount, tyArgty, lineN, "Arg [" + name + "] is of type [" + typ + "] -- use Long");
         }
-        if (Typ == "Short")
+        if (typ == "Short")
         {
-            RecordError(ref Errors, ref ErrorCount, TY_ARGTY, LineN, "Arg [" + Name + "] is of type [" + Typ + "] -- use Long");
+            RecordError(ref errors, ref errorCount, tyArgty, lineN, "Arg [" + name + "] is of type [" + typ + "] -- use Long");
         }
-        if (Typ == "Byte")
+        if (typ == "Byte")
         {
-            RecordError(ref Errors, ref ErrorCount, TY_ARGTY, LineN, "Arg [" + Name + "] is of type [" + Typ + "] -- use Long");
+            RecordError(ref errors, ref errorCount, tyArgty, lineN, "Arg [" + name + "] is of type [" + typ + "] -- use Long");
         }
-        if (Typ == "Float")
+        if (typ == "Float")
         {
-            RecordError(ref Errors, ref ErrorCount, TY_ARGTY, LineN, "Arg [" + Name + "] is of type [" + Typ + "] -- use Double");
+            RecordError(ref errors, ref errorCount, tyArgty, lineN, "Arg [" + name + "] is of type [" + typ + "] -- use Double");
         }
     }
 
-    public static void TestSignature(ref string Errors, ref int ErrorCount, int LineN, string LL)
+    public static void TestSignature(ref string errors, ref int errorCount, int lineN, string ll)
     {
-        if (!RegExTest(LL, "^[ ]*(Private|Public|Friend) "))
+        if (!RegExTest(ll, "^[ ]*(Private|Public|Friend) "))
         {
-            RecordError(ref Errors, ref ErrorCount, TY_PRIPU, LineN, "Either Private or Public should be specified, but neither was.");
+            RecordError(ref errors, ref errorCount, tyPripu, lineN, "Either Private or Public should be specified, but neither was.");
         }
 
-        bool WithReturn = false;
+        bool withReturn = false;
 
-        var L = LL;
-        L = StripLeft(L, "Private ");
-        L = StripLeft(L, "Public ");
-        L = StripLeft(L, "Friend ");
-        L = StripLeft(L, "Sub ");
-        if (StartsWith(L, "Function ") || StartsWith(L, "Property Get "))
+        var l = ll;
+        l = StripLeft(l, "Private ");
+        l = StripLeft(l, "Public ");
+        l = StripLeft(l, "Friend ");
+        l = StripLeft(l, "Sub ");
+        if (StartsWith(l, "Function ") || StartsWith(l, "Property Get "))
         {
-            WithReturn = true;
+            withReturn = true;
         }
-        L = StripLeft(L, "Function ");
-        L = StripLeft(L, "Property ");
+        l = StripLeft(l, "Function ");
+        l = StripLeft(l, "Property ");
 
-        int Ix2 = 0;
+        int ix2 = 0;
 
-        var Ix = InStr(L, "(");
-        if (Ix == 0)
+        var ix = InStr(l, "(");
+        if (ix == 0)
         {
             return;
 
         }
-        var Name = Left(L, Ix - 1);
-        if (RegExTest(L, "\\) As .*\\(\\)"))
+        var name = Left(l, ix - 1);
+        if (RegExTest(l, "\\) As .*\\(\\)"))
         {
-            Ix2 = InStrRev(L, ")", Len(L) - 2);
+            ix2 = InStrRev(l, ")", Len(l) - 2);
         }
         else
         {
-            Ix2 = InStrRev(L, ")");
+            ix2 = InStrRev(l, ")");
         }
-        var Args = Mid(L, Ix + 1, Ix2 - Ix - 1);
-        var Ret = Mid(L, Ix2 + 1);
+        var args = Mid(l, ix + 1, ix2 - ix - 1);
+        var ret = Mid(l, ix2 + 1);
 
-        TestSignatureName(ref Errors, ref ErrorCount, LineN, Name);
-        if (WithReturn && Ret == "")
+        TestSignatureName(ref errors, ref errorCount, lineN, name);
+        if (withReturn && ret == "")
         {
-            RecordError(ref Errors, ref ErrorCount, TY_FNCRE, LineN, "Function Return Type Not Specified -- Specify Return Type or Variant");
+            RecordError(ref errors, ref errorCount, tyFncre, lineN, "Function Return Type Not Specified -- Specify Return Type or Variant");
         }
-        TestDeclaration(ref Errors, ref ErrorCount, LineN, Args, true);
+        TestDeclaration(ref errors, ref errorCount, lineN, args, true);
     }
 
-    public static void TestDefaultControlNames(ref string Errors, ref int ErrorCount, int LineN_UNUSED, string Contents)
+    public static void TestDefaultControlNames(ref string errors, ref int errorCount, int lineNUnused, string contents)
     {
         var vTypes = new []{"CheckBox", "Command", "Option", "Frame", "Label", "TextBox", "RichTextBox", "RichTextBoxNew", "ComboBox", "ListBox", "Timer", "UpDown", "HScrollBar", "Image", "Picture", "MSFlexGrid", "DBGrid", "Line", "Shape", "DTPicker"}; // TODO - Specified Minimum Array Boundary Not Supported:   Dim vTypes() As Variant, vType As Variant
 
         foreach (var itervType in vTypes)
         {
             var vType = itervType; // TODO - Specified Minimum Array Boundary Not Supported:   Dim vTypes() As Variant, vType As Variant
-            var Matcher = "Begin [a-zA-Z0-9]*.[a-zA-Z0-9]* " + vType + "[0-9]*";
-            var N = RegExCount(Contents, Matcher);
-            for (var I = 0; I <= N - 1; I++)
+            var matcher = "Begin [a-zA-Z0-9]*.[a-zA-Z0-9]* " + vType + "[0-9]*";
+            var n = RegExCount(contents, matcher);
+            for (var I = 0; I <= n - 1; I++)
             {
-                var Results = RegExNMatch(Contents, Matcher, I);
-                RecordError(ref Errors, ref ErrorCount, TY_DFCTL, 0, "Default control name in use on form: " + Results);
+                var results = RegExNMatch(contents, matcher, I);
+                RecordError(ref errors, ref errorCount, tyDfctl, 0, "Default control name in use on form: " + results);
             }
         }
     }
 
-    public static void TestCodeLine(ref string Errors_UNUSED, ref int ErrorCount, int LineN, string L)
+    public static void TestCodeLine(ref string errorsUnused, ref int errorCount, int lineN, string l)
     {
-        var e = ErrorCount;
-        if (RegExTest(L, "+ \"") || RegExTest(L, "\" +"))
+        var e = errorCount;
+        if (RegExTest(l, "+ \"") || RegExTest(l, "\" +"))
         {
-            RecordError(ref Errors_UNUSED, ref e, TY_CORRE, LineN, "Possible use of + instead of & on String concatenation");
+            RecordError(ref errorsUnused, ref e, tyCorre, lineN, "Possible use of + instead of & on String concatenation");
         }
-        if (RegExTest(L, " Me[.]"))
+        if (RegExTest(l, " Me[.]"))
         {
-            RecordError(ref Errors_UNUSED, ref e, TY_CORRE, LineN, "Use of 'Me.*' is not required.");
-        }
-
-        if (RegExTest(L, "\\.Enabled = [-0-9]"))
-        {
-            RecordError(ref Errors_UNUSED, ref e, TY_CORRE, LineN, "Property [Enabled] Should Be Boolean.  Numeric found.");
-        }
-        if (RegExTest(L, "\\.Visible = [-0-9]"))
-        {
-            RecordError(ref Errors_UNUSED, ref e, TY_CORRE, LineN, "Property [Visible] Should Be Boolean.  Numeric found.");
+            RecordError(ref errorsUnused, ref e, tyCorre, lineN, "Use of 'Me.*' is not required.");
         }
 
-        if (RegExTest(L, " Call "))
+        if (RegExTest(l, "\\.Enabled = [-0-9]"))
         {
-            RecordError(ref Errors_UNUSED, ref e, TY_CORRE, LineN, "Remove keyword 'Call'.");
+            RecordError(ref errorsUnused, ref e, tyCorre, lineN, "Property [Enabled] Should Be Boolean.  Numeric found.");
         }
-        if (RegExTest(L, " GoSub ") || RegExTest(L, " Return$"))
+        if (RegExTest(l, "\\.Visible = [-0-9]"))
         {
-            RecordError(ref Errors_UNUSED, ref e, TY_GOSUB, LineN, "Remove uses of 'GoSub' and 'Return'.");
-        }
-
-        if (RegExTest(L, " Stop$") || RegExTest(L, " Return$"))
-        {
-            RecordError(ref Errors_UNUSED, ref e, TY_CSTOP, LineN, "Code contains STOP statement.");
+            RecordError(ref errorsUnused, ref e, tyCorre, lineN, "Property [Visible] Should Be Boolean.  Numeric found.");
         }
 
-        ErrorCount = e;
+        if (RegExTest(l, " Call "))
+        {
+            RecordError(ref errorsUnused, ref e, tyCorre, lineN, "Remove keyword 'Call'.");
+        }
+        if (RegExTest(l, " GoSub ") || RegExTest(l, " Return$"))
+        {
+            RecordError(ref errorsUnused, ref e, tyGosub, lineN, "Remove uses of 'GoSub' and 'Return'.");
+        }
+
+        if (RegExTest(l, " Stop$") || RegExTest(l, " Return$"))
+        {
+            RecordError(ref errorsUnused, ref e, tyCstop, lineN, "Code contains STOP statement.");
+        }
+
+        errorCount = e;
     }
 }

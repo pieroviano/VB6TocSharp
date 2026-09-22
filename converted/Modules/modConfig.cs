@@ -3,99 +3,101 @@ using static Microsoft.VisualBasic.Constants;
 using static Microsoft.VisualBasic.FileSystem;
 using static Microsoft.VisualBasic.Interaction;
 using static Microsoft.VisualBasic.Strings;
-using static modUtils;
+using static Vb6ToCSharp.Modules.ModUtils;
 
 
-static class modConfig
+namespace Vb6ToCSharp.Modules;
+
+static class ModConfig
 {
     // Option Explicit
-    public const int SpIndent = 2;
-    public const string DefaultDataType = "dynamic";
-    public const string PackagePrefix = "";
-    private const string def_vbpFile = "C:\\WinCDS.NET\\cnv\\prj.vbp";
-    private const string def_outputFolder = "C:\\WinCDS.NET\\cnv\\converted\\";
-    private const string def_AssemblyName = "VB2CS";
-    private static string mVBPFile = "";
+    public const int spIndent = 2;
+    public const string defaultDataType = "dynamic";
+    public const string packagePrefix = "";
+    private const string defVbpFile = "C:\\WinCDS.NET\\cnv\\prj.vbp";
+    private const string defOutputFolder = "C:\\WinCDS.NET\\cnv\\converted\\";
+    private const string defAssemblyName = "VB2CS";
+    private static string mVbpFile = "";
     private static string mOutputFolder = "";
     private static string mAssemblyName = "";
-    private static bool Loaded = false;
-    public static bool Hush = false;
-    public const string INISection_Settings = "Settings";
-    public const string INIKey_VBPFile = "VBPFile";
-    public const string INIKey_OutputFolder = "OutputFolder";
-    public const string INIKey_AssemblyName = "AssemblyName";
+    private static bool loaded = false;
+    public static bool hush = false;
+    public const string iniSectionSettings = "Settings";
+    public const string iniKeyVbpFile = "VBPFile";
+    public const string iniKeyOutputFolder = "OutputFolder";
+    public const string iniKeyAssemblyName = "AssemblyName";
 
 
-    public static string vbpFile
+    public static string VbpFile
     {
         get
         {
             LoadSettings();
-            if (mVBPFile == "")
+            if (mVbpFile == "")
             {
-                mVBPFile = def_vbpFile;
+                mVbpFile = defVbpFile;
             }
-            var vbpFile = mVBPFile;
+            var vbpFile = mVbpFile;
 
             return vbpFile;
         }
     }
-    public static string vbpPath
+    public static string VbpPath
     {
         get
         {
-            var vbpPath = FilePath(vbpFile);
+            var vbpPath = FilePath(VbpFile);
 
             return vbpPath;
         }
     }
 
 
-    public static string INIFile()
+    public static string IniFile()
     {
-        var INIFile = AppDomain.CurrentDomain.BaseDirectory + "\\VB6toCS.INI";
-        return INIFile;
+        var iniFile = AppDomain.CurrentDomain.BaseDirectory + "\\VB6toCS.INI";
+        return iniFile;
     }
 
-    public static void LoadSettings(bool Force = false)
+    public static void LoadSettings(bool force = false)
     {
-        if (Loaded && !Force)
+        if (loaded && !force)
         {
             return;
 
         }
-        Loaded = true;
-        mVBPFile = modINI.INIRead(INISection_Settings, INIKey_VBPFile, INIFile());
-        mOutputFolder = modINI.INIRead(INISection_Settings, INIKey_OutputFolder, INIFile());
-        mAssemblyName = modINI.INIRead(INISection_Settings, INIKey_AssemblyName, INIFile());
+        loaded = true;
+        mVbpFile = ModIni.IniRead(iniSectionSettings, iniKeyVbpFile, IniFile());
+        mOutputFolder = ModIni.IniRead(iniSectionSettings, iniKeyOutputFolder, IniFile());
+        mAssemblyName = ModIni.IniRead(iniSectionSettings, iniKeyAssemblyName, IniFile());
     }
 
-    public static string OutputFolder(string F = "")
+    public static string OutputFolder(string f = "")
     {
         LoadSettings();
         if (mOutputFolder == "")
         {
-            mOutputFolder = def_outputFolder;
+            mOutputFolder = defOutputFolder;
         }
-        var OutputFolder = mOutputFolder;
-        if (Right(OutputFolder, 1) != "\\")
+        var outputFolder = mOutputFolder;
+        if (Right(outputFolder, 1) != "\\")
         {
-            OutputFolder = OutputFolder + "\\";
+            outputFolder = outputFolder + "\\";
         }
-        OutputFolder = OutputFolder + OutputSubFolder(F);
-        if (Dir(OutputFolder, vbDirectory) == "")
+        outputFolder = outputFolder + OutputSubFolder(f);
+        if (Dir(outputFolder, vbDirectory) == "")
         {
             // TODO (not supported): On Error GoTo CantMakeOutputFolder
-            MkDir(OutputFolder);
+            MkDir(outputFolder);
         }
-        return OutputFolder;
+        return outputFolder;
 
-    CantMakeOutputFolder:;
-        if (!Hush)
+        CantMakeOutputFolder:;
+        if (!hush)
         {
-            MsgBox("Failed creating folder.  Perhaps create it yourself?" + vbCrLf + OutputFolder);
+            MsgBox("Failed creating folder.  Perhaps create it yourself?" + vbCrLf + outputFolder);
         }
-        return OutputFolder;
+        return outputFolder;
     }
 
     public static string AssemblyName()
@@ -103,31 +105,31 @@ static class modConfig
         LoadSettings();
         if (mAssemblyName == "")
         {
-            mAssemblyName = def_AssemblyName;
+            mAssemblyName = defAssemblyName;
         }
-        var AssemblyName = mAssemblyName;
-        return AssemblyName;
+        var assemblyName = mAssemblyName;
+        return assemblyName;
     }
 
-    public static string OutputSubFolder(string F)
+    public static string OutputSubFolder(string f)
     {
-        string OutputSubFolder = "";
+        string outputSubFolder = "";
         LoadSettings();
-        switch (FileExt(F))
+        switch (FileExt(f))
         {
             case ".bas":
-                OutputSubFolder = "Modules\\";
+                outputSubFolder = "Modules\\";
                 break;
             case ".cls":
-                OutputSubFolder = "Classes\\";
+                outputSubFolder = "Classes\\";
                 break;
             case ".frm":
-                OutputSubFolder = "Forms\\";
+                outputSubFolder = "Forms\\";
                 break;
             default:
-                OutputSubFolder = "";
+                outputSubFolder = "";
                 break;
         }
-        return OutputSubFolder;
+        return outputSubFolder;
     }
 }

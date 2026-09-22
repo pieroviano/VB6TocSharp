@@ -1,82 +1,82 @@
 using Microsoft.VisualBasic;
 using static Microsoft.VisualBasic.Constants;
-using static Microsoft.VisualBasic.Interaction;
 using static Microsoft.VisualBasic.Strings;
-using static modUtils;
-using static VBExtension;
+using static Vb6ToCSharp.VbExtension;
 
 
-static class modConvertUtils
+namespace Vb6ToCSharp.Modules;
+
+static class ModConvertUtils
 {
     // Option Explicit
-    private static string EOLComment = "";
+    private static string eolComment = "";
     private static Collection mStrings = null;
     private static int nStringCnt = 0;
-    private const string DeStringToken_Base1 = "STRING_";
-    private const string DeStringToken_Base2 = "TOKEN_";
-    public const string DeStringToken_Base = DeStringToken_Base1 + DeStringToken_Base2;
+    private const string deStringTokenBase1 = "STRING_";
+    private const string deStringTokenBase2 = "TOKEN_";
+    public const string deStringTokenBase = deStringTokenBase1 + deStringTokenBase2;
 
 
-    public static string DeComment(string Str, bool Discard = false)
+    public static string DeComment(string str, bool discard = false)
     {
-        string C = "";
+        string c = "";
 
-        var DeComment = Str;
-        var A = InStr(Str, "'");
-        if (A == 0)
+        var deComment = str;
+        var a = InStr(str, "'");
+        if (a == 0)
         {
-            return DeComment;
+            return deComment;
 
         }
         while (true)
         {
-            var T = Left(Str, A - 1);
-            var U = Replace(T, "\"", "");
-            if ((Len(T) - Len(U)) % 2 == 0)
+            var T = Left(str, a - 1);
+            var u = Replace(T, "\"", "");
+            if ((Len(T) - Len(u)) % 2 == 0)
             {
                 break;
             }
-            A = InStr(A + 1, Str, "'");
-            if (A == 0)
+            a = InStr(a + 1, str, "'");
+            if (a == 0)
             {
-                return DeComment;
+                return deComment;
 
             }
         }
-        if (!Discard)
+        if (!discard)
         {
-            EOLComment = Mid(Str, A + 1);
+            eolComment = Mid(str, a + 1);
         }
-        DeComment = RTrim(Left(Str, A - 1));
-        return DeComment;
+        deComment = RTrim(Left(str, a - 1));
+        return deComment;
     }
 
-    public static string ReComment(string Str, bool KeepVBComments = false)
+    public static string ReComment(string str, bool keepVbComments = false)
     {
-        string ReComment = "";
+        string reComment = "";
 
-        var Pr = IIf(KeepVBComments, "'", "//");
-        if (EOLComment == "")
+        var pr = IIf(keepVbComments, "'", "//");
+        if (eolComment == "")
         {
-            ReComment = Str;
-            return ReComment;
+            reComment = str;
+            return reComment;
 
         }
-        var C = Pr + EOLComment;
-        EOLComment = "";
-        if (!IsInStr(Str, vbCrLf))
+        var c = pr + eolComment;
+        eolComment = "";
+        if (!IsInStr(str, vbCrLf))
         {
-            ReComment = Str + IIf(Len(Str) == 0, "", " ") + C;
+            reComment = str + IIf(Len(str) == 0, "", " ") + c;
         }
         else
         {
-            ReComment = Replace(Str, vbCrLf, C + vbCrLf, 1, 1); // Always leave on end of first line...
+            reComment = Replace(str, vbCrLf, c + vbCrLf, 1, 1); // Always leave on end of first line...
         }
-        if (Left(LTrim(ReComment), 2) == Pr)
+        if (Left(LTrim(reComment), 2) == pr)
         {
-            ReComment = LTrim(ReComment);
+            reComment = LTrim(reComment);
         }
-        return ReComment;
+        return reComment;
     }
 
     public static void InitDeString()
@@ -85,16 +85,16 @@ static class modConvertUtils
         nStringCnt = 0;
     }
 
-    private static string DeStringToken(int N)
+    private static string DeStringToken(int n)
     {
-        var DeStringToken = DeStringToken_Base + Format(N, "00000");
-        return DeStringToken;
+        var deStringToken = deStringTokenBase + Format(n, "00000");
+        return deStringToken;
     }
 
-    public static string DeString(string S)
+    public static string DeString(string s)
     {
-        string DeString = "";
-        const string Q = "\"";
+        string deString = "";
+        const string q = "\"";
 
         if (mStrings == null)
         {
@@ -102,57 +102,57 @@ static class modConvertUtils
         }
 
         //If IsInStr(S, """ArCheck.chkShowB") Then Stop
-        var A = InStr(S, Q);
-        var C = A;
-        if (A > 0)
+        var a = InStr(s, q);
+        var c = a;
+        if (a > 0)
         {
-        MidQuote:;
-            var B = InStr(C + 1, S, Q);
-            if (B > 0)
+            MidQuote:;
+            var b = InStr(c + 1, s, q);
+            if (b > 0)
             {
-                if (Mid(S, B + 1, 1) == Q)
+                if (Mid(s, b + 1, 1) == q)
                 {
-                    C = B + 1;
+                    c = b + 1;
                     goto MidQuote;
                 }
                 nStringCnt = nStringCnt + 1;
-                var Token = DeStringToken(nStringCnt);
-                var K = Mid(S, A, B - A + 1);
-                mStrings.Add(K, Token);
-                S = Left(S, A - 1) + Token + Mid(S, B + 1);
-                DeString = modConvertUtils.DeString(S);
-                return DeString;
+                var token = DeStringToken(nStringCnt);
+                var k = Mid(s, a, b - a + 1);
+                mStrings.Add(k, token);
+                s = Left(s, a - 1) + token + Mid(s, b + 1);
+                deString = ModConvertUtils.DeString(s);
+                return deString;
 
             }
         }
-        DeString = S;
-        return DeString;
+        deString = s;
+        return deString;
     }
 
-    public static string ReString(string Str, bool doConvertString = false)
+    public static string ReString(string str, bool doConvertString = false)
     {
         for (var I = 1; I <= nStringCnt; I++)
         {
             var T = DeStringToken(I);
-            string V = mStrings.Item(T);
-            if (V != "" && doConvertString)
+            string v = mStrings.Item(T);
+            if (v != "" && doConvertString)
             {
-                if (Left(V, 1) == "\"" && Right(V, 1) == "\"")
+                if (Left(v, 1) == "\"" && Right(v, 1) == "\"")
                 {
-                    V = "\"" + InternalConvertString(Mid(V, 2, Len(V) - 2)) + "\"";
+                    v = "\"" + InternalConvertString(Mid(v, 2, Len(v) - 2)) + "\"";
                 }
             }
-            Str = Replace(Str, T, V);
+            str = Replace(str, T, v);
         }
-        var ReString = Str;
-        return ReString;
+        var reString = str;
+        return reString;
     }
 
-    private static string InternalConvertString(string S)
+    private static string InternalConvertString(string s)
     {
-        S = Replace(S, "\\", "\\\\");
-        S = Replace(S, "\"\"", "\\\"");
-        var InternalConvertString = S;
-        return InternalConvertString;
+        s = Replace(s, "\\", "\\\\");
+        s = Replace(s, "\"\"", "\\\"");
+        var internalConvertString = s;
+        return internalConvertString;
     }
 }

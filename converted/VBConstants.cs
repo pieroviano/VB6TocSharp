@@ -1,4 +1,6 @@
-public static class VBConstants
+namespace Vb6ToCSharp;
+
+public static class VbConstants
 {
     public const int vbKeyLButton = 1; // Left mouse button
     public const int vbKeyRButton = 2;  // CANCEL mouse button 
@@ -108,8 +110,8 @@ public static class VBConstants
     public const int vbWhite = 0xFFFFFF;  // WHITE
     public const int vbYellow = 0xFF00FF;  // YELLOW
     public const int vbModal = 0x1;
-    public enum AlignConstants { vbAlignNone = 0, vbAlignTop = 1, vbAlignBottom = 2, vbAlignLeft = 3, vbAlignRight = 4, vbLeftJustify = 5, vbRightJustify = 6, vbCenter = 7 }
-    public enum AlignmentConstants : byte { vbLeftJustify = 0, vbRightJustify = 1, vbCenter = 2 }
+    public enum AlignConstants { VbAlignNone = 0, VbAlignTop = 1, VbAlignBottom = 2, VbAlignLeft = 3, VbAlignRight = 4, VbLeftJustify = 5, VbRightJustify = 6, VbCenter = 7 }
+    public enum AlignmentConstants : byte { VbLeftJustify = 0, VbRightJustify = 1, VbCenter = 2 }
 
     // Cursors
     public const int vbDefault = 0;

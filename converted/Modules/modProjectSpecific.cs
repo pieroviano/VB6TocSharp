@@ -1,102 +1,104 @@
 using static Microsoft.VisualBasic.Strings;
-using static modRegEx;
-using static modUtils;
-using static VBExtension;
+using static Vb6ToCSharp.Modules.ModRegEx;
+using static Vb6ToCSharp.Modules.ModUtils;
+using static Vb6ToCSharp.VbExtension;
 
 
-static class modProjectSpecific
+namespace Vb6ToCSharp.Modules;
+
+static class ModProjectSpecific
 {
     // Option Explicit
 
 
-    public static string ProjectSpecificPostCodeLineConvert(string Str)
+    public static string ProjectSpecificPostCodeLineConvert(string str)
     {
-        var S = Str;
+        var s = str;
         //  If IsInStr(S, "!C == null") Then Stop
         // Some patterns we dont use or didn't catch in lint...
-        if (IsInStr(S, "DisposeDA"))
+        if (IsInStr(s, "DisposeDA"))
         {
-            S = Replace(S, "DisposeDA", "// DisposeDA");
+            s = Replace(s, "DisposeDA", "// DisposeDA");
         }
-        if (IsInStr(S, "MousePointer = vbNormal"))
+        if (IsInStr(s, "MousePointer = vbNormal"))
         {
-            S = Replace(S, "MousePointer = vbNormal", "MousePointer = vbDefault");
+            s = Replace(s, "MousePointer = vbNormal", "MousePointer = vbDefault");
         }
 
         // We use decimal, not double
-        if (IsInStr(S, "Val("))
+        if (IsInStr(s, "Val("))
         {
-            S = Replace(S, "Val( ", "ValD(");
+            s = Replace(s, "Val( ", "ValD(");
         }
 
         // Bad pattern combination
-        if (RegExTest(S, "\\(!" + patToken + " == null\\)"))
+        if (RegExTest(s, "\\(!" + patToken + " == null\\)"))
         {
-            S = Replace(S, "!", "", 1);
-            S = Replace(S, "==", "!=", 1);
+            s = Replace(s, "!", "", 1);
+            s = Replace(s, "==", "!=", 1);
         }
 
         // False ref entries...
-        if (IsInStr(S, "IsIn("))
+        if (IsInStr(s, "IsIn("))
         {
-            S = Replace(S, "ref ", "");
+            s = Replace(s, "ref ", "");
         }
-        if (IsInStr(S, "POMode("))
+        if (IsInStr(s, "POMode("))
         {
-            S = Replace(S, "ref ", "");
+            s = Replace(s, "ref ", "");
         }
-        if (IsInStr(S, "OrderMode("))
+        if (IsInStr(s, "OrderMode("))
         {
-            S = Replace(S, "ref ", "");
+            s = Replace(s, "ref ", "");
         }
-        if (IsInStr(S, "InvenMode("))
+        if (IsInStr(s, "InvenMode("))
         {
-            S = Replace(S, "ref ", "");
+            s = Replace(s, "ref ", "");
         }
-        if (IsInStr(S, "ReportsMode("))
+        if (IsInStr(s, "ReportsMode("))
         {
-            S = Replace(S, "ref ", "");
+            s = Replace(s, "ref ", "");
         }
-        if (IsInStr(S, "SetButtonImage("))
+        if (IsInStr(s, "SetButtonImage("))
         {
-            S = Replace(S, "ref ", "");
-            S = Replace(S, ".DefaultProperty", "");
+            s = Replace(s, "ref ", "");
+            s = Replace(s, ".DefaultProperty", "");
         }
-        if (IsInStr(S, "EnableFrame"))
+        if (IsInStr(s, "EnableFrame"))
         {
-            S = Replace(S, "ref ", "");
+            s = Replace(s, "ref ", "");
         }
-        S = Replace(S, " && BackupType.", " & BackupType.");
+        s = Replace(s, " && BackupType.", " & BackupType.");
 
         // Common Mistake Functions...
-        if (IsInStr(S, "StoreSettings."))
+        if (IsInStr(s, "StoreSettings."))
         {
-            S = Replace(S, "StoreSettings.", "StoreSettings().");
+            s = Replace(s, "StoreSettings.", "StoreSettings().");
         }
 
         // etc
-        if (IsInStr(S, ".hwnd"))
+        if (IsInStr(s, ".hwnd"))
         {
-            S = Replace(S, ".hwnd", ".hWnd()");
+            s = Replace(s, ".hwnd", ".hWnd()");
         }
-        if (IsInStr(S, "SetCustomFrame"))
+        if (IsInStr(s, "SetCustomFrame"))
         {
-            S = "";
+            s = "";
         }
-        if (IsInStr(S, "RemoveCustomFrame"))
+        if (IsInStr(s, "RemoveCustomFrame"))
         {
-            S = "";
+            s = "";
         }
-        S = Replace(S, "VbMsgBoxResult", "MsgBoxResult");
+        s = Replace(s, "VbMsgBoxResult", "MsgBoxResult");
 
-        const string TokenBreak = "[ ,)]";
-        S = RegExReplace(S, "InventFolder(" + TokenBreak + ")", "InventFolder()$1");
-        S = RegExReplace(S, "PXFolder(" + TokenBreak + ")", "InventFolder()$1");
-        S = RegExReplace(S, "FXFolder(" + TokenBreak + ")", "InventFolder()$1");
-        S = RegExReplace(S, "InventFolder(" + TokenBreak + ")", "InventFolder()$1");
-        S = RegExReplace(S, "IsDevelopment(" + TokenBreak + ")", "IsDevelopment()$1");
+        const string tokenBreak = "[ ,)]";
+        s = RegExReplace(s, "InventFolder(" + tokenBreak + ")", "InventFolder()$1");
+        s = RegExReplace(s, "PXFolder(" + tokenBreak + ")", "InventFolder()$1");
+        s = RegExReplace(s, "FXFolder(" + tokenBreak + ")", "InventFolder()$1");
+        s = RegExReplace(s, "InventFolder(" + tokenBreak + ")", "InventFolder()$1");
+        s = RegExReplace(s, "IsDevelopment(" + tokenBreak + ")", "IsDevelopment()$1");
 
-        var ProjectSpecificPostCodeLineConvert = S;
-        return ProjectSpecificPostCodeLineConvert;
+        var projectSpecificPostCodeLineConvert = s;
+        return projectSpecificPostCodeLineConvert;
     }
 }

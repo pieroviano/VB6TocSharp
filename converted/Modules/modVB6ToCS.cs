@@ -2,270 +2,272 @@ using System;
 using static Microsoft.VisualBasic.Constants;
 using static Microsoft.VisualBasic.Conversion;
 using static Microsoft.VisualBasic.Strings;
-using static modConfig;
-using static modProjectFiles;
-using static modRegEx;
-using static modSubTracking;
-using static modUtils;
-using static VBExtension;
+using static Vb6ToCSharp.Modules.ModConfig;
+using static Vb6ToCSharp.Modules.ModProjectFiles;
+using static Vb6ToCSharp.Modules.ModRegEx;
+using static Vb6ToCSharp.Modules.ModSubTracking;
+using static Vb6ToCSharp.Modules.ModUtils;
+using static Vb6ToCSharp.VbExtension;
 
 
-static class modVB6ToCS
+namespace Vb6ToCSharp.Modules;
+
+static class ModVb6ToCs
 {
     // Option Explicit
 
 
-    public static string ConvertDefaultDefault(string DType)
+    public static string ConvertDefaultDefault(string dType)
     {
-        string ConvertDefaultDefault = "";
-        switch (DType)
+        string convertDefaultDefault = "";
+        switch (dType)
         {
             case "Integer":
-                ConvertDefaultDefault = "0";
+                convertDefaultDefault = "0";
                 break;
             case "Date":
-                ConvertDefaultDefault = "DateTime.MinValue";
+                convertDefaultDefault = "DateTime.MinValue";
                 break;
             case "String":
-                ConvertDefaultDefault = "\"\"";
+                convertDefaultDefault = "\"\"";
                 break;
             case "Boolean":
-                ConvertDefaultDefault = "false";
+                convertDefaultDefault = "false";
                 break;
             default:
-                ConvertDefaultDefault = "null";
+                convertDefaultDefault = "null";
                 break;
         }
-        return ConvertDefaultDefault;
+        return convertDefaultDefault;
     }
 
-    public static string ConvertDataType(string S)
+    public static string ConvertDataType(string s)
     {
-        string ConvertDataType = "";
-        switch (S)
+        string convertDataType = "";
+        switch (s)
         {
             case "Object":
-                ConvertDataType = DefaultDataType;
+                convertDataType = defaultDataType;
                 break;
             case "Form":
-                ConvertDataType = "Window";
+                convertDataType = "Window";
                 break;
             case "String":
-                ConvertDataType = "string";
+                convertDataType = "string";
                 break;
             case "String()":
-                ConvertDataType = "List<string>";
+                convertDataType = "List<string>";
                 break;
             case "Long":
-                ConvertDataType = "int";
+                convertDataType = "int";
                 break;
             case "Integer":
-                ConvertDataType = "int";
+                convertDataType = "int";
                 break;
             case "Double":
-                ConvertDataType = "decimal";
+                convertDataType = "decimal";
                 break;
             case "Variant":
-                ConvertDataType = "object";
+                convertDataType = "object";
                 break;
             case "Byte":
-                ConvertDataType = "byte";
+                convertDataType = "byte";
                 break;
             case "Boolean":
-                ConvertDataType = "bool";
+                convertDataType = "bool";
                 break;
             case "Currency":
-                ConvertDataType = "decimal";
+                convertDataType = "decimal";
                 break;
             case "VbTriState":
-                ConvertDataType = "vbTriState";
+                convertDataType = "vbTriState";
                 break;
             case "Collection":
-                ConvertDataType = "Collection";
+                convertDataType = "Collection";
                 break;
             case "TSPNode":
-                ConvertDataType = "TSPNode";
+                convertDataType = "TSPNode";
                 break;
             case "TSPNetwork":
-                ConvertDataType = "TSPNetwork";
+                convertDataType = "TSPNetwork";
                 break;
             case "FindResults":
-                ConvertDataType = "FindResults";
+                convertDataType = "FindResults";
                 break;
             case "Pushpin":
-                ConvertDataType = "Pushpin";
+                convertDataType = "Pushpin";
                 break;
             case "Map":
-                ConvertDataType = "Map";
+                convertDataType = "Map";
                 break;
             case "Node":
-                ConvertDataType = "TreeViewItem";
+                convertDataType = "TreeViewItem";
                 break;
             case "Recordset":
-                ConvertDataType = "Recordset";
+                convertDataType = "Recordset";
                 break;
             case "Connection":
-                ConvertDataType = "Connection";
+                convertDataType = "Connection";
                 break;
             case "ADODB.Error":
-                ConvertDataType = "ADODB.Error";
+                convertDataType = "ADODB.Error";
                 break;
             case "ADODB.EventStatusEnum":
-                ConvertDataType = "ADODB.EventStatusEnum";
+                convertDataType = "ADODB.EventStatusEnum";
                 break;
             case "SpeechLib.SpeechEngineConfidence":
-                ConvertDataType = DefaultDataType;
+                convertDataType = defaultDataType;
 
                 break;
             case "Date":
-                ConvertDataType = "DateTime";
+                convertDataType = "DateTime";
                 break;
             case "VbMsgBoxResult":
-                ConvertDataType = S;
+                convertDataType = s;
                 break;
             case "XCTransaction2.XChargeTransaction":
-                ConvertDataType = S;
+                convertDataType = s;
                 break;
             case "PictureBox":
-                ConvertDataType = S;
+                convertDataType = s;
                 break;
             case "MSCommLib.MSComm":
-                ConvertDataType = S;
+                convertDataType = s;
 
                 break;
             default:
-                if (IsInStr(VBPClasses(ClassNames: true), S))
+                if (IsInStr(VbpClasses(classNames: true), s))
                 {
-                    ConvertDataType = S;
+                    convertDataType = s;
                 }
                 else
                 {
-                    ConvertDataType = S;
-                    Console.WriteLine("Unknown Data Type: " + S);
+                    convertDataType = s;
+                    Console.WriteLine("Unknown Data Type: " + s);
                 }
                 break;
         }
-        return ConvertDataType;
+        return convertDataType;
     }
 
-    public static void ControlData(string cType, out string Name, out bool Cont, out string Def, out string Features)
+    public static void ControlData(string cType, out string name, out bool cont, out string def, out string features)
     {
-        Name = "";
-        Features = "";
-        Cont = false;
-        Def = "Caption";
+        name = "";
+        features = "";
+        cont = false;
+        def = "Caption";
         switch (cType)
         {
             case "VB.Form":
-                Name = "Window";
-                Cont = true;
+                name = "Window";
+                cont = true;
                 break;
             case "VB.MDIForm":
-                Name = "Window";
-                Cont = true;
-                Cont = true;
+                name = "Window";
+                cont = true;
+                cont = true;
 
                 break;
             case "VB.PictureBox":
-                Name = "Image";
-                Cont = true;
-                Def = "Picture";
-                Features = "Tooltiptext";
+                name = "Image";
+                cont = true;
+                def = "Picture";
+                features = "Tooltiptext";
                 break;
             case "VB.Label":
-                Name = "Label";
-                Features = "";
-                Features = "Font,Content,Tooltiptext";
+                name = "Label";
+                features = "";
+                features = "Font,Content,Tooltiptext";
                 break;
             case "VB.TextBox":
-                Name = "TextBox";
-                Def = "Text";
-                Features = "Font,Text,Tooltiptext";
+                name = "TextBox";
+                def = "Text";
+                features = "Font,Text,Tooltiptext";
                 break;
             case "VB.Frame":
-                Name = "GroupBox";
-                Features = "Tooltiptext";
+                name = "GroupBox";
+                features = "Tooltiptext";
                 break;
             case "VB.CommandButton":
-                Name = "Button";
-                Features = "Font,Content,Tooltiptext";
+                name = "Button";
+                features = "Font,Content,Tooltiptext";
                 break;
             case "VB.CheckBox":
-                Name = "CheckBox";
-                Features = "Font,Content,Tooltiptext";
+                name = "CheckBox";
+                features = "Font,Content,Tooltiptext";
                 break;
             case "VB.OptionButton":
-                Name = "RadioButton";
-                Features = "Font,Content,Tooltiptext";
+                name = "RadioButton";
+                features = "Font,Content,Tooltiptext";
                 break;
             case "VB.ComboBox":
-                Name = "ComboBox";
-                Def = "Text";
-                Features = "Font,Text,Tooltiptext";
+                name = "ComboBox";
+                def = "Text";
+                features = "Font,Text,Tooltiptext";
                 break;
             case "VB.ListBox":
-                Name = "ListBox";
-                Def = "Text";
-                Features = "Font,Tooltiptext";
+                name = "ListBox";
+                def = "Text";
+                features = "Font,Tooltiptext";
                 break;
             case "VB.HScrollBar":
-                Name = "ScrollBar";
-                Def = "Value";
-                Features = "";
+                name = "ScrollBar";
+                def = "Value";
+                features = "";
                 break;
             case "VB.VScrollBar":
-                Name = "ScrollBar";
-                Def = "Value";
-                Features = "";
+                name = "ScrollBar";
+                def = "Value";
+                features = "";
                 break;
             case "VB.Timer":
-                Name = "Timer";
-                Def = "Enabled";
-                Features = "";
+                name = "Timer";
+                def = "Enabled";
+                features = "";
                 break;
             case "VB.DriveListBox":
-                Name = "usercontrols:DriveListBox";
-                Def = "Path";
-                Features = "";
+                name = "usercontrols:DriveListBox";
+                def = "Path";
+                features = "";
                 break;
             case "VB.DirListBox":
-                Name = "usercontrols:DirListBox";
-                Def = "Path";
-                Features = "";
+                name = "usercontrols:DirListBox";
+                def = "Path";
+                features = "";
                 break;
             case "VB.FileListBox":
-                Name = "usercontrols:FileListBox";
-                Def = "Path";
-                Features = "";
+                name = "usercontrols:FileListBox";
+                def = "Path";
+                features = "";
                 break;
             case "VB.Shape":
-                Name = "Shape";
-                Def = "Visible";
-                Features = "";
+                name = "Shape";
+                def = "Visible";
+                features = "";
                 break;
             case "VB.Line":
-                Name = "Line";
-                Def = "Visible";
-                Features = "";
+                name = "Line";
+                def = "Visible";
+                features = "";
                 break;
             case "VB.Image":
-                Name = "Image";
-                Def = "Picture";
-                Features = "Tooltiptext";
+                name = "Image";
+                def = "Picture";
+                features = "Tooltiptext";
                 break;
             case "VB.Data":
-                Name = "Data";
-                Def = "DataSource";
-                Features = "";
+                name = "Data";
+                def = "DataSource";
+                features = "";
                 break;
             case "VB.OLE":
-                Name = "OLE";
-                Def = "OLE";
-                Features = "";
+                name = "OLE";
+                def = "OLE";
+                features = "";
 
                 break;
             case "VB.Menu":
-                Name = "Menu";
+                name = "Menu";
 
                 // MS Windows Common Controls 6.0
                 break;
@@ -274,295 +276,295 @@ static class modVB6ToCS
             case "MSComctlLib.ToolBar":
                 break;
             case "MSComctlLib.StatusBar":
-                Name = "StatusBar";
-                Def = "Text";
-                Features = "Tooltiptext";
+                name = "StatusBar";
+                def = "Text";
+                features = "Tooltiptext";
                 break;
             case "MSComctlLib.ProgressBar":
-                Name = "ProgressBar";
-                Def = "Value";
-                Features = "Tooltiptext";
+                name = "ProgressBar";
+                def = "Value";
+                features = "Tooltiptext";
                 break;
             case "MSComctlLib.TreeView":
-                Name = "TreeView";
-                Features = "Tooltiptext";
+                name = "TreeView";
+                features = "Tooltiptext";
                 break;
             case "MSComctlLib.ListView":
-                Name = "ListView";
-                Features = "Tooltiptext";
+                name = "ListView";
+                features = "Tooltiptext";
                 break;
             case "MSComctlLib.ImageList":
-                Name = "ImageList";
-                Features = "Tooltiptext";
+                name = "ImageList";
+                features = "Tooltiptext";
                 break;
             case "MSComctlLib.Slider":
-                Name = "Slider";
+                name = "Slider";
                 break;
             case "MSComctlLib.ImageCombo":
                 // MS Windows Common Controls-2 6.0
                 //    Case "MSComCtl2.Animation":
                 break;
             case "MSComCtl2.UpDown":
-                Name = "usercontrols:UpDown";
+                name = "usercontrols:UpDown";
                 break;
             case "MSComCtl2.DTPicker":
-                Name = "DatePicker";
+                name = "DatePicker";
                 break;
             case "MSComCtl2.MonthView":
-                Name = "DatePicker";
+                name = "DatePicker";
                 break;
             case "MSComCtl2.FlatScrollBar":
-                Name = "ScrollBar";
+                name = "ScrollBar";
 
                 break;
             case "MSComDlg.CommonDialog":
-                Name = "Label";
+                name = "Label";
                 break;
             case "MSFlexGridLib.MSFlexGrid":
-                Name = "usercontrols:FlexGrid";
+                name = "usercontrols:FlexGrid";
                 break;
             case "MSDBGrid.DBGrid":
-                Name = "DataGrid";
+                name = "DataGrid";
                 break;
             case "TabDlg.SSTab":
-                Name = "TabControl";
+                name = "TabControl";
                 break;
             case "RichTextLib.RichTextBox":
-                Name = "TextBlock";
+                name = "TextBlock";
                 break;
             case "InetCtlsObjects.Inet":
-                Name = "INet";
+                name = "INet";
                 break;
             case "MSCommLib.MSComm":
-                Name = "MSComm";
+                name = "MSComm";
                 break;
             case "MSWinsockLib.Winsock":
-                Name = "Winsock";
+                name = "Winsock";
 
                 break;
             case "WinCDS.UGridIO":
-                Name = "UGridIO";
+                name = "UGridIO";
                 break;
             case "WinCDS.CandyButton":
-                Name = "Button";
+                name = "Button";
                 break;
             case "WinCDS.ucPBar":
-                Name = "ProgressBar";
+                name = "ProgressBar";
                 break;
             case "WinCDS.PrinterSelector":
-                Name = "Label";
+                name = "Label";
                 break;
             case "WinCDS.RichTextBoxNew":
-                Name = "TextBlock";
+                name = "TextBlock";
                 break;
             case "WinCDS.MaskedPicture":
-                Name = "Image";
+                name = "Image";
 
                 break;
             case "VJCZIPLib.VjcZip":
-                Name = "Label";
+                name = "Label";
                 break;
             case "MSChart20Lib.MSChart":
-                Name = "Label";
+                name = "Label";
                 break;
             case "MapPointCtl.MappointControl":
-                Name = "Label";
+                name = "Label";
 
                 break;
             case "LaVolpeAlphaImg.AlphaImgCtl":
-                Name = "Image";
+                name = "Image";
                 break;
             case "GIF89LibCtl.Gif89a":
-                Name = "Image";
+                name = "Image";
 
                 break;
             default:
                 Console.WriteLine("Unknown Control Type: " + cType);
-                Name = "Label";
+                name = "Label";
                 break;
         }
     }
 
-    public static string ConvertVb6Specific(string S, out bool Complete)
+    public static string ConvertVb6Specific(string s, out bool complete)
     {
-        switch (Trim(S))
+        switch (Trim(s))
         {
             case "Array()":
-                S = "new List<dynamic>()";
+                s = "new List<dynamic>()";
                 break;
             case "App.Path":
-                S = "AppDomain.CurrentDomain.BaseDirectory";
+                s = "AppDomain.CurrentDomain.BaseDirectory";
                 break;
         }
 
-        Complete = false;
-        var W = RegExNMatch(Trim(S), patToken);
-        var R = SplitWord(Trim(S), 2, " ", true, true);
-        switch (W)
+        complete = false;
+        var w = RegExNMatch(Trim(s), patToken);
+        var r = SplitWord(Trim(s), 2, " ", true, true);
+        switch (w)
         {
             case "True":
-                Complete = true;
-                S = "true";
+                complete = true;
+                s = "true";
                 break;
             case "False":
-                Complete = true;
-                S = "false";
+                complete = true;
+                s = "false";
                 break;
             case "Me":
-                Complete = true;
-                S = "this";
+                complete = true;
+                s = "this";
                 break;
             case "Nothing":
-                Complete = true;
-                S = "null";
+                complete = true;
+                s = "null";
                 break;
             case "vbTrue":
-                Complete = true;
-                S = "vbTriState.vbTrue";
+                complete = true;
+                s = "vbTriState.vbTrue";
                 break;
             case "vbFalse":
-                Complete = true;
-                S = "vbTriState.vbFalse";
+                complete = true;
+                s = "vbTriState.vbFalse";
                 break;
             case "vbUseDefault":
-                Complete = true;
-                S = "vbTriState.vbUseDefault";
+                complete = true;
+                s = "vbTriState.vbUseDefault";
                 break;
             case "Date":
-                Complete = true;
-                S = "DateTime.Today;";
+                complete = true;
+                s = "DateTime.Today;";
                 break;
             case "Now":
-                Complete = true;
-                S = "DateTime.Now;";
+                complete = true;
+                s = "DateTime.Now;";
                 break;
             case "Kill":
-                S = "File.Delete(" + R + ");";
+                s = "File.Delete(" + r + ");";
                 break;
             case "FreeFile":
-                S = "FreeFile();";
+                s = "FreeFile();";
                 break;
             case "Open":
-                S = "VBOpenFile(" + Replace(SplitWord(R, 2, " As "), "#", "") + ", " + SplitWord(R, 1, " For ") + ");";
+                s = "VBOpenFile(" + Replace(SplitWord(r, 2, " As "), "#", "") + ", " + SplitWord(r, 1, " For ") + ");";
                 break;
             case "Print":
-                S = "VBWriteFile(" + Replace(SplitWord(R, 1, ","), "#", "") + ", " + Replace(SplitWord(R, 2, ", ", true, true), ";", ",") + ");";
+                s = "VBWriteFile(" + Replace(SplitWord(r, 1, ","), "#", "") + ", " + Replace(SplitWord(r, 2, ", ", true, true), ";", ",") + ");";
                 break;
             case "Close":
-                S = "VBCloseFile(" + Replace(R, "#", "") + ");";
+                s = "VBCloseFile(" + Replace(r, "#", "") + ");";
                 break;
             case "New":
-                Complete = true;
-                S = "new " + R + "();";
+                complete = true;
+                s = "new " + r + "();";
                 break;
             case "vbAlignLeft":
-                S = "AlignConstants.vbAlignLeft";
+                s = "AlignConstants.vbAlignLeft";
                 break;
             case "vbAlignRight":
-                S = "AlignConstants.vbAlignRight";
+                s = "AlignConstants.vbAlignRight";
                 break;
             case "vbAlignTop":
-                S = "AlignConstants.vbAlignTop";
+                s = "AlignConstants.vbAlignTop";
                 break;
             case "vbAlignBottom":
-                S = "AlignConstants.vbAlignBottom";
+                s = "AlignConstants.vbAlignBottom";
                 break;
             case "RaiseEvent":
-                Complete = true;
-                W = RegExNMatch(R, patToken);
-                R = Mid(R, Len(W) + 1);
-                if (R == "")
+                complete = true;
+                w = RegExNMatch(r, patToken);
+                r = Mid(r, Len(w) + 1);
+                if (r == "")
                 {
-                    R = "()";
+                    r = "()";
                 }
-                S = "event" + W + "?.Invoke" + R + ";";
+                s = "event" + w + "?.Invoke" + r + ";";
                 break;
             case "ReDim":
-                Complete = true;
-                bool RedimPres = false;
+                complete = true;
+                bool redimPres = false;
 
-                if (tLMatch(R, "Preserve "))
+                if (TLMatch(r, "Preserve "))
                 {
-                    R = Trim(tMid(R, 10));
-                    RedimPres = true;
+                    r = Trim(TMid(r, 10));
+                    redimPres = true;
                 }
 
-                var RedimVar = RegExNMatch(R, patToken);
-                var RedimTyp = ConvertDataType(SubParam(RedimVar).asType);
-                R = Trim(Replace(R, RedimVar, ""));
-                if (tLeft(R, 1) == "(")
+                var redimVar = RegExNMatch(r, patToken);
+                var redimTyp = ConvertDataType(SubParam(redimVar).asType);
+                r = Trim(Replace(r, redimVar, ""));
+                if (TLeft(r, 1) == "(")
                 {
-                    R = Mid(Trim(R), 2);
+                    r = Mid(Trim(r), 2);
                 }
-                var RedimMax = Val(nextBy(R, ")")).ToString();
-                var RedimTmp = RedimVar + "_" + Random() + "_tmp";
-                var RedimIter = "redim_iter_" + Random();
-                S = "";
-                S = S + "List<" + RedimTyp + "> " + RedimTmp + " = new List<" + RedimTyp + ">();" + vbCrLf;
+                var redimMax = Val(NextBy(r, ")")).ToString();
+                var redimTmp = redimVar + "_" + Random() + "_tmp";
+                var redimIter = "redim_iter_" + Random();
+                s = "";
+                s = s + "List<" + redimTyp + "> " + redimTmp + " = new List<" + redimTyp + ">();" + vbCrLf;
 
-                S = S + "for (int " + RedimIter + "=0;i<" + RedimMax + ";" + RedimIter + "++) {";
-                if (RedimPres)
+                s = s + "for (int " + redimIter + "=0;i<" + redimMax + ";" + redimIter + "++) {";
+                if (redimPres)
                 {
-                    S = S + RedimVar + ".Add(" + RedimIter + "<" + RedimVar + ".Count ? " + RedimVar + "(" + RedimIter + ") : " + ConvertDefaultDefault(SubParam(RedimVar).asType) + ");";
+                    s = s + redimVar + ".Add(" + redimIter + "<" + redimVar + ".Count ? " + redimVar + "(" + redimIter + ") : " + ConvertDefaultDefault(SubParam(redimVar).asType) + ");";
                 }
                 else
                 {
-                    S = S + RedimVar + ".Add(" + ConvertDefaultDefault(SubParam(RedimVar).asType) + ");";
+                    s = s + redimVar + ".Add(" + ConvertDefaultDefault(SubParam(redimVar).asType) + ");";
                 }
-                S = S + "}";
+                s = s + "}";
                 break;
         }
 
-        if (IsInStr(S, ".Print "))
+        if (IsInStr(s, ".Print "))
         {
-            if (Right(S, 1) == ";")
+            if (Right(s, 1) == ";")
             {
-                S = Replace(S, ".Print ", ".PrintNNL ");
-                S = Left(S, Len(S) - 1);
+                s = Replace(s, ".Print ", ".PrintNNL ");
+                s = Left(s, Len(s) - 1);
             }
-            S = Replace(S, ";", ",");
+            s = Replace(s, ";", ",");
         }
 
-        var ConvertVb6Specific = S;
-        return ConvertVb6Specific;
+        var convertVb6Specific = s;
+        return convertVb6Specific;
     }
 
-    public static string ConvertVb6Syntax(string S)
+    public static string ConvertVb6Syntax(string s)
     {
-        var W = RegExNMatch(Trim(S), patToken);
-        var R = SplitWord(Trim(S), 2, " ", true, true);
-        switch (W)
+        var w = RegExNMatch(Trim(s), patToken);
+        var r = SplitWord(Trim(s), 2, " ", true, true);
+        switch (w)
         {
             case "Open":
-                S = "VBOpenFile(" + Replace(SplitWord(R, 2, " As "), "#", "") + ", " + SplitWord(R, 1, " For ") + ")";
+                s = "VBOpenFile(" + Replace(SplitWord(r, 2, " As "), "#", "") + ", " + SplitWord(r, 1, " For ") + ")";
                 break;
             case "Print":
-                S = "VBWriteFile(" + Replace(SplitWord(R, 1, ","), "#", "") + ", " + Replace(SplitWord(R, 2, ", ", true, true), ";", ",") + ")";
+                s = "VBWriteFile(" + Replace(SplitWord(r, 1, ","), "#", "") + ", " + Replace(SplitWord(r, 2, ", ", true, true), ";", ",") + ")";
                 break;
             case "Input":
-                S = "VBReadFile(" + Replace(SplitWord(R, 1, ","), "#", "") + ", " + Replace(SplitWord(R, 2, ", ", true, true), ";", ",") + ")";
+                s = "VBReadFile(" + Replace(SplitWord(r, 1, ","), "#", "") + ", " + Replace(SplitWord(r, 2, ", ", true, true), ";", ",") + ")";
                 break;
             case "Line":
-                S = "VBReadFileLine(" + Replace(SplitWord(R, 1, ","), "#", "") + ", " + Replace(SplitWord(R, 2, ", ", true, true), ";", ",") + ")";
+                s = "VBReadFileLine(" + Replace(SplitWord(r, 1, ","), "#", "") + ", " + Replace(SplitWord(r, 2, ", ", true, true), ";", ",") + ")";
                 break;
             case "Close":
-                S = "VBCloseFile(" + Replace(R, "#", "") + ")";
+                s = "VBCloseFile(" + Replace(r, "#", "") + ")";
                 break;
             case "New":
-                S = "new " + R + "()";
+                s = "new " + r + "()";
                 break;
             case "RaiseEvent":
-                W = RegExNMatch(R, patToken);
-                R = Mid(R, Len(W) + 1);
-                if (R == "")
+                w = RegExNMatch(r, patToken);
+                r = Mid(r, Len(w) + 1);
+                if (r == "")
                 {
-                    R = "()";
+                    r = "()";
                 }
-                S = "event" + W + "?.Invoke" + R;
+                s = "event" + w + "?.Invoke" + r;
                 break;
         }
 
-        var ConvertVb6Syntax = S;
-        return ConvertVb6Syntax;
+        var convertVb6Syntax = s;
+        return convertVb6Syntax;
     }
 }

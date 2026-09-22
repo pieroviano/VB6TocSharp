@@ -1,466 +1,467 @@
-using Microsoft.VisualBasic;
 using System.Collections.Generic;
+using Microsoft.VisualBasic;
 using static Microsoft.VisualBasic.Constants;
 using static Microsoft.VisualBasic.Conversion;
 using static Microsoft.VisualBasic.Information;
-using static Microsoft.VisualBasic.Interaction;
 using static Microsoft.VisualBasic.Strings;
-using static modConfig;
-using static modConvertUtils;
-using static modUtils;
-using static modVB6ToCS;
-using static VBExtension;
+using static Vb6ToCSharp.Modules.ModConfig;
+using static Vb6ToCSharp.Modules.ModConvertUtils;
+using static Vb6ToCSharp.Modules.ModUtils;
+using static Vb6ToCSharp.Modules.ModVb6ToCs;
+using static Vb6ToCSharp.VbExtension;
 
 
-static class modConvertForm
+namespace Vb6ToCSharp.Modules;
+
+static class ModConvertForm
 {
     // Option Explicit
-    private static string EventStubs = "";
+    private static string eventStubs = "";
 
 
-    public static string Frm2Xml(string F)
+    public static string Frm2Xml(string f)
     {
-        string[] Sp = new string[0];
+        string[] sp = new string[0];
         int I = 0;
 
-        string R = "";
+        string r = "";
 
-        Sp = Split(F, vbCrLf);
+        sp = Split(f, vbCrLf);
 
-        foreach (var iterL in Sp)
+        foreach (var iterL in sp)
         {
-            var L = iterL;
-            L = Trim(L);
-            if (L == "")
+            var l = iterL;
+            l = Trim(l);
+            if (l == "")
             {
                 goto NextLine;
             }
-            if (Left(L, 10) == "Attribute " || Left(L, 8) == "VERSION ")
+            if (Left(l, 10) == "Attribute " || Left(l, 8) == "VERSION ")
             {
             }
-            else if (Left(L, 6) == "Begin ")
+            else if (Left(l, 6) == "Begin ")
             {
-                R = R + sSpace(I * SpIndent) + "<item type=\"" + SplitWord(L, 2) + "\" name=\"" + SplitWord(L, 3) + "\">" + vbCrLf;
+                r = r + SSpace(I * spIndent) + "<item type=\"" + SplitWord(l, 2) + "\" name=\"" + SplitWord(l, 3) + "\">" + vbCrLf;
                 I = I + 1;
             }
-            else if (L == "End")
+            else if (l == "End")
             {
                 I = I - 1;
-                R = R + sSpace(I * SpIndent) + "</item>" + vbCrLf;
+                r = r + SSpace(I * spIndent) + "</item>" + vbCrLf;
             }
             else
             {
-                R = R + sSpace(I * SpIndent) + "<prop name=\"" + SplitWord(L, 1, "=") + "\" value=\"" + SplitWord(L, 2, "=", true, true) + "\" />" + vbCrLf;
+                r = r + SSpace(I * spIndent) + "<prop name=\"" + SplitWord(l, 1, "=") + "\" value=\"" + SplitWord(l, 2, "=", true, true) + "\" />" + vbCrLf;
             }
-        NextLine:;
+            NextLine:;
         }
-        var Frm2Xml = R;
-        return Frm2Xml;
+        var frm2Xml = r;
+        return frm2Xml;
     }
 
-    public static string FormControls(string Src, string F, bool asLocal = true)
+    public static string FormControls(string src, string f, bool asLocal = true)
     {
-        string[] Sp = new string[0];
+        string[] sp = new string[0];
         int I = 0;
 
-        string R = "";
+        string r = "";
 
-        Sp = Split(F, vbCrLf);
+        sp = Split(f, vbCrLf);
 
-        foreach (var iterL in Sp)
+        foreach (var iterL in sp)
         {
-            var L = iterL;
-            L = Trim(L);
-            if (L == "")
+            var l = iterL;
+            l = Trim(l);
+            if (l == "")
             {
                 goto NextLine;
             }
-            if (Left(L, 6) == "Begin ")
+            if (Left(l, 6) == "Begin ")
             {
-                var Ty = SplitWord(L, 2);
-                var Nm = SplitWord(L, 3);
-                switch (Ty)
+                var ty = SplitWord(l, 2);
+                var nm = SplitWord(l, 3);
+                switch (ty)
                 {
                     case "VB.Form":
                         break;
                     default:
-                        var T = Src + ":" + IIf(asLocal, "", Src + ".") + Nm + ":Control:" + Ty;
-                        if (Right(R, Len(T)) != T)
+                        var T = src + ":" + IIf(asLocal, "", src + ".") + nm + ":Control:" + ty;
+                        if (Right(r, Len(T)) != T)
                         {
-                            R = R + vbCrLf + T;
+                            r = r + vbCrLf + T;
                         }
                         break;
                 }
             }
-        NextLine:;
+            NextLine:;
         }
-        var FormControls = R;
-        return FormControls;
+        var formControls = r;
+        return formControls;
     }
 
-    public static string ConvertFormUi(string F, string CodeSection)
+    public static string ConvertFormUi(string f, string codeSection)
     {
-        List<string> Stck = new List<string>(new string[1]);
+        List<string> stck = new List<string>(new string[1]);
 
-        string[] Sp = new string[0];
+        string[] sp = new string[0];
         int I = 0;
-        string Tag = "";
+        string tag = "";
 
-        string M = "";
+        string m = "";
 
-        string R = "";
+        string r = "";
 
-        string Prefix = "";
+        string prefix = "";
 
-        Collection Props = null;
+        Collection props = null;
 
-        Sp = Split(F, vbCrLf);
+        sp = Split(f, vbCrLf);
 
-        EventStubs = "";
+        eventStubs = "";
 
-        for (var K = LBound(Sp); K <= UBound(Sp); K++)
+        for (var k = LBound(sp); k <= UBound(sp); k++)
         {
-            var L = Trim(Sp[K]);
-            if (L == "")
+            var l = Trim(sp[k]);
+            if (l == "")
             {
                 goto NextLine;
             }
 
-            if (Left(L, 10) == "Attribute " || Left(L, 8) == "VERSION ")
+            if (Left(l, 10) == "Attribute " || Left(l, 8) == "VERSION ")
             {
             }
-            else if (Left(L, 6) == "Begin ")
+            else if (Left(l, 6) == "Begin ")
             {
-                Props = new Collection(); ;
-                var J = 0;
+                props = new Collection(); ;
+                var j = 0;
                 do
                 {
-                    J = J + 1;
-                    M = Trim(Sp[K + J]);
-                    if (LMatch(M, "Begin ") || M == "End")
+                    j = j + 1;
+                    m = Trim(sp[k + j]);
+                    if (LMatch(m, "Begin ") || m == "End")
                     {
                         break;
                     }
 
-                    if (LMatch(M, "BeginProperty "))
+                    if (LMatch(m, "BeginProperty "))
                     {
-                        Prefix = LCase(Prefix + SplitWord(M, 2) + ".");
+                        prefix = LCase(prefix + SplitWord(m, 2) + ".");
                     }
-                    else if (LMatch(M, "EndProperty"))
+                    else if (LMatch(m, "EndProperty"))
                     {
-                        Prefix = Left(Prefix, Len(Prefix) - 1);
-                        if (!IsInStr(Prefix, "."))
+                        prefix = Left(prefix, Len(prefix) - 1);
+                        if (!IsInStr(prefix, "."))
                         {
-                            Prefix = "";
+                            prefix = "";
                         }
                         else
                         {
-                            Prefix = Left(Prefix, InStrRev(Left(Prefix, Len(Prefix) - 1), "."));
+                            prefix = Left(prefix, InStrRev(Left(prefix, Len(prefix) - 1), "."));
                         }
                     }
                     else
                     {
-                        var pK = Prefix + LCase(SplitWord(M, 1, "="));
-                        var pV = ConvertProperty(SplitWord(M, 2, "=", true, true));
+                        var pK = prefix + LCase(SplitWord(m, 1, "="));
+                        var pV = ConvertProperty(SplitWord(m, 2, "=", true, true));
                         // TODO (not supported): On Error Resume Next
-                        Props.Add(pV, pK);
+                        props.Add(pV, pK);
                         // TODO (not supported): On Error GoTo 0
                     }
                 } while (!(true));
-                K = K + J - 1;
-                R = R + sSpace(I * SpIndent) + StartControl(L, Props, LMatch(M, "End"), CodeSection, out Tag) + vbCrLf;
+                k = k + j - 1;
+                r = r + SSpace(I * spIndent) + StartControl(l, props, LMatch(m, "End"), codeSection, out tag) + vbCrLf;
                 I = I + 1;
-                Stck[I] = Tag;
+                stck[I] = tag;
             }
-            else if (L == "End")
+            else if (l == "End")
             {
-                Props = null;
-                Tag = Stck[I];
+                props = null;
+                tag = stck[I];
                 I = I - 1;
-                if (Tag != "")
+                if (tag != "")
                 {
-                    R = R + sSpace(I * SpIndent) + EndControl(Tag) + vbCrLf;
+                    r = r + SSpace(I * spIndent) + EndControl(tag) + vbCrLf;
                 }
             }
-        NextLine:;
+            NextLine:;
         }
-        var ConvertFormUi = R;
-        return ConvertFormUi;
+        var convertFormUi = r;
+        return convertFormUi;
     }
 
-    private static string ConvertProperty(string S)
+    private static string ConvertProperty(string s)
     {
-        S = deQuote(S);
-        S = DeComment(S);
-        var ConvertProperty = S;
-        return ConvertProperty;
+        s = DeQuote(s);
+        s = DeComment(s);
+        var convertProperty = s;
+        return convertProperty;
     }
 
-    private static string StartControl(string L, Collection Props, bool DoEmpty, string Code, out string TagType)
+    private static string StartControl(string l, Collection props, bool doEmpty, string code, out string tagType)
     {
-        string StartControl = "";
+        string startControl = "";
 
         string tType = "";
         bool tCont = false;
         string tDef = "";
-        string Features = "";
+        string features = "";
 
-        string M = "";
+        string m = "";
 
-        var N = vbCrLf;
-        TagType = "";
+        var n = vbCrLf;
+        tagType = "";
 
-        var cType = SplitWord(L, 2);
-        var cName = SplitWord(L, 3);
-        var cIndex = cValP(ref Props, "Index");
+        var cType = SplitWord(l, 2);
+        var cName = SplitWord(l, 3);
+        var cIndex = CValP(ref props, "Index");
         if (cIndex != "")
         {
             cName = cName + "_" + cIndex;
         }
 
-        ControlData(cType, out tType, out tCont, out tDef, out Features);
+        ControlData(cType, out tType, out tCont, out tDef, out features);
 
-        var S = "";
+        var s = "";
         // TODO (not supported): On Error Resume Next
         if (tType == "Line" || tType == "Shape" || tType == "Timer")
         {
-            return StartControl;
+            return startControl;
 
         }
         else if (tType == "Window")
         {
-            S = S + M + "<Window x:Class=\"" + AssemblyName() + ".Forms." + cName + "\"";
-            S = S + N + "    xmlns=\"http://schemas.microsoft.com/winfx/2006/xaml/presentation\"";
-            S = S + N + "    xmlns:x=\"http://schemas.microsoft.com/winfx/2006/xaml\"";
-            S = S + N + "    xmlns:d=\"http://schemas.microsoft.com/expression/blend/2008\"";
-            S = S + N + "    xmlns:mc=\"http://schemas.openxmlformats.org/markup-compatibility/2006\"";
-            S = S + N + "    xmlns:local=\"clr-namespace:" + AssemblyName() + ".Forms\"";
-            S = S + N + "    xmlns:usercontrols=\"clr-namespace:" + AssemblyName() + ".UserControls\"";
-            S = S + N + "    mc:Ignorable=\"d\"";
-            S = S + N + "    Title=" + Quote(cValP(ref Props, "caption"));
-            S = S + M + "    Height=" + Quote(Px(Val(cValP(ref Props, "clientheight", "0")) + 435));
-            S = S + M + "    Width=" + Quote(Px(Val(cValP(ref Props, "clientwidth", "0")) + 435));
-            S = S + CheckControlEvents("Window", "Form", Code);
-            S = S + M + ">";
-            S = S + N + " <Grid";
+            s = s + m + "<Window x:Class=\"" + AssemblyName() + ".Forms." + cName + "\"";
+            s = s + n + "    xmlns=\"http://schemas.microsoft.com/winfx/2006/xaml/presentation\"";
+            s = s + n + "    xmlns:x=\"http://schemas.microsoft.com/winfx/2006/xaml\"";
+            s = s + n + "    xmlns:d=\"http://schemas.microsoft.com/expression/blend/2008\"";
+            s = s + n + "    xmlns:mc=\"http://schemas.openxmlformats.org/markup-compatibility/2006\"";
+            s = s + n + "    xmlns:local=\"clr-namespace:" + AssemblyName() + ".Forms\"";
+            s = s + n + "    xmlns:usercontrols=\"clr-namespace:" + AssemblyName() + ".UserControls\"";
+            s = s + n + "    mc:Ignorable=\"d\"";
+            s = s + n + "    Title=" + Quote(CValP(ref props, "caption"));
+            s = s + m + "    Height=" + Quote(Px(Val(CValP(ref props, "clientheight", "0")) + 435));
+            s = s + m + "    Width=" + Quote(Px(Val(CValP(ref props, "clientwidth", "0")) + 435));
+            s = s + CheckControlEvents("Window", "Form", code);
+            s = s + m + ">";
+            s = s + n + " <Grid";
         }
         else if (tType == "GroupBox")
         {
-            S = S + "<" + tType;
-            S = S + " x:Name=\"" + cName + "\"";
+            s = s + "<" + tType;
+            s = s + " x:Name=\"" + cName + "\"";
 
-            S = S + " Margin=" + Quote(Px(cValP(ref Props, "left")) + "," + Px(cValP(ref Props, "top")) + ",0,0");
-            S = S + " Width=" + Quote(Px(cValP(ref Props, "width")));
-            S = S + " Height=" + Quote(Px(cValP(ref Props, "height")));
-            S = S + " VerticalAlignment=\"Top\"";
-            S = S + " HorizontalAlignment=\"Left\"";
-            S = S + " FontFamily=" + Quote(cValP(ref Props, "font.name", "Calibri"));
-            S = S + " FontSize=" + Quote(cValP(ref Props, "font.size", "10"));
+            s = s + " Margin=" + Quote(Px(CValP(ref props, "left")) + "," + Px(CValP(ref props, "top")) + ",0,0");
+            s = s + " Width=" + Quote(Px(CValP(ref props, "width")));
+            s = s + " Height=" + Quote(Px(CValP(ref props, "height")));
+            s = s + " VerticalAlignment=\"Top\"";
+            s = s + " HorizontalAlignment=\"Left\"";
+            s = s + " FontFamily=" + Quote(CValP(ref props, "font.name", "Calibri"));
+            s = s + " FontSize=" + Quote(CValP(ref props, "font.size", "10"));
 
-            S = S + " Header=\"" + cValP(ref Props, "caption") + "\"";
-            S = S + "> <Grid Margin=\"0,-15,0,0\"";
+            s = s + " Header=\"" + CValP(ref props, "caption") + "\"";
+            s = s + "> <Grid Margin=\"0,-15,0,0\"";
         }
         else if (tType == "Canvas")
         {
-            S = S + "<" + tType;
-            S = S + " x:Name=\"" + cName + "\"";
+            s = s + "<" + tType;
+            s = s + " x:Name=\"" + cName + "\"";
 
-            S = S + " Margin=" + Quote(Px(cValP(ref Props, "left")) + "," + Px(cValP(ref Props, "top")) + ",0,0");
-            S = S + " Width=" + Quote(Px(cValP(ref Props, "width")));
-            S = S + " Height=" + Quote(Px(cValP(ref Props, "height")));
+            s = s + " Margin=" + Quote(Px(CValP(ref props, "left")) + "," + Px(CValP(ref props, "top")) + ",0,0");
+            s = s + " Width=" + Quote(Px(CValP(ref props, "width")));
+            s = s + " Height=" + Quote(Px(CValP(ref props, "height")));
         }
         else if (tType == "Image")
         {
-            S = S + "<" + tType;
+            s = s + "<" + tType;
 
-            S = S + " x:Name=\"" + cName + "\"";
-            S = S + " Margin=" + Quote(Px(cValP(ref Props, "left")) + "," + Px(cValP(ref Props, "top")) + ",0,0");
-            S = S + " Width=" + Quote(Px(cValP(ref Props, "width")));
-            S = S + " Height=" + Quote(Px(cValP(ref Props, "height")));
-            S = S + " VerticalAlignment=" + Quote("Top");
-            S = S + " HorizontalAlignment=" + Quote("Left");
+            s = s + " x:Name=\"" + cName + "\"";
+            s = s + " Margin=" + Quote(Px(CValP(ref props, "left")) + "," + Px(CValP(ref props, "top")) + ",0,0");
+            s = s + " Width=" + Quote(Px(CValP(ref props, "width")));
+            s = s + " Height=" + Quote(Px(CValP(ref props, "height")));
+            s = s + " VerticalAlignment=" + Quote("Top");
+            s = s + " HorizontalAlignment=" + Quote("Left");
         }
         else
         {
-            S = "";
-            S = S + "<" + tType;
-            S = S + " x:Name=\"" + cName + "\"";
-            S = S + " Margin=" + Quote(Px(cValP(ref Props, "left")) + "," + Px(cValP(ref Props, "top")) + ",0,0");
-            S = S + " Padding=" + Quote("2,2,2,2");
-            S = S + " Width=" + Quote(Px(cValP(ref Props, "width")));
-            S = S + " Height=" + Quote(Px(cValP(ref Props, "height")));
-            S = S + " VerticalAlignment=" + Quote("Top");
-            S = S + " HorizontalAlignment=" + Quote("Left");
+            s = "";
+            s = s + "<" + tType;
+            s = s + " x:Name=\"" + cName + "\"";
+            s = s + " Margin=" + Quote(Px(CValP(ref props, "left")) + "," + Px(CValP(ref props, "top")) + ",0,0");
+            s = s + " Padding=" + Quote("2,2,2,2");
+            s = s + " Width=" + Quote(Px(CValP(ref props, "width")));
+            s = s + " Height=" + Quote(Px(CValP(ref props, "height")));
+            s = s + " VerticalAlignment=" + Quote("Top");
+            s = s + " HorizontalAlignment=" + Quote("Left");
 
         }
 
-        if (IsInStr(Features, "Font"))
+        if (IsInStr(features, "Font"))
         {
-            S = S + " FontFamily=" + Quote(cValP(ref Props, "font.name", "Calibri"));
-            S = S + " FontSize=" + Quote(cValP(ref Props, "font.size", "10"));
-            if (Val(cValP(ref Props, "font.weight", "400")) > 400)
+            s = s + " FontFamily=" + Quote(CValP(ref props, "font.name", "Calibri"));
+            s = s + " FontSize=" + Quote(CValP(ref props, "font.size", "10"));
+            if (Val(CValP(ref props, "font.weight", "400")) > 400)
             {
-                S = S + " FontWeight=" + Quote("Bold");
+                s = s + " FontWeight=" + Quote("Bold");
             }
 
         }
 
-        if (IsInStr(Features, "Content"))
+        if (IsInStr(features, "Content"))
         {
-            S = S + " Content=" + QuoteXML(cValP(ref Props, "caption") + cValP(ref Props, "text"));
+            s = s + " Content=" + QuoteXml(CValP(ref props, "caption") + CValP(ref props, "text"));
         }
 
-        if (IsInStr(Features, "Header"))
+        if (IsInStr(features, "Header"))
         {
-            S = S + " Content=" + QuoteXML(cValP(ref Props, "caption") + cValP(ref Props, "text"));
+            s = s + " Content=" + QuoteXml(CValP(ref props, "caption") + CValP(ref props, "text"));
         }
 
-        var V = cValP(ref Props, "caption") + cValP(ref Props, "text");
-        if (IsInStr(Features, "Text") && V != "")
+        var v = CValP(ref props, "caption") + CValP(ref props, "text");
+        if (IsInStr(features, "Text") && v != "")
         {
-            S = S + " Text=" + QuoteXML(V);
+            s = s + " Text=" + QuoteXml(v);
         }
 
-        V = cValP(ref Props, "ToolTipText");
-        if (IsInStr(Features, "ToolTip") && V != "")
+        v = CValP(ref props, "ToolTipText");
+        if (IsInStr(features, "ToolTip") && v != "")
         {
-            S = S + " ToolTip=" + Quote(V);
+            s = s + " ToolTip=" + Quote(v);
         }
 
-        S = S + CheckControlEvents(tType, cName, Code);
+        s = s + CheckControlEvents(tType, cName, code);
 
-        if (DoEmpty)
+        if (doEmpty)
         {
-            S = S + " />";
-            TagType = "";
+            s = s + " />";
+            tagType = "";
         }
         else
         {
-            S = S + ">";
-            TagType = tType;
+            s = s + ">";
+            tagType = tType;
         }
-        StartControl = S;
-        return StartControl;
+        startControl = s;
+        return startControl;
     }
 
-    public static string CheckControlEvents(string ControlType, string ControlName, string CodeSection = "")
+    public static string CheckControlEvents(string controlType, string controlName, string codeSection = "")
     {
-        var HasClick = true;
-        var HasFocus = !IsInStr("GroupBox", ControlType);
-        var HasChange = IsInStr("TextBox,ListBox", ControlType);
-        var IsWindow = ControlType == "Window";
+        var hasClick = true;
+        var hasFocus = !IsInStr("GroupBox", controlType);
+        var hasChange = IsInStr("TextBox,ListBox", controlType);
+        var isWindow = controlType == "Window";
 
-        var Res = "";
-        Res = Res + CheckEvent("MouseMove", ControlName, ControlType, CodeSection);
-        if (HasFocus)
+        var res = "";
+        res = res + CheckEvent("MouseMove", controlName, controlType, codeSection);
+        if (hasFocus)
         {
-            Res = Res + CheckEvent("GotFocus", ControlName, ControlType, CodeSection);
-            Res = Res + CheckEvent("LostFocus", ControlName, ControlType, CodeSection);
-            Res = Res + CheckEvent("KeyDown", ControlName, ControlType, CodeSection);
-            Res = Res + CheckEvent("KeyUp", ControlName, ControlType, CodeSection);
+            res = res + CheckEvent("GotFocus", controlName, controlType, codeSection);
+            res = res + CheckEvent("LostFocus", controlName, controlType, codeSection);
+            res = res + CheckEvent("KeyDown", controlName, controlType, codeSection);
+            res = res + CheckEvent("KeyUp", controlName, controlType, codeSection);
         }
-        if (HasClick)
+        if (hasClick)
         {
-            Res = Res + CheckEvent("Click", ControlName, ControlType, CodeSection);
-            Res = Res + CheckEvent("DblClick", ControlName, ControlType, CodeSection);
+            res = res + CheckEvent("Click", controlName, controlType, codeSection);
+            res = res + CheckEvent("DblClick", controlName, controlType, codeSection);
         }
-        if (HasChange)
+        if (hasChange)
         {
-            Res = Res + CheckEvent("Change", ControlName, ControlType, CodeSection);
+            res = res + CheckEvent("Change", controlName, controlType, codeSection);
         }
-        if (IsWindow)
+        if (isWindow)
         {
-            Res = Res + CheckEvent("Load", ControlName, ControlType, CodeSection);
-            Res = Res + CheckEvent("Unload", ControlName, ControlType, CodeSection);
+            res = res + CheckEvent("Load", controlName, controlType, codeSection);
+            res = res + CheckEvent("Unload", controlName, controlType, codeSection);
             //    Res = Res & CheckEvent("QueryUnload", ControlName, ControlType, CodeSection)
         }
 
-        var CheckControlEvents = Res;
-        return CheckControlEvents;
+        var checkControlEvents = res;
+        return checkControlEvents;
     }
 
-    public static string CheckEvent(string EventName, string ControlName, string ControlType, string CodeSection = "")
+    public static string CheckEvent(string eventName, string controlName, string controlType, string codeSection = "")
     {
-        string CheckEvent = "";
+        string checkEvent = "";
 
-        var N = ControlName + "_" + EventName;
-        var Search = " " + N + "(";
-        var Target = EventName;
-        switch (EventName)
+        var n = controlName + "_" + eventName;
+        var search = " " + n + "(";
+        var target = eventName;
+        switch (eventName)
         {
             case "DblClick":
-                Target = "MouseDoubleClick";
+                target = "MouseDoubleClick";
                 break;
             case "Change":
-                if (ControlType == "TextBox")
+                if (controlType == "TextBox")
                 {
-                    Target = "TextChanged";
+                    target = "TextChanged";
                 }
                 break;
             case "Load":
-                Target = "Loaded";
+                target = "Loaded";
                 break;
             case "Unload":
-                Target = "Unloaded";
+                target = "Unloaded";
                 break;
         }
-        var L = InStr(1, CodeSection, Search, vbTextCompare);
-        if (L > 0)
+        var l = InStr(1, codeSection, search, vbTextCompare);
+        if (l > 0)
         {
-            var V = Mid(CodeSection, L + 1, Len(N)); // Get exact capitalization from source....
-            CheckEvent = " " + Target + "=\"" + V + "\"";
+            var v = Mid(codeSection, l + 1, Len(n)); // Get exact capitalization from source....
+            checkEvent = " " + target + "=\"" + v + "\"";
         }
         else
         {
-            CheckEvent = "";
+            checkEvent = "";
         }
-        return CheckEvent;
+        return checkEvent;
     }
 
     public static string EndControl(string tType)
     {
-        string EndControl = "";
+        string endControl = "";
         switch (tType)
         {
             case "Line":
-                EndControl = "";
+                endControl = "";
                 break;
             case "Window":
-                EndControl = " </Grid>" + vbCrLf + "</Window>";
+                endControl = " </Grid>" + vbCrLf + "</Window>";
                 break;
             case "GroupBox":
-                EndControl = "</Grid> </GroupBox>";
+                endControl = "</Grid> </GroupBox>";
                 break;
             default:
-                EndControl = "</" + tType + ">";
+                endControl = "</" + tType + ">";
                 break;
         }
-        return EndControl;
+        return endControl;
     }
 
-    public static bool IsEvent(string Str)
+    public static bool IsEvent(string str)
     {
-        var IsEvent = EventStub(Str) != "";
-        return IsEvent;
+        var isEvent = EventStub(str) != "";
+        return isEvent;
     }
 
     public static string EventStub(string fName)
     {
-        string S = "";
+        string s = "";
 
 
-        var C = SplitWord(fName, 1, "_");
-        var K = SplitWord(fName, 2, "_");
-        switch (K)
+        var c = SplitWord(fName, 1, "_");
+        var k = SplitWord(fName, 2, "_");
+        switch (k)
         {
             case "Click":
-                S = "private void " + fName + "(object sender, RoutedEventArgs e) { " + fName + "(); }" + vbCrLf;
+                s = "private void " + fName + "(object sender, RoutedEventArgs e) { " + fName + "(); }" + vbCrLf;
                 break;
             case "Change":
-                S = "private void " + C + "_Change(object sender, System.Windows.Controls.TextChangedEventArgs e) { " + fName + "(); }" + vbCrLf;
+                s = "private void " + c + "_Change(object sender, System.Windows.Controls.TextChangedEventArgs e) { " + fName + "(); }" + vbCrLf;
                 break;
             case "QueryUnload":
-                S = "private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e) { int c = 0, u = 0 ;  " + fName + "(out c, ref u); e.Cancel = c != 0;  }" + vbCrLf;
+                s = "private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e) { int c = 0, u = 0 ;  " + fName + "(out c, ref u); e.Cancel = c != 0;  }" + vbCrLf;
                 //      V = " long doCancel; long UnloadMode; " & FName & "(ref doCancel, ref UnloadMode);"
                 break;
             case "Validate":
@@ -472,7 +473,7 @@ static class modConvertForm
                 break;
         }
 
-        var EventStub = S;
-        return EventStub;
+        var eventStub = s;
+        return eventStub;
     }
 }

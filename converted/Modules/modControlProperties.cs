@@ -1,108 +1,110 @@
-static class modControlProperties
+namespace Vb6ToCSharp.Modules;
+
+static class ModControlProperties
 {
     // Option Explicit
 
 
-    public static string ConvertControlProperty(string Src_UNUSED, string vProp, string cType)
+    public static string ConvertControlProperty(string srcUnused, string vProp, string cType)
     {
-        var ConvertControlProperty =
+        var convertControlProperty =
             //If IsInStr(vProp, "SetF") Then Stop
             vProp;
         switch (vProp)
         {
             case "ListIndex":
-                ConvertControlProperty = "SelectedIndex";
+                convertControlProperty = "SelectedIndex";
                 break;
             case "Visible":
-                ConvertControlProperty = "Visibility";
+                convertControlProperty = "Visibility";
                 break;
             case "Enabled":
-                ConvertControlProperty = "IsEnabled";
+                convertControlProperty = "IsEnabled";
                 break;
             case "TabStop":
-                ConvertControlProperty = "IsTabStop";
+                convertControlProperty = "IsTabStop";
                 break;
             case "SelStart":
-                ConvertControlProperty = "SelectionStart";
+                convertControlProperty = "SelectionStart";
                 break;
             case "SelLength":
-                ConvertControlProperty = "SelectionLength";
+                convertControlProperty = "SelectionLength";
                 break;
             case "Caption":
                 if (cType == "VB.Label")
                 {
-                    ConvertControlProperty = "Content";
+                    convertControlProperty = "Content";
                 }
                 break;
             case "Value":
                 if (cType == "VB.CheckBox")
                 {
-                    ConvertControlProperty = "IsChecked";
+                    convertControlProperty = "IsChecked";
                 }
                 if (cType == "VB.OptionButton")
                 {
-                    ConvertControlProperty = "IsChecked";
+                    convertControlProperty = "IsChecked";
                 }
                 if (cType == "MSComCtl2.DTPicker")
                 {
-                    ConvertControlProperty = "DisplayDate";
+                    convertControlProperty = "DisplayDate";
                 }
                 break;
             case "Text":
                 if (cType == "VB.ListBox")
                 {
-                    ConvertControlProperty = "SelectedText.toString()";
+                    convertControlProperty = "SelectedText.toString()";
                 }
                 break;
             case "ListCount":
                 if (cType == "VB.ListBox")
                 {
-                    ConvertControlProperty = "Items.Count";
+                    convertControlProperty = "Items.Count";
                 }
                 break;
             case "Default":
-                ConvertControlProperty = "IsDefault";
+                convertControlProperty = "IsDefault";
                 break;
             case "Cancel":
-                ConvertControlProperty = "IsCancel";
+                convertControlProperty = "IsCancel";
 
                 break;
             case "":
                 switch (cType)
                 {
                     case "VB.Caption":
-                        ConvertControlProperty = "Content";
+                        convertControlProperty = "Content";
                         break;
                     case "VB.TextBox":
-                        ConvertControlProperty = "Text";
+                        convertControlProperty = "Text";
                         break;
                     case "VB.ComboBox":
-                        ConvertControlProperty = "Text";
+                        convertControlProperty = "Text";
                         break;
                     case "VB.PictureBox":
-                        ConvertControlProperty = "Source";
+                        convertControlProperty = "Source";
                         break;
                     case "VB.Image":
-                        ConvertControlProperty = "Source";
+                        convertControlProperty = "Source";
                         break;
                     case "VB.OptionButton":
-                        ConvertControlProperty = "IsChecked";
+                        convertControlProperty = "IsChecked";
                         break;
                     case "VB.CheckBox":
-                        ConvertControlProperty = "IsChecked";
+                        convertControlProperty = "IsChecked";
                         break;
                     case "VB.Frame":
-                        ConvertControlProperty = "Content";
+                        convertControlProperty = "Content";
                         break;
                     case "VB.Label":
-                        ConvertControlProperty = "Content";
+                        convertControlProperty = "Content";
                         break;
                     default:
-                        ConvertControlProperty = "DefaultProperty";
+                        convertControlProperty = "DefaultProperty";
                         break;
                 }
                 break;
         }
-        return ConvertControlProperty;
+        return convertControlProperty;
     }
 }

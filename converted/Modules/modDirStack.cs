@@ -1,15 +1,17 @@
+using System;
 using Microsoft.VisualBasic;
-using static Microsoft.VisualBasic.Conversion;
 using static Microsoft.VisualBasic.FileSystem;
 
 
-static class modDirStack
+namespace Vb6ToCSharp.Modules;
+
+static class ModDirStack
 {
     // Option Explicit
-    private static Collection DirStack = new Collection();
+    private static Collection dirStack = new Collection();
 
 
-    public static string PushDir(string NewDir, bool doSet = true)
+    public static string PushDir(string newDir, bool doSet = true)
     {
         //::::PushDir
         //:::SUMMARY
@@ -27,29 +29,29 @@ static class modDirStack
 
 
         // TODO (not supported): On Error Resume Next
-        if (DirStack == null)
+        if (dirStack == null)
         {
-            DirStack = new Collection(); ;
-            DirStack.Add(0, "n");
+            dirStack = new Collection(); ;
+            dirStack.Add(0, "n");
         }
 
-        int N = Val(DirStack.Item("n")) + 1;
-        DirStack.Remove("n");
-        DirStack.Add(N, "n");
-        DirStack.Add(CurDir(), "_" + N);
+        int n = Convert.ToInt32(dirStack.Item("n")) + 1;
+        dirStack.Remove("n");
+        dirStack.Add(n, "n");
+        dirStack.Add(CurDir(), "_" + n);
 
         if (doSet)
         {
-            ChDir(NewDir);
+            ChDir(newDir);
         }
 
-        var PushDir = CurDir();
-        return PushDir;
+        var pushDir = CurDir();
+        return pushDir;
     }
 
     public static string PopDir(bool doSet = true)
     {
-        string PopDir = "";
+        string popDir = "";
         //::::PopDir
         //:::SUMMARY
         //:Remove to dir from stack.  Error Safe.  Generally to change current directory.
@@ -62,40 +64,40 @@ static class modDirStack
         //:Returns directory popped.
         //:::SEE ALSO
         //: PopDir, PeekDir
-        string V = "";
+        string v = "";
 
 
         // TODO (not supported): On Error Resume Next
-        if (DirStack == null)
+        if (dirStack == null)
         {
-            return PopDir;
+            return popDir;
 
         }
 
-        int N = Val(DirStack.Item("n"));
-        PopDir = DirStack.Item("_" + N);
+        int n = Convert.ToInt32(dirStack.Item("n"));
+        popDir = dirStack.Item("_" + n);
 
-        if (N > 1)
+        if (n > 1)
         {
-            N = N - 1;
-            DirStack.Remove("n");
-            DirStack.Add(N, "n");
+            n = n - 1;
+            dirStack.Remove("n");
+            dirStack.Add(n, "n");
         }
         else
         {
-            DirStack = null;
+            dirStack = null;
         }
 
         if (doSet)
         {
-            ChDir(PopDir);
+            ChDir(popDir);
         }
-        return PopDir;
+        return popDir;
     }
 
     public static string PeekDir(bool doSet = true)
     {
-        string PeekDir = "";
+        string peekDir = "";
         //::::PeekDir
         //:::SUMMARY
         //:Return directory on top of stack without removing it.  Generally to change current directory.
@@ -108,23 +110,22 @@ static class modDirStack
         //:Returns top stack item (without removing it from stack).
         //:::SEE ALSO
         //: PopDir, PeekDir
-        string V = "";
+        string v = "";
 
 
         // TODO (not supported): On Error Resume Next
-        if (DirStack == null)
+        if (dirStack == null)
         {
-            return PeekDir;
-
+            return peekDir;
         }
 
-        int N = Val(DirStack.Item("n"));
-        PeekDir = DirStack.Item("_" + N);
+        int n = Convert.ToInt32(dirStack.Item("n"));
+        peekDir = dirStack.Item("_" + n);
 
         if (doSet)
         {
-            ChDir(PeekDir);
+            ChDir(peekDir);
         }
-        return PeekDir;
+        return peekDir;
     }
 }

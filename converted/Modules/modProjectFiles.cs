@@ -1,39 +1,40 @@
 using static Microsoft.VisualBasic.Constants;
-using static Microsoft.VisualBasic.Interaction;
 using static Microsoft.VisualBasic.Strings;
-using static modConfig;
-using static modTextFiles;
-using static modUtils;
-using static VBExtension;
+using static Vb6ToCSharp.Modules.ModConfig;
+using static Vb6ToCSharp.Modules.ModTextFiles;
+using static Vb6ToCSharp.Modules.ModUtils;
+using static Vb6ToCSharp.VbExtension;
 
 
-static class modProjectFiles
+namespace Vb6ToCSharp.Modules;
+
+static class ModProjectFiles
 {
     // Option Explicit
 
 
-    public static string VBPCode(string ProjectFile_UNUSED = "")
+    public static string VbpCode(string projectFileUnused = "")
     {
-        var VBPCode = VBPModules() + vbCrLf + VBPForms() + vbCrLf + VBPClasses() + vbCrLf + VBPUserControls();
-        return VBPCode;
+        var vbpCode = VbpModules() + vbCrLf + VbpForms() + vbCrLf + VbpClasses() + vbCrLf + VbpUserControls();
+        return vbpCode;
     }
 
-    public static string VBPModules(string ProjectFile = "")
+    public static string VbpModules(string projectFile = "")
     {
-        string VBPModules = "";
+        string vbpModules = "";
 
-        const string C = "Module=";
-        if (ProjectFile == "")
+        const string c = "Module=";
+        if (projectFile == "")
         {
-            ProjectFile = vbpFile;
+            projectFile = VbpFile;
         }
-        var S = ReadEntireFile(ProjectFile);
-        foreach (var iterL in Split(S, vbCrLf))
+        var s = ReadEntireFile(projectFile);
+        foreach (var iterL in Split(s, vbCrLf))
         {
-            dynamic L = iterL;
-            if (Left(L, Len(C)) == C)
+            dynamic l = iterL;
+            if (Left(l, Len(c)) == c)
             {
-                string T = Mid(L, Len(C) + 1);
+                string T = Mid(l, Len(c) + 1);
                 if (IsInStr(T, ";"))
                 {
                     T = SplitWord(T, 2, ";");
@@ -43,35 +44,35 @@ static class modProjectFiles
                 {
                     goto NextItem;
                 }
-                VBPModules = VBPModules + IIf(VBPModules == "", "", vbCrLf) + T;
+                vbpModules = vbpModules + IIf(vbpModules == "", "", vbCrLf) + T;
             }
-        NextItem:;
+            NextItem:;
         }
-        return VBPModules;
+        return vbpModules;
     }
 
-    public static string VBPForms(string ProjectFile = "")
+    public static string VbpForms(string projectFile = "")
     {
-        string VBPForms = "";
-        const bool WithExt = true;
+        string vbpForms = "";
+        const bool withExt = true;
 
-        const string C = "Form=";
-        if (ProjectFile == "")
+        const string c = "Form=";
+        if (projectFile == "")
         {
-            ProjectFile = vbpFile;
+            projectFile = VbpFile;
         }
-        var S = ReadEntireFile(ProjectFile);
-        foreach (var iterL in Split(S, vbCrLf))
+        var s = ReadEntireFile(projectFile);
+        foreach (var iterL in Split(s, vbCrLf))
         {
-            dynamic L = iterL;
-            if (Left(L, Len(C)) == C)
+            dynamic l = iterL;
+            if (Left(l, Len(c)) == c)
             {
-                string T = Mid(L, Len(C) + 1);
+                string T = Mid(l, Len(c) + 1);
                 if (IsInStr(T, ";"))
                 {
                     T = SplitWord(T, 1, ";");
                 }
-                if (!WithExt && Right(T, 4) == ".frm")
+                if (!withExt && Right(T, 4) == ".frm")
                 {
                     T = Left(T, Len(T) - 4);
                 }
@@ -99,68 +100,68 @@ static class modProjectFiles
                         T = "frmSelectText";
                         break;
                 }
-                VBPForms = VBPForms + IIf(VBPForms == "", "", vbCrLf) + T;
+                vbpForms = vbpForms + IIf(vbpForms == "", "", vbCrLf) + T;
             }
-        NextItem:;
+            NextItem:;
         }
-        return VBPForms;
+        return vbpForms;
     }
 
-    public static string VBPClasses(string ProjectFile = "", bool ClassNames = false)
+    public static string VbpClasses(string projectFile = "", bool classNames = false)
     {
-        string VBPClasses = "";
+        string vbpClasses = "";
 
-        const string C = "Class=";
-        if (ProjectFile == "")
+        const string c = "Class=";
+        if (projectFile == "")
         {
-            ProjectFile = vbpFile;
+            projectFile = VbpFile;
         }
-        var S = ReadEntireFile(ProjectFile);
-        foreach (var iterL in Split(S, vbCrLf))
+        var s = ReadEntireFile(projectFile);
+        foreach (var iterL in Split(s, vbCrLf))
         {
-            dynamic L = iterL;
-            if (Left(L, Len(C)) == C)
+            dynamic l = iterL;
+            if (Left(l, Len(c)) == c)
             {
-                string T = Mid(L, Len(C) + 1);
+                string T = Mid(l, Len(c) + 1);
                 if (IsInStr(T, ";"))
                 {
                     T = SplitWord(T, 2, ";");
                 }
-                VBPClasses = VBPClasses + IIf(VBPClasses == "", "", vbCrLf) + T;
+                vbpClasses = vbpClasses + IIf(vbpClasses == "", "", vbCrLf) + T;
             }
-        NextItem:;
+            NextItem:;
         }
-        if (ClassNames)
+        if (classNames)
         {
-            VBPClasses = Replace(VBPClasses, ".cls", "");
+            vbpClasses = Replace(vbpClasses, ".cls", "");
         }
-        return VBPClasses;
+        return vbpClasses;
     }
 
-    public static string VBPUserControls(string ProjectFile = "")
+    public static string VbpUserControls(string projectFile = "")
     {
-        string VBPUserControls = "";
+        string vbpUserControls = "";
 
-        const string C = "UserControl=";
-        if (ProjectFile == "")
+        const string c = "UserControl=";
+        if (projectFile == "")
         {
-            ProjectFile = vbpFile;
+            projectFile = VbpFile;
         }
-        var S = ReadEntireFile(ProjectFile);
-        foreach (var iterL in Split(S, vbCrLf))
+        var s = ReadEntireFile(projectFile);
+        foreach (var iterL in Split(s, vbCrLf))
         {
-            dynamic L = iterL;
-            if (Left(L, Len(C)) == C)
+            dynamic l = iterL;
+            if (Left(l, Len(c)) == c)
             {
-                string T = Mid(L, Len(C) + 1);
+                string T = Mid(l, Len(c) + 1);
                 if (IsInStr(T, ";"))
                 {
                     T = SplitWord(T, 2, ";");
                 }
-                VBPUserControls = VBPUserControls + IIf(VBPUserControls == "", "", vbCrLf) + T;
+                vbpUserControls = vbpUserControls + IIf(vbpUserControls == "", "", vbCrLf) + T;
             }
-        NextItem:;
+            NextItem:;
         }
-        return VBPUserControls;
+        return vbpUserControls;
     }
 }

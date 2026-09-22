@@ -1,110 +1,112 @@
 using static Microsoft.VisualBasic.Constants;
 using static Microsoft.VisualBasic.Strings;
-using static modConfig;
-using static modProjectFiles;
-using static modTextFiles;
-using static modUtils;
+using static Vb6ToCSharp.Modules.ModConfig;
+using static Vb6ToCSharp.Modules.ModProjectFiles;
+using static Vb6ToCSharp.Modules.ModTextFiles;
+using static Vb6ToCSharp.Modules.ModUtils;
 
 
-static class modUsingEverything
+namespace Vb6ToCSharp.Modules;
+
+static class ModUsingEverything
 {
     // Option Explicit
-    private static string Everything = "";
-    private const string VB6Compat = "Microsoft.VisualBasic.Compatibility.VB6";
+    private static string everything = "";
+    private const string vb6Compat = "Microsoft.VisualBasic.Compatibility.VB6";
 
 
-    public static string UsingEverything(string PackageName = "")
+    public static string UsingEverything(string packageName = "")
     {
-        string List = "";
-        string Name = "";
+        string list = "";
+        string name = "";
 
-        dynamic L = null;
+        dynamic l = null;
 
-        var E = "";
-        var R = "";
-        var N = vbCrLf;
-        var M = "";
+        var e = "";
+        var r = "";
+        var n = vbCrLf;
+        var m = "";
 
-        if (PackageName != "")
+        if (packageName != "")
         {
             //    R = R & N & "package " & PackagePrefix & PackageName & ";"
-            R = R + N + "";
+            r = r + n + "";
         }
 
-        if (Everything == "")
+        if (everything == "")
         {
-            E = E + M + "using VB6 = " + VB6Compat + ";";
-            E = E + N + "using System.Runtime.InteropServices;";
-            E = E + N + "using static VBExtension;";
-            E = E + N + "using static VBConstants;";
-            E = E + N + "using Microsoft.VisualBasic;";
+            e = e + m + "using VB6 = " + vb6Compat + ";";
+            e = e + n + "using System.Runtime.InteropServices;";
+            e = e + n + "using static VBExtension;";
+            e = e + n + "using static VBConstants;";
+            e = e + n + "using Microsoft.VisualBasic;";
 
-            E = E + N + "using System;";
-            E = E + N + "using System.Windows;";
-            E = E + N + "using System.Windows.Controls;";
-            E = E + N + "using static System.DateTime;";
-            E = E + N + "using static System.Math;";
+            e = e + n + "using System;";
+            e = e + n + "using System.Windows;";
+            e = e + n + "using System.Windows.Controls;";
+            e = e + n + "using static System.DateTime;";
+            e = e + n + "using static System.Math;";
 
-            E = E + N + "using static Microsoft.VisualBasic.Globals;";
-            E = E + N + "using static Microsoft.VisualBasic.Collection;";
-            E = E + N + "using static Microsoft.VisualBasic.Constants;";
-            E = E + N + "using static Microsoft.VisualBasic.Conversion;";
-            E = E + N + "using static Microsoft.VisualBasic.DateAndTime;";
-            E = E + N + "using static Microsoft.VisualBasic.ErrObject;";
-            E = E + N + "using static Microsoft.VisualBasic.FileSystem;";
-            E = E + N + "using static Microsoft.VisualBasic.Financial;";
-            E = E + N + "using static Microsoft.VisualBasic.Information;";
-            E = E + N + "using static Microsoft.VisualBasic.Interaction;";
-            E = E + N + "using static Microsoft.VisualBasic.Strings;";
-            E = E + N + "using static Microsoft.VisualBasic.VBMath;";
-            E = E + N + "using System.Collections.Generic;";
+            e = e + n + "using static Microsoft.VisualBasic.Globals;";
+            e = e + n + "using static Microsoft.VisualBasic.Collection;";
+            e = e + n + "using static Microsoft.VisualBasic.Constants;";
+            e = e + n + "using static Microsoft.VisualBasic.Conversion;";
+            e = e + n + "using static Microsoft.VisualBasic.DateAndTime;";
+            e = e + n + "using static Microsoft.VisualBasic.ErrObject;";
+            e = e + n + "using static Microsoft.VisualBasic.FileSystem;";
+            e = e + n + "using static Microsoft.VisualBasic.Financial;";
+            e = e + n + "using static Microsoft.VisualBasic.Information;";
+            e = e + n + "using static Microsoft.VisualBasic.Interaction;";
+            e = e + n + "using static Microsoft.VisualBasic.Strings;";
+            e = e + n + "using static Microsoft.VisualBasic.VBMath;";
+            e = e + n + "using System.Collections.Generic;";
 
-            E = E + N + "using static Microsoft.VisualBasic.PowerPacks.Printing.Compatibility.VB6.ColorConstants;";
-            E = E + N + "using static Microsoft.VisualBasic.PowerPacks.Printing.Compatibility.VB6.DrawStyleConstants;";
-            E = E + N + "using static Microsoft.VisualBasic.PowerPacks.Printing.Compatibility.VB6.FillStyleConstants;";
-            E = E + N + "using static Microsoft.VisualBasic.PowerPacks.Printing.Compatibility.VB6.GlobalModule;";
-            E = E + N + "using static Microsoft.VisualBasic.PowerPacks.Printing.Compatibility.VB6.Printer;";
-            E = E + N + "using static Microsoft.VisualBasic.PowerPacks.Printing.Compatibility.VB6.PrinterCollection;";
-            E = E + N + "using static Microsoft.VisualBasic.PowerPacks.Printing.Compatibility.VB6.PrinterObjectConstants;";
-            E = E + N + "using static Microsoft.VisualBasic.PowerPacks.Printing.Compatibility.VB6.ScaleModeConstants;";
-            E = E + N + "using static Microsoft.VisualBasic.PowerPacks.Printing.Compatibility.VB6.SystemColorConstants;";
-            E = E + N + "using ADODB;";
+            e = e + n + "using static Microsoft.VisualBasic.PowerPacks.Printing.Compatibility.VB6.ColorConstants;";
+            e = e + n + "using static Microsoft.VisualBasic.PowerPacks.Printing.Compatibility.VB6.DrawStyleConstants;";
+            e = e + n + "using static Microsoft.VisualBasic.PowerPacks.Printing.Compatibility.VB6.FillStyleConstants;";
+            e = e + n + "using static Microsoft.VisualBasic.PowerPacks.Printing.Compatibility.VB6.GlobalModule;";
+            e = e + n + "using static Microsoft.VisualBasic.PowerPacks.Printing.Compatibility.VB6.Printer;";
+            e = e + n + "using static Microsoft.VisualBasic.PowerPacks.Printing.Compatibility.VB6.PrinterCollection;";
+            e = e + n + "using static Microsoft.VisualBasic.PowerPacks.Printing.Compatibility.VB6.PrinterObjectConstants;";
+            e = e + n + "using static Microsoft.VisualBasic.PowerPacks.Printing.Compatibility.VB6.ScaleModeConstants;";
+            e = e + n + "using static Microsoft.VisualBasic.PowerPacks.Printing.Compatibility.VB6.SystemColorConstants;";
+            e = e + n + "using ADODB;";
 
-            E = E + N + "using System;";
-            E = E + N + "using System.Collections.Generic;";
-            E = E + N + "using System.Linq;";
-            E = E + N + "using System.Text;";
-            E = E + N + "using System.Threading.Tasks;";
-            E = E + N + "using System.Windows;";
-            E = E + N + "using System.Windows.Controls;";
-            E = E + N + "using System.Windows.Data;";
-            E = E + N + "using System.Windows.Documents;";
-            E = E + N + "using System.Windows.Input;";
-            E = E + N + "using System.Windows.Media;";
-            E = E + N + "using System.Windows.Media.Imaging;";
-            E = E + N + "using System.Windows.Shapes;";
+            e = e + n + "using System;";
+            e = e + n + "using System.Collections.Generic;";
+            e = e + n + "using System.Linq;";
+            e = e + n + "using System.Text;";
+            e = e + n + "using System.Threading.Tasks;";
+            e = e + n + "using System.Windows;";
+            e = e + n + "using System.Windows.Controls;";
+            e = e + n + "using System.Windows.Data;";
+            e = e + n + "using System.Windows.Documents;";
+            e = e + n + "using System.Windows.Input;";
+            e = e + n + "using System.Windows.Media;";
+            e = e + n + "using System.Windows.Media.Imaging;";
+            e = e + n + "using System.Windows.Shapes;";
 
-            E = E + N;
+            e = e + n;
 
-            E = E + N + "using " + AssemblyName() + ".Forms;";
+            e = e + n + "using " + AssemblyName() + ".Forms;";
 
-            var Path = FilePath(vbpFile);
-            foreach (var iterL in Split(VBPModules(vbpFile), vbCrLf))
+            var path = FilePath(VbpFile);
+            foreach (var iterL in Split(VbpModules(VbpFile), vbCrLf))
             {
-                L = iterL;
-                if (L != "")
+                l = iterL;
+                if (l != "")
                 {
-                    Name = ModuleName(ReadEntireFile(Path + L));
-                    E = E + N + "using static " + PackagePrefix + Name + ";";
+                    name = ModuleName(ReadEntireFile(path + l));
+                    e = e + n + "using static " + packagePrefix + name + ";";
                 }
             }
-            foreach (var iterL in Split(VBPForms(vbpFile), vbCrLf))
+            foreach (var iterL in Split(VbpForms(VbpFile), vbCrLf))
             {
-                L = iterL;
-                if (L != "")
+                l = iterL;
+                if (l != "")
                 {
-                    Name = ModuleName(ReadEntireFile(Path + L));
-                    E = E + N + "using static " + AssemblyName() + ".Forms." + Name + ";";
+                    name = ModuleName(ReadEntireFile(path + l));
+                    e = e + n + "using static " + AssemblyName() + ".Forms." + name + ";";
                 }
             }
             //    For Each L In Split(VBPClasses(vbpFile), vbCrLf)  ' controls?
@@ -113,11 +115,11 @@ static class modUsingEverything
             //        E = E & N & "using " & PackagePrefix & Name & ";"
             //      End If
             //    Next
-            Everything = E;
+            everything = e;
         }
 
-        R = Everything + N + R;
-        var UsingEverything = R;
-        return UsingEverything;
+        r = everything + n + r;
+        var usingEverything = r;
+        return usingEverything;
     }
 }

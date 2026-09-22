@@ -1,37 +1,38 @@
 using System;
-using System.Collections.Generic;
 using static Microsoft.VisualBasic.Constants;
 using static Microsoft.VisualBasic.Conversion;
 using static Microsoft.VisualBasic.Information;
 using static Microsoft.VisualBasic.Interaction;
 using static Microsoft.VisualBasic.Strings;
-using static modConfig;
-using static modConvertForm;
-using static modConvertUtils;
-using static modProjectFiles;
-using static modRefScan;
-using static modRegEx;
-using static modSubTracking;
-using static modSupportFiles;
-using static modTextFiles;
-using static modUsingEverything;
-using static modUtils;
-using static modVB6ToCS;
-using static VBExtension;
+using static Vb6ToCSharp.Modules.ModConfig;
+using static Vb6ToCSharp.Modules.ModConvertForm;
+using static Vb6ToCSharp.Modules.ModConvertUtils;
+using static Vb6ToCSharp.Modules.ModProjectFiles;
+using static Vb6ToCSharp.Modules.ModRefScan;
+using static Vb6ToCSharp.Modules.ModRegEx;
+using static Vb6ToCSharp.Modules.ModSubTracking;
+using static Vb6ToCSharp.Modules.ModSupportFiles;
+using static Vb6ToCSharp.Modules.ModTextFiles;
+using static Vb6ToCSharp.Modules.ModUsingEverything;
+using static Vb6ToCSharp.Modules.ModUtils;
+using static Vb6ToCSharp.Modules.ModVb6ToCs;
+using static Vb6ToCSharp.VbExtension;
 
 
-static class modConvert
+namespace Vb6ToCSharp.Modules;
+
+static class ModConvert
 {
     // Option Explicit
-    public const string WithMark = "_WithVar_";
-    private static int WithLevel = 0;
-    private static int MaxWithLevel = 0;
-    private static string WithVars = "";
-    private static string WithTypes = "";
-    private static string WithAssign = "";
-    private static string FormName = "";
-    private static string CurrentModule = "";
-    private static string CurrSub = "";
+    public const string withMark = "_WithVar_";
+    private static int withLevel = 0;
+    private static int maxWithLevel = 0;
+    private static string withVars = "";
+    private static string withTypes = "";
+    private static string withAssign = "";
+    private static string formName = "";
+    private static string currentModule = "";
+    private static string currSub = "";
 
 
     public static void ConvertProject(string vbpFile)
@@ -40,426 +41,426 @@ static class modConvert
         ScanRefs();
         CreateProjectFile(vbpFile);
         CreateProjectSupportFiles();
-        ConvertFileList(FilePath(vbpFile), VBPModules(vbpFile) + vbCrLf + VBPClasses(vbpFile) + vbCrLf + VBPForms(vbpFile)); //& vbCrLf & VBPUserControls(vbpFile)
+        ConvertFileList(FilePath(vbpFile), VbpModules(vbpFile) + vbCrLf + VbpClasses(vbpFile) + vbCrLf + VbpForms(vbpFile)); //& vbCrLf & VBPUserControls(vbpFile)
         MsgBox("Complete.");
     }
 
-    public static bool ConvertFileList(string Path, string List, string Sep = vbCrLf)
+    public static bool ConvertFileList(string path, string list, string sep = vbCrLf)
     {
-        bool ConvertFileList = false;
-        int N = 0;
+        bool convertFileList = false;
+        int n = 0;
 
-        var V = StrCnt(List, Sep) + 1;
-        Prg(0, V, N + "/" + V + "...");
-        foreach (var iterL in Split(List, Sep))
+        var v = StrCnt(list, sep) + 1;
+        Prg(0, v, n + "/" + v + "...");
+        foreach (var iterL in Split(list, sep))
         {
-            dynamic L = iterL;
-            N = N + 1;
-            if (L == "")
+            dynamic l = iterL;
+            n = n + 1;
+            if (l == "")
             {
                 goto NextItem;
             }
 
-            if (L == "modFunctionList.bas")
+            if (l == "modFunctionList.bas")
             {
                 goto NextItem;
             }
 
-            ConvertFile(Path + L);
+            ConvertFile(path + l);
 
-        NextItem:;
-            Prg(N);
+            NextItem:;
+            Prg(n);
             DoEvents();
         }
         Prg();
-        return ConvertFileList;
+        return convertFileList;
     }
 
-    public static bool ConvertFile(string someFile, bool UIOnly = false)
+    public static bool ConvertFile(string someFile, bool uiOnly = false)
     {
-        bool ConvertFile = false;
+        bool convertFile = false;
         if (!IsInStr(someFile, "\\"))
         {
-            someFile = vbpPath + someFile;
+            someFile = VbpPath + someFile;
         }
-        CurrentModule = "";
+        currentModule = "";
         switch (LCase(FileExt(someFile)))
         {
             case ".bas":
-                ConvertFile = ConvertModule(someFile);
+                convertFile = ConvertModule(someFile);
                 break;
             case ".cls":
-                ConvertFile = ConvertClass(someFile);
+                convertFile = ConvertClass(someFile);
                 break;
             case ".frm":
-                FormName = FileBaseName(someFile);
-                ConvertFile = ConvertForm(someFile, UIOnly);
+                formName = FileBaseName(someFile);
+                convertFile = ConvertForm(someFile, uiOnly);
                 //      Case ".ctl": ConvertModule  someFile
                 break;
             default:
                 MsgBox("UNKNOWN VB TYPE: " + someFile);
-                return ConvertFile;
+                return convertFile;
 
                 break;
         }
-        FormName = "";
-        ConvertFile = true;
-        return ConvertFile;
+        formName = "";
+        convertFile = true;
+        return convertFile;
     }
 
-    public static bool ConvertForm(string frmFile, bool UIOnly = false)
+    public static bool ConvertForm(string frmFile, bool uiOnly = false)
     {
-        bool ConvertForm = false;
+        bool convertForm = false;
 
         if (!FileExists(frmFile))
         {
             MsgBox("File not found in ConvertForm: " + frmFile);
-            return ConvertForm;
+            return convertForm;
 
         }
 
-        var S = ReadEntireFile(frmFile);
-        var fName = ModuleName(S);
-        CurrentModule = fName;
-        var F = fName + ".xaml.cs";
-        if (IsConverted(F, frmFile))
+        var s = ReadEntireFile(frmFile);
+        var fName = ModuleName(s);
+        currentModule = fName;
+        var f = fName + ".xaml.cs";
+        if (IsConverted(f, frmFile))
         {
-            Console.WriteLine("Form Already Converted: " + F);
-            return ConvertForm;
+            Console.WriteLine("Form Already Converted: " + f);
+            return convertForm;
 
         }
 
-        var J = CodeSectionLoc(S);
-        var Preamble = Left(S, J - 1);
-        var Code = Mid(S, J);
+        var j = CodeSectionLoc(s);
+        var preamble = Left(s, j - 1);
+        var code = Mid(s, j);
 
-        var X = ConvertFormUi(Preamble, Code);
-        F = fName + ".xaml";
-        WriteOut(F, X, frmFile);
-        if (UIOnly)
+        var x = ConvertFormUi(preamble, code);
+        f = fName + ".xaml";
+        WriteOut(f, x, frmFile);
+        if (uiOnly)
         {
-            return ConvertForm;
+            return convertForm;
 
         }
 
-        J = CodeSectionGlobalEndLoc(Code);
-        var Globals = ConvertGlobals(Left(Code, J));
-        InitLocalFuncs(FormControls(fName, Preamble) + ScanRefsFileToString(frmFile));
-        var Functions = ConvertCodeSegment(Mid(Code, J));
+        j = CodeSectionGlobalEndLoc(code);
+        var globals = ConvertGlobals(Left(code, j));
+        InitLocalFuncs(FormControls(fName, preamble) + ScanRefsFileToString(frmFile));
+        var functions = ConvertCodeSegment(Mid(code, j));
 
-        X = "";
-        X = X + UsingEverything(fName) + vbCrLf;
-        X = X + vbCrLf;
-        X = X + "namespace " + AssemblyName() + ".Forms" + vbCrLf;
-        X = X + "{" + vbCrLf;
-        X = X + "public partial class " + fName + " : Window {" + vbCrLf;
-        X = X + "  private static " + fName + " _instance;" + vbCrLf;
-        X = X + "  public static " + fName + " instance { set { _instance = null; } get { return _instance ?? (_instance = new " + fName + "()); }}";
-        X = X + "  public static void Load() { if (_instance == null) { dynamic A = " + fName + ".instance; } }";
-        X = X + "  public static void Unload() { if (_instance != null) instance.Close(); _instance = null; }";
-        X = X + "  public " + fName + "() { InitializeComponent(); }" + vbCrLf;
-        X = X + vbCrLf;
-        X = X + vbCrLf;
-        X = X + Globals + vbCrLf + vbCrLf + Functions;
-        X = X + vbCrLf + "}";
-        X = X + vbCrLf + "}";
+        x = "";
+        x = x + UsingEverything(fName) + vbCrLf;
+        x = x + vbCrLf;
+        x = x + "namespace " + AssemblyName() + ".Forms" + vbCrLf;
+        x = x + "{" + vbCrLf;
+        x = x + "public partial class " + fName + " : Window {" + vbCrLf;
+        x = x + "  private static " + fName + " _instance;" + vbCrLf;
+        x = x + "  public static " + fName + " instance { set { _instance = null; } get { return _instance ?? (_instance = new " + fName + "()); }}";
+        x = x + "  public static void Load() { if (_instance == null) { dynamic A = " + fName + ".instance; } }";
+        x = x + "  public static void Unload() { if (_instance != null) instance.Close(); _instance = null; }";
+        x = x + "  public " + fName + "() { InitializeComponent(); }" + vbCrLf;
+        x = x + vbCrLf;
+        x = x + vbCrLf;
+        x = x + globals + vbCrLf + vbCrLf + functions;
+        x = x + vbCrLf + "}";
+        x = x + vbCrLf + "}";
 
-        X = deWS(X);
+        x = DeWs(x);
 
-        F = fName + ".xaml.cs";
-        WriteOut(F, X, frmFile);
-        return ConvertForm;
+        f = fName + ".xaml.cs";
+        WriteOut(f, x, frmFile);
+        return convertForm;
     }
 
     public static bool ConvertModule(string basFile)
     {
-        bool ConvertModule = false;
+        bool convertModule = false;
 
         if (!FileExists(basFile))
         {
             MsgBox("File not found in ConvertModule: " + basFile);
-            return ConvertModule;
+            return convertModule;
 
         }
-        var S = ReadEntireFile(basFile);
-        var fName = ModuleName(S);
-        CurrentModule = fName;
-        var F = fName + ".cs";
-        if (IsConverted(F, basFile))
+        var s = ReadEntireFile(basFile);
+        var fName = ModuleName(s);
+        currentModule = fName;
+        var f = fName + ".cs";
+        if (IsConverted(f, basFile))
         {
-            Console.WriteLine("Module Already Converted: " + F);
-            return ConvertModule;
+            Console.WriteLine("Module Already Converted: " + f);
+            return convertModule;
 
         }
 
-        fName = ModuleName(S);
-        var Code = Mid(S, CodeSectionLoc(S));
+        fName = ModuleName(s);
+        var code = Mid(s, CodeSectionLoc(s));
 
-        var J = CodeSectionGlobalEndLoc(Code);
-        var Globals = ConvertGlobals(Left(Code, J - 1), true);
-        var Functions = ConvertCodeSegment(Mid(Code, J), true);
+        var j = CodeSectionGlobalEndLoc(code);
+        var globals = ConvertGlobals(Left(code, j - 1), true);
+        var functions = ConvertCodeSegment(Mid(code, j), true);
 
-        var X = "";
-        X = X + UsingEverything(fName) + vbCrLf;
-        X = X + vbCrLf;
-        X = X + "static class " + fName + " {" + vbCrLf;
-        X = X + nlTrim(Globals + vbCrLf + vbCrLf + Functions);
-        X = X + vbCrLf + "}";
+        var x = "";
+        x = x + UsingEverything(fName) + vbCrLf;
+        x = x + vbCrLf;
+        x = x + "static class " + fName + " {" + vbCrLf;
+        x = x + NlTrim(globals + vbCrLf + vbCrLf + functions);
+        x = x + vbCrLf + "}";
 
-        X = deWS(X);
+        x = DeWs(x);
 
-        WriteOut(F, X, basFile);
-        return ConvertModule;
+        WriteOut(f, x, basFile);
+        return convertModule;
     }
 
     public static bool ConvertClass(string clsFile)
     {
-        bool ConvertClass = false;
+        bool convertClass = false;
 
         string cName = "";
 
         if (!FileExists(clsFile))
         {
             MsgBox("File not found in ConvertModule: " + clsFile);
-            return ConvertClass;
+            return convertClass;
 
         }
-        var S = ReadEntireFile(clsFile);
-        var fName = ModuleName(S);
-        CurrentModule = fName;
-        var F = fName + ".cs";
-        if (IsConverted(F, clsFile))
+        var s = ReadEntireFile(clsFile);
+        var fName = ModuleName(s);
+        currentModule = fName;
+        var f = fName + ".cs";
+        if (IsConverted(f, clsFile))
         {
-            Console.WriteLine("Class Already Converted: " + F);
-            return ConvertClass;
+            Console.WriteLine("Class Already Converted: " + f);
+            return convertClass;
 
         }
 
-        var Code = Mid(S, CodeSectionLoc(S));
+        var code = Mid(s, CodeSectionLoc(s));
 
-        var J = CodeSectionGlobalEndLoc(Code);
-        var Globals = ConvertGlobals(Left(Code, J - 1));
-        var Functions = ConvertCodeSegment(Mid(Code, J));
+        var j = CodeSectionGlobalEndLoc(code);
+        var globals = ConvertGlobals(Left(code, j - 1));
+        var functions = ConvertCodeSegment(Mid(code, j));
 
-        var X = "";
-        X = X + UsingEverything(fName) + vbCrLf;
-        X = X + vbCrLf;
-        X = X + "public class " + fName + " {" + vbCrLf;
-        X = X + Globals + vbCrLf + vbCrLf + Functions;
-        X = X + vbCrLf + "}";
+        var x = "";
+        x = x + UsingEverything(fName) + vbCrLf;
+        x = x + vbCrLf;
+        x = x + "public class " + fName + " {" + vbCrLf;
+        x = x + globals + vbCrLf + vbCrLf + functions;
+        x = x + vbCrLf + "}";
 
-        X = deWS(X);
+        x = DeWs(x);
 
-        F = fName + ".cs";
-        WriteOut(F, X, clsFile);
-        return ConvertClass;
+        f = fName + ".cs";
+        WriteOut(f, x, clsFile);
+        return convertClass;
     }
 
-    public static string GetMultiLineSpace(string Prv, string Nxt)
+    public static string GetMultiLineSpace(string prv, string nxt)
     {
-        var GetMultiLineSpace = " ";
-        var pC = Right(Prv, 1);
-        var nC = Left(Nxt, 1);
+        var getMultiLineSpace = " ";
+        var pC = Right(prv, 1);
+        var nC = Left(nxt, 1);
         if (nC == "(")
         {
-            GetMultiLineSpace = "";
+            getMultiLineSpace = "";
         }
-        return GetMultiLineSpace;
+        return getMultiLineSpace;
     }
 
-    public static string SanitizeCode(string Str)
+    public static string SanitizeCode(string str)
     {
-        const string NamedParamSrc = ":=";
-        const string NamedParamTok = "###NAMED-PARAMETER###";
-        string[] Sp = new string[0];
+        const string namedParamSrc = ":=";
+        const string namedParamTok = "###NAMED-PARAMETER###";
+        string[] sp = new string[0];
 
-        string F = "";
-
-
-        var R = "";
-        var N = vbCrLf;
-        Sp = Split(Str, vbCrLf);
-        var Building = "";
+        string f = "";
 
 
-        foreach (var iterL in Sp)
+        var r = "";
+        var n = vbCrLf;
+        sp = Split(str, vbCrLf);
+        var building = "";
+
+
+        foreach (var iterL in sp)
         {
-            var L = iterL;
+            var l = iterL;
             //If IsInStr(L, "POEDIFolder") Then Stop
             //If IsInStr(L, "Set objSourceArNo = New_CDbTypeAhead") Then Stop
-            if (Right(L, 1) == "_")
+            if (Right(l, 1) == "_")
             {
-                var C = Trim(Left(L, Len(L) - 1));
-                Building = Building + GetMultiLineSpace(Building, C) + C;
+                var c = Trim(Left(l, Len(l) - 1));
+                building = building + GetMultiLineSpace(building, c) + c;
                 goto NextLine;
             }
-            if (Building != "")
+            if (building != "")
             {
-                L = Building + GetMultiLineSpace(Building, Trim(L)) + Trim(L);
-                Building = "";
+                l = building + GetMultiLineSpace(building, Trim(l)) + Trim(l);
+                building = "";
             }
 
             //    If IsInStr(L, "'") Then Stop
-            L = DeComment(L);
-            L = DeString(L);
+            l = DeComment(l);
+            l = DeString(l);
 
             //If IsInStr(L, "CustRec <> 0") Then Stop
-            var FinishSplitIf = false;
-            if (tLeft(L, 3) == "If " && Right(RTrim(L), 5) != " Then")
+            var finishSplitIf = false;
+            if (TLeft(l, 3) == "If " && Right(RTrim(l), 5) != " Then")
             {
-                FinishSplitIf = true;
-                F = nextBy(L, " Then ") + " Then";
-                R = R + N + F;
-                L = Mid(L, Len(F) + 2);
-                if (nextBy(L, " Else ", 2) != "")
+                finishSplitIf = true;
+                f = NextBy(l, " Then ") + " Then";
+                r = r + n + f;
+                l = Mid(l, Len(f) + 2);
+                if (NextBy(l, " Else ", 2) != "")
                 {
-                    R = R + modConvert.SanitizeCode(nextBy(L, " Else ", 1));
-                    R = R + N + "Else";
-                    L = nextBy(L, "Else ", 2);
+                    r = r + ModConvert.SanitizeCode(NextBy(l, " Else ", 1));
+                    r = r + n + "Else";
+                    l = NextBy(l, "Else ", 2);
                 }
             }
 
-            if (nextBy(L, ":") != L)
+            if (NextBy(l, ":") != l)
             {
-                if (RegExTest(Trim(L), "^[a-zA-Z_][a-zA-Z_0-9]*:$"))
+                if (RegExTest(Trim(l), "^[a-zA-Z_][a-zA-Z_0-9]*:$"))
                 { // Goto Label
-                    R = R + N + ReComment(L);
+                    r = r + n + ReComment(l);
                 }
                 else
                 {
                     do
                     {
-                        L = Replace(L, NamedParamSrc, NamedParamTok);
-                        F = nextBy(L, ":");
-                        F = Replace(F, NamedParamTok, NamedParamSrc);
-                        R = R + N + ReComment(F, true);
-                        L = Replace(L, NamedParamTok, NamedParamSrc);
-                        if (F == L)
+                        l = Replace(l, namedParamSrc, namedParamTok);
+                        f = NextBy(l, ":");
+                        f = Replace(f, namedParamTok, namedParamSrc);
+                        r = r + n + ReComment(f, true);
+                        l = Replace(l, namedParamTok, namedParamSrc);
+                        if (f == l)
                         {
                             break;
                         }
-                        L = Trim(Mid(L, Len(F) + 2));
-                        R = R + modConvert.SanitizeCode(L);
+                        l = Trim(Mid(l, Len(f) + 2));
+                        r = r + ModConvert.SanitizeCode(l);
 
                     } while (!(false));
                 }
             }
             else
             {
-                R = R + N + ReComment(L, true);
+                r = r + n + ReComment(l, true);
             }
 
-            if (FinishSplitIf)
+            if (finishSplitIf)
             {
-                R = R + N + "End If";
+                r = r + n + "End If";
             }
-        NextLine:;
+            NextLine:;
         }
 
-        var SanitizeCode = R;
-        return SanitizeCode;
+        var sanitizeCode = r;
+        return sanitizeCode;
     }
 
-    public static string ConvertCodeSegment(string S, bool asModule = false)
+    public static string ConvertCodeSegment(string s, bool asModule = false)
     {
-        string F = "";
+        string f = "";
         int T = 0;
-        int E = 0;
-        string K = "";
-        int X = 0;
+        int e = 0;
+        string k = "";
+        int x = 0;
 
-        string Pre = "";
+        string pre = "";
 
-        string R = "";
+        string r = "";
 
 
         ClearProperties();
 
         InitDeString();
         //WriteFile "C:\Users\benja\Desktop\code.txt", S, True
-        S = SanitizeCode(S);
+        s = SanitizeCode(s);
         //WriteFile "C:\Users\benja\Desktop\sani.txt", S, True
         do
         {
-            var P = "(Public |Private |)(Friend |)(Function |Sub |Property Get |Property Let |Property Set )" + patToken + "[ ]*\\(";
-            var N = -1;
+            var p = "(Public |Private |)(Friend |)(Function |Sub |Property Get |Property Let |Property Set )" + patToken + "[ ]*\\(";
+            var n = -1;
             do
             {
-                N = N + 1;
-                F = RegExNMatch(S, P, N);
-                T = RegExNPos(S, P, N);
-            } while (!(!IsInCode(S, T) && F != ""));
-            if (F == "")
+                n = n + 1;
+                f = RegExNMatch(s, p, n);
+                T = RegExNPos(s, p, n);
+            } while (!(!IsInCode(s, T) && f != ""));
+            if (f == "")
             {
                 break;
             }
 
-            if (IsInStr(F, " Function "))
+            if (IsInStr(f, " Function "))
             {
-                K = "End Function";
+                k = "End Function";
             }
-            else if (IsInStr(F, " Sub "))
+            else if (IsInStr(f, " Sub "))
             {
-                K = "End Sub";
+                k = "End Sub";
             }
-            else if (IsInStr(F, " Property "))
+            else if (IsInStr(f, " Property "))
             {
-                K = "End Property";
+                k = "End Property";
             }
-            N = -1;
+            n = -1;
             do
             {
-                N = N + 1;
-                E = RegExNPos(Mid(S, T), K, N) + Len(K) + T;
-            } while (!(!IsInCode(S, E) && E != 0));
+                n = n + 1;
+                e = RegExNPos(Mid(s, T), k, n) + Len(k) + T;
+            } while (!(!IsInCode(s, e) && e != 0));
 
             if (T > 1)
             {
-                Pre = nlTrim(Left(S, T - 1));
+                pre = NlTrim(Left(s, T - 1));
             }
             else
             {
-                Pre = "";
+                pre = "";
             }
-            while (!(Mid(S, E, 1) == vbCr || Mid(S, E, 1) == vbLf || Mid(S, E, 1) == ""))
+            while (!(Mid(s, e, 1) == vbCr || Mid(s, e, 1) == vbLf || Mid(s, e, 1) == ""))
             {
-                E = E + 1;
+                e = e + 1;
             }
-            var Body = nlTrim(Mid(S, T, E - T));
+            var body = NlTrim(Mid(s, T, e - T));
 
-            S = nlTrim(Mid(S, E + 1));
+            s = NlTrim(Mid(s, e + 1));
 
-            R = R + CommentBlock(Pre) + ConvertSub(Body, asModule) + vbCrLf;
+            r = r + CommentBlock(pre) + ConvertSub(body, asModule) + vbCrLf;
         } while (!(true));
 
-        R = ReadOutProperties(asModule) + vbCrLf2 + R;
+        r = ReadOutProperties(asModule) + vbCrLf2 + r;
 
-        R = ReString(R, true);
+        r = ReString(r, true);
 
-        var ConvertCodeSegment = R;
-        return ConvertCodeSegment;
+        var convertCodeSegment = r;
+        return convertCodeSegment;
     }
 
-    public static string CommentBlock(string Str)
+    public static string CommentBlock(string str)
     {
-        string CommentBlock = "";
+        string commentBlock = "";
 
-        if (nlTrim(Str) == "")
+        if (NlTrim(str) == "")
         {
-            return CommentBlock;
+            return commentBlock;
 
         }
-        var S = "";
-        S = S + "/*" + vbCrLf;
-        S = S + Replace(Str, "*/", "* /") + vbCrLf;
-        S = S + "*/" + vbCrLf;
-        CommentBlock = S;
-        return CommentBlock;
+        var s = "";
+        s = s + "/*" + vbCrLf;
+        s = s + Replace(str, "*/", "* /") + vbCrLf;
+        s = s + "*/" + vbCrLf;
+        commentBlock = s;
+        return commentBlock;
     }
 
-    public static string ConvertDeclare(string S, int Ind, bool isGlobal = false, bool asModule = false)
+    public static string ConvertDeclare(string s, int ind, bool isGlobal = false, bool asModule = false)
     {
-        string[] Sp = new string[0];
+        string[] sp = new string[0];
 
         bool asPrivate = false;
 
@@ -470,78 +471,78 @@ static class modConvert
         int aMax = 0;
         int aMin = 0;
 
-        var Res = "";
+        var res = "";
 
-        var SS = S;
+        var ss = s;
 
-        if (tLeft(S, 7) == "Public ")
+        if (TLeft(s, 7) == "Public ")
         {
-            S = tMid(S, 8);
+            s = TMid(s, 8);
         }
-        if (tLeft(S, 4) == "Dim ")
+        if (TLeft(s, 4) == "Dim ")
         {
-            S = Mid(Trim(S), 5);
+            s = Mid(Trim(s), 5);
             asPrivate = true;
         }
-        if (tLeft(S, 8) == "Private ")
+        if (TLeft(s, 8) == "Private ")
         {
-            S = tMid(S, 9);
+            s = TMid(s, 9);
             asPrivate = true;
         }
 
         //  If IsInStr(S, "aMin") Then Stop
-        Sp = Split(S, ",");
-        foreach (var iterL in Sp)
+        sp = Split(s, ",");
+        foreach (var iterL in sp)
         {
-            var L = iterL;
-            L = Trim(L);
-            if (LMatch(L, "WithEvents "))
+            var l = iterL;
+            l = Trim(l);
+            if (LMatch(l, "WithEvents "))
             {
-                L = Trim(tMid(L, 12));
-                Res = Res + "// TODO: WithEvents not supported on " + RegExNMatch(L, patToken) + vbCrLf;
+                l = Trim(TMid(l, 12));
+                res = res + "// TODO: WithEvents not supported on " + RegExNMatch(l, patToken) + vbCrLf;
             }
-            var pName = RegExNMatch(L, patToken);
-            L = Trim(tMid(L, Len(pName) + 1));
+            var pName = RegExNMatch(l, patToken);
+            l = Trim(TMid(l, Len(pName) + 1));
             if (isGlobal)
             {
-                Res = Res + IIf(asPrivate, "private ", "public ");
+                res = res + IIf(asPrivate, "private ", "public ");
             }
             if (asModule)
             {
-                Res = Res + "static ";
+                res = res + "static ";
             }
-            if (tLeft(L, 1) == "(")
+            if (TLeft(l, 1) == "(")
             {
                 isArr = true;
-                var ArraySpec = nextBy(Mid(L, 2), ")");
-                if (ArraySpec == "")
+                var arraySpec = NextBy(Mid(l, 2), ")");
+                if (arraySpec == "")
                 {
                     aMin = -1;
                     aMax = -1;
-                    L = Trim(tMid(L, 3));
+                    l = Trim(TMid(l, 3));
                 }
                 else
                 {
-                    L = Trim(tMid(L, Len(ArraySpec) + 3));
+                    l = Trim(TMid(l, Len(arraySpec) + 3));
                     aMin = 0;
-                    aMax = ValI(SplitWord(ArraySpec));
-                    ArraySpec = Trim(tMid(ArraySpec, Len(aMax) + 1));
-                    if (tLeft(ArraySpec, 3) == "To ")
+                    aMax = ValI(SplitWord(arraySpec));
+                    arraySpec = Trim(TMid(arraySpec, Len(aMax) + 1));
+                    if (TLeft(arraySpec, 3) == "To ")
                     {
                         aMin = aMax;
-                        aMax = ValI(tMid(ArraySpec, 4));
+                        aMax = ValI(TMid(arraySpec, 4));
                     }
                 }
             }
 
-            var AsNew = false;
-            if (SplitWord(L, 1) == "As")
+            var asNew = false;
+            if (SplitWord(l, 1) == "As")
             {
-                pType = SplitWord(L, 2);
+                pType = SplitWord(l, 2);
                 if (pType == "New")
                 {
-                    pType = SplitWord(L, 3);
-                    AsNew = true;
+                    pType = SplitWord(l, 3);
+                    asNew = true;
                 }
             }
             else
@@ -551,45 +552,45 @@ static class modConvert
 
             if (!isArr)
             {
-                Res = Res + sSpace(Ind) + ConvertDataType(pType) + " " + pName;
-                Res = Res + " = ";
-                if (AsNew)
+                res = res + SSpace(ind) + ConvertDataType(pType) + " " + pName;
+                res = res + " = ";
+                if (asNew)
                 {
-                    Res = Res + "new ";
-                    Res = Res + ConvertDataType(pType);
-                    Res = Res + "()";
+                    res = res + "new ";
+                    res = res + ConvertDataType(pType);
+                    res = res + "()";
                 }
                 else
                 {
-                    Res = Res + ConvertDefaultDefault(pType);
+                    res = res + ConvertDefaultDefault(pType);
                 }
-                Res = Res + ";" + vbCrLf;
+                res = res + ";" + vbCrLf;
             }
             else
             {
-                var aTodo = IIf(aMin == 0, "", " // TODO - Specified Minimum Array Boundary Not Supported: " + SS);
+                var aTodo = IIf(aMin == 0, "", " // TODO - Specified Minimum Array Boundary Not Supported: " + ss);
                 if (!IsNumeric(aMax))
                 {
-                    Res = Res + sSpace(Ind) + "List<" + ConvertDataType(pType) + "> " + pName + " = new List<" + ConvertDataType(pType) + "> (new " + ConvertDataType(pType) + "[(" + aMax + " + 1)]);  // TODO: Confirm Array Size By Token" + aTodo + vbCrLf;
+                    res = res + SSpace(ind) + "List<" + ConvertDataType(pType) + "> " + pName + " = new List<" + ConvertDataType(pType) + "> (new " + ConvertDataType(pType) + "[(" + aMax + " + 1)]);  // TODO: Confirm Array Size By Token" + aTodo + vbCrLf;
                 }
                 else if (Val(aMax) == -1)
                 {
-                    Res = Res + sSpace(Ind) + "List<" + ConvertDataType(pType) + "> " + pName + " = new List<" + ConvertDataType(pType) + "> {};" + aTodo + vbCrLf;
+                    res = res + SSpace(ind) + "List<" + ConvertDataType(pType) + "> " + pName + " = new List<" + ConvertDataType(pType) + "> {};" + aTodo + vbCrLf;
                 }
                 else
                 {
-                    Res = Res + sSpace(Ind) + "List<" + ConvertDataType(pType) + "> " + pName + " = new List<" + ConvertDataType(pType) + "> (new " + ConvertDataType(pType) + "[" + (Val(aMax) + 1) + "]);" + aTodo + vbCrLf;
+                    res = res + SSpace(ind) + "List<" + ConvertDataType(pType) + "> " + pName + " = new List<" + ConvertDataType(pType) + "> (new " + ConvertDataType(pType) + "[" + (Val(aMax) + 1) + "]);" + aTodo + vbCrLf;
                 }
             }
 
             SubParamDecl(pName, pType, IIf(isArr, "" + aMax, ""), false, false);
         }
 
-        var ConvertDeclare = Res;
-        return ConvertDeclare;
+        var convertDeclare = res;
+        return convertDeclare;
     }
 
-    public static string ConvertAPIDef(string S)
+    public static string ConvertApiDef(string s)
     {
         //Private Declare Function CreateFile Lib "kernel32" Alias "CreateFileA" (ByVal lpFileName As String, ByVal dwDesiredAccess As Long, ByVal dwShareMode As Long, ByVal lpSecurityAttributes As Long, ByVal dwCreationDisposition As Long, ByVal dwFlagsAndAttributes As Long, ByVal hTemplateFile As Long) As Long
         //[DllImport("User32.dll")]
@@ -603,37 +604,37 @@ static class modConvert
 
         string aReturn = "";
 
-        bool Has = false;
+        bool has = false;
 
-        if (tLeft(S, 8) == "Private ")
+        if (TLeft(s, 8) == "Private ")
         {
-            S = tMid(S, 9);
+            s = TMid(s, 9);
             isPrivate = true;
         }
-        if (tLeft(S, 7) == "Public ")
+        if (TLeft(s, 7) == "Public ")
         {
-            S = tMid(S, 8);
+            s = TMid(s, 8);
         }
-        if (tLeft(S, 8) == "Declare ")
+        if (TLeft(s, 8) == "Declare ")
         {
-            S = tMid(S, 9);
+            s = TMid(s, 9);
         }
-        if (tLeft(S, 4) == "Sub ")
+        if (TLeft(s, 4) == "Sub ")
         {
-            S = tMid(S, 5);
+            s = TMid(s, 5);
             isSub = true;
         }
-        if (tLeft(S, 9) == "Function ")
+        if (TLeft(s, 9) == "Function ")
         {
-            S = tMid(S, 10);
+            s = TMid(s, 10);
         }
-        var AName = RegExNMatch(S, patToken);
-        S = Trim(tMid(S, Len(AName) + 1));
-        if (tLeft(S, 4) == "Lib ")
+        var aName = RegExNMatch(s, patToken);
+        s = Trim(TMid(s, Len(aName) + 1));
+        if (TLeft(s, 4) == "Lib ")
         {
-            S = Trim(tMid(S, 5));
-            aLib = SplitWord(S, 1);
-            S = Trim(tMid(S, Len(aLib) + 1));
+            s = Trim(TMid(s, 5));
+            aLib = SplitWord(s, 1);
+            s = Trim(TMid(s, Len(aLib) + 1));
             aLib = ReString(aLib);
             if (Left(aLib, 1) == "\"")
             {
@@ -649,11 +650,11 @@ static class modConvert
             }
             aLib = LCase(aLib);
         }
-        if (tLeft(S, 6) == "Alias ")
+        if (TLeft(s, 6) == "Alias ")
         {
-            S = Trim(tMid(S, 7));
-            aAlias = SplitWord(S, 1);
-            S = Trim(tMid(S, Len(aAlias) + 1));
+            s = Trim(TMid(s, 7));
+            aAlias = SplitWord(s, 1);
+            s = Trim(TMid(s, Len(aAlias) + 1));
             aAlias = ReString(aAlias);
             if (Left(aAlias, 1) == "\"")
             {
@@ -664,89 +665,89 @@ static class modConvert
                 aAlias = Left(aAlias, Len(aAlias) - 1);
             }
         }
-        if (tLeft(S, 1) == "(")
+        if (TLeft(s, 1) == "(")
         {
-            S = tMid(S, 2);
+            s = TMid(s, 2);
         }
-        var aArgs = nextBy(S, ")");
-        S = Trim(tMid(S, Len(aArgs) + 2));
-        if (tLeft(S, 3) == "As ")
+        var aArgs = NextBy(s, ")");
+        s = Trim(TMid(s, Len(aArgs) + 2));
+        if (TLeft(s, 3) == "As ")
         {
-            S = Trim(tMid(S, 4));
-            aReturn = SplitWord(S, 1);
-            S = Trim(tMid(S, Len(aReturn) + 1));
+            s = Trim(TMid(s, 4));
+            aReturn = SplitWord(s, 1);
+            s = Trim(TMid(s, Len(aReturn) + 1));
         }
         else
         {
             aReturn = "Variant";
         }
 
-        S = "";
-        S = S + "[DllImport(\"" + aLib + "\"" + IIf(aAlias == "", "", ", EntryPoint = \"" + aAlias + "\"") + ")] ";
-        S = S + IIf(isPrivate, "private ", "public ");
-        S = S + "static extern ";
-        S = S + IIf(isSub, "void ", ConvertDataType(aReturn)) + " ";
-        S = S + AName;
-        S = S + "(";
+        s = "";
+        s = s + "[DllImport(\"" + aLib + "\"" + IIf(aAlias == "", "", ", EntryPoint = \"" + aAlias + "\"") + ")] ";
+        s = s + IIf(isPrivate, "private ", "public ");
+        s = s + "static extern ";
+        s = s + IIf(isSub, "void ", ConvertDataType(aReturn)) + " ";
+        s = s + aName;
+        s = s + "(";
         do
         {
             if (aArgs == "")
             {
                 break;
             }
-            var tArg = Trim(nextBy(aArgs, ","));
-            aArgs = tMid(aArgs, Len(tArg) + 2);
-            S = S + IIf(Has, ", ", "") + ConvertParameter(tArg, true);
-            Has = true;
+            var tArg = Trim(NextBy(aArgs, ","));
+            aArgs = TMid(aArgs, Len(tArg) + 2);
+            s = s + IIf(has, ", ", "") + ConvertParameter(tArg, true);
+            has = true;
         } while (!(true));
-        S = S + ");";
+        s = s + ");";
 
 
-        var ConvertAPIDef = S;
-        return ConvertAPIDef;
+        var convertApiDef = s;
+        return convertApiDef;
     }
 
-    public static string ConvertConstant(string S, bool isGlobal = true)
+    public static string ConvertConstant(string s, bool isGlobal = true)
     {
-        string ConvertConstant = "";
+        string convertConstant = "";
         string cType = "";
         string cValue = "";
         bool isPrivate = false;
 
-        if (tLeft(S, 7) == "Public ")
+        if (TLeft(s, 7) == "Public ")
         {
-            S = Mid(Trim(S), 8);
+            s = Mid(Trim(s), 8);
         }
-        if (tLeft(S, 7) == "Global ")
+        if (TLeft(s, 7) == "Global ")
         {
-            S = Mid(Trim(S), 8);
+            s = Mid(Trim(s), 8);
         }
-        if (tLeft(S, 8) == "Private ")
+        if (TLeft(s, 8) == "Private ")
         {
-            S = Mid(Trim(S), 9);
+            s = Mid(Trim(s), 9);
             isPrivate = true;
         }
-        if (tLeft(S, 6) == "Const ")
+        if (TLeft(s, 6) == "Const ")
         {
-            S = Mid(Trim(S), 7);
+            s = Mid(Trim(s), 7);
         }
-        var cName = SplitWord(S, 1);
-        S = Trim(Mid(Trim(S), Len(cName) + 1));
-        if (tLeft(S, 3) == "As ")
+        var cName = SplitWord(s, 1);
+        s = Trim(Mid(Trim(s), Len(cName) + 1));
+        if (TLeft(s, 3) == "As ")
         {
-            S = Trim(Mid(Trim(S), 3));
-            cType = SplitWord(S, 1);
-            S = Trim(tMid(S, Len(cType) + 1));
+            s = Trim(Mid(Trim(s), 3));
+            cType = SplitWord(s, 1);
+            s = Trim(TMid(s, Len(cType) + 1));
         }
         else
         {
             cType = "Variant";
         }
 
-        if (Left(S, 1) == "=")
+        if (Left(s, 1) == "=")
         {
-            S = Trim(Mid(S, 2));
-            cValue = ConvertValue(S);
+            s = Trim(Mid(s, 2));
+            cValue = ConvertValue(s);
         }
         else
         {
@@ -756,7 +757,7 @@ static class modConvert
         var dataType = ConvertDataType(cType);
         if (dataType == "dynamic")
         { // c# can't handle constants of type 'dynamic' when type can be inferred.
-            if (LMatch(cValue, DeStringToken_Base))
+            if (LMatch(cValue, deStringTokenBase))
             {
                 dataType = "string";
             }
@@ -775,37 +776,37 @@ static class modConvert
 
         if (cType == "Date")
         {
-            ConvertConstant = IIf(isGlobal, IIf(isPrivate, "private ", "public "), "") + "static readonly " + dataType + " " + cName + " = " + cValue + ";";
+            convertConstant = IIf(isGlobal, IIf(isPrivate, "private ", "public "), "") + "static readonly " + dataType + " " + cName + " = " + cValue + ";";
         }
         else
         {
-            ConvertConstant = IIf(isGlobal, IIf(isPrivate, "private ", "public "), "") + "const " + dataType + " " + cName + " = " + cValue + ";";
+            convertConstant = IIf(isGlobal, IIf(isPrivate, "private ", "public "), "") + "const " + dataType + " " + cName + " = " + cValue + ";";
         }
-        return ConvertConstant;
+        return convertConstant;
     }
 
-    public static string ConvertEvent(string S)
+    public static string ConvertEvent(string s)
     {
         string tArgs = "";
 
         int I = 0;
-        int J = 0;
+        int j = 0;
 
-        if (tLeft(S, 7) == "Public ")
+        if (TLeft(s, 7) == "Public ")
         {
-            S = Mid(Trim(S), 8);
+            s = Mid(Trim(s), 8);
         }
-        if (tLeft(S, 8) == "Private ")
+        if (TLeft(s, 8) == "Private ")
         {
-            S = Mid(Trim(S), 9);
+            s = Mid(Trim(s), 9);
             var isPrivate = true;
         }
-        if (tLeft(S, 6) == "Event ")
+        if (TLeft(s, 6) == "Event ")
         {
-            S = Mid(Trim(S), 7);
+            s = Mid(Trim(s), 7);
         }
-        var cName = RegExNMatch(S, patToken);
-        var cArgs = Trim(Mid(Trim(S), Len(cName) + 1));
+        var cName = RegExNMatch(s, patToken);
+        var cArgs = Trim(Mid(Trim(s), Len(cName) + 1));
         if (Left(cArgs, 1) == "(")
         {
             cArgs = Mid(cArgs, 2);
@@ -815,156 +816,156 @@ static class modConvert
             cArgs = Left(cArgs, Len(cArgs) - 1);
         }
 
-        var N = 0;
+        var n = 0;
         do
         {
-            N = N + 1;
-            var A = nextBy(cArgs, ",", N);
-            if (A == "")
+            n = n + 1;
+            var a = NextBy(cArgs, ",", n);
+            if (a == "")
             {
                 break;
             }
-            tArgs = tArgs + IIf(N == 1, "", ", ");
-            tArgs = tArgs + ConvertParameter(A, true);
+            tArgs = tArgs + IIf(n == 1, "", ", ");
+            tArgs = tArgs + ConvertParameter(a, true);
         } while (!(true));
 
-        var O = vbCrLf;
-        var M = "";
-        var R = "";
-        R = R + M + "public delegate void " + cName + "Handler(" + tArgs + ");";
-        R = R + O + "public event " + cName + "Handler event" + cName + ";";
+        var o = vbCrLf;
+        var m = "";
+        var r = "";
+        r = r + m + "public delegate void " + cName + "Handler(" + tArgs + ");";
+        r = r + o + "public event " + cName + "Handler event" + cName + ";";
 
-        var ConvertEvent = R;
-        return ConvertEvent;
+        var convertEvent = r;
+        return convertEvent;
     }
 
-    public static string ConvertEnum(string S)
+    public static string ConvertEnum(string s)
     {
-        bool Has = false;
+        bool has = false;
 
-        if (tLeft(S, 7) == "Public ")
+        if (TLeft(s, 7) == "Public ")
         {
-            S = tMid(S, 8);
+            s = TMid(s, 8);
         }
-        if (tLeft(S, 8) == "Private ")
+        if (TLeft(s, 8) == "Private ")
         {
-            S = tMid(S, 9);
+            s = TMid(s, 9);
             var isPrivate = true;
         }
-        if (tLeft(S, 5) == "Enum ")
+        if (TLeft(s, 5) == "Enum ")
         {
-            S = tMid(S, 6);
+            s = TMid(s, 6);
         }
-        var EName = RegExNMatch(S, patToken, 0);
-        S = nlTrim(tMid(S, Len(EName) + 1));
+        var eName = RegExNMatch(s, patToken, 0);
+        s = NlTrim(TMid(s, Len(eName) + 1));
 
-        var Res = "public enum " + EName + " {";
+        var res = "public enum " + eName + " {";
 
-        while (tLeft(S, 8) != "End Enum" && S != "")
+        while (TLeft(s, 8) != "End Enum" && s != "")
         {
-            EName = RegExNMatch(S, patToken, 0);
-            Res = Res + IIf(Has, ",", "") + vbCrLf + sSpace(SpIndent) + EName;
-            Has = true;
+            eName = RegExNMatch(s, patToken, 0);
+            res = res + IIf(has, ",", "") + vbCrLf + SSpace(spIndent) + eName;
+            has = true;
 
-            S = nlTrim(tMid(S, Len(EName) + 1));
-            if (tLeft(S, 1) == "=")
+            s = NlTrim(TMid(s, Len(eName) + 1));
+            if (TLeft(s, 1) == "=")
             {
-                S = nlTrim(Mid(S, 3));
-                if (Left(S, 1) == "&")
+                s = NlTrim(Mid(s, 3));
+                if (Left(s, 1) == "&")
                 {
-                    EName = ConvertElement(RegExNMatch(S, "&H[0-9A-F]+"));
+                    eName = ConvertElement(RegExNMatch(s, "&H[0-9A-F]+"));
                 }
                 else
                 {
-                    EName = RegExNMatch(S, "[0-9]*", 0);
+                    eName = RegExNMatch(s, "[0-9]*", 0);
                 }
-                Res = Res + " = " + EName;
-                S = nlTrim(tMid(S, Len(EName) + 1));
+                res = res + " = " + eName;
+                s = NlTrim(TMid(s, Len(eName) + 1));
             }
         }
-        Res = Res + vbCrLf + "}";
+        res = res + vbCrLf + "}";
 
-        var ConvertEnum = Res;
-        return ConvertEnum;
+        var convertEnum = res;
+        return convertEnum;
     }
 
-    public static string ConvertType(string S)
+    public static string ConvertType(string s)
     {
         bool isPrivate = false;
         string eType = "";
 
-        string N = "";
+        string n = "";
 
-        if (tLeft(S, 7) == "Public ")
+        if (TLeft(s, 7) == "Public ")
         {
-            S = tMid(S, 8);
+            s = TMid(s, 8);
         }
-        if (tLeft(S, 8) == "Private ")
+        if (TLeft(s, 8) == "Private ")
         {
-            S = tMid(S, 9);
+            s = TMid(s, 9);
             isPrivate = true;
         }
-        if (tLeft(S, 5) == "Type ")
+        if (TLeft(s, 5) == "Type ")
         {
-            S = tMid(S, 6);
+            s = TMid(s, 6);
         }
-        var EName = RegExNMatch(S, patToken, 0);
-        S = nlTrim(tMid(S, Len(EName) + 1));
+        var eName = RegExNMatch(s, patToken, 0);
+        s = NlTrim(TMid(s, Len(eName) + 1));
 
         //If IsInStr(eName, "OSVERSIONINFO") Then Stop
-        var Res = IIf(isPrivate, "private ", "public ") + "class " + EName + " {";
+        var res = IIf(isPrivate, "private ", "public ") + "class " + eName + " {";
 
-        while (tLeft(S, 8) != "End Type" && S != "")
+        while (TLeft(s, 8) != "End Type" && s != "")
         {
-            EName = RegExNMatch(S, patToken, 0);
-            S = nlTrim(tMid(S, Len(EName) + 1));
+            eName = RegExNMatch(s, patToken, 0);
+            s = NlTrim(TMid(s, Len(eName) + 1));
             var eArr = "";
-            if (LMatch(S, "("))
+            if (LMatch(s, "("))
             {
-                N = nextBy(Mid(S, 2), ")");
-                S = nlTrim(Mid(S, Len(N) + 3));
-                N = ConvertValue(N);
-                eArr = "[" + N + "]";
+                n = NextBy(Mid(s, 2), ")");
+                s = NlTrim(Mid(s, Len(n) + 3));
+                n = ConvertValue(n);
+                eArr = "[" + n + "]";
             }
 
-            if (tLeft(S, 3) == "As ")
+            if (TLeft(s, 3) == "As ")
             {
-                S = nlTrim(Mid(S, 4));
-                eType = RegExNMatch(S, patToken, 0);
-                S = nlTrim(tMid(S, Len(eType) + 1));
+                s = NlTrim(Mid(s, 4));
+                eType = RegExNMatch(s, patToken, 0);
+                s = NlTrim(TMid(s, Len(eType) + 1));
             }
             else
             {
                 eType = "Variant";
             }
-            Res = Res + vbCrLf + " public " + ConvertDataType(eType) + IIf(eArr == "", "", "[]") + " " + EName;
+            res = res + vbCrLf + " public " + ConvertDataType(eType) + IIf(eArr == "", "", "[]") + " " + eName;
             if (eArr == "")
             {
-                Res = Res + " = " + ConvertDefaultDefault(eType);
+                res = res + " = " + ConvertDefaultDefault(eType);
             }
             else
             {
-                Res = Res + " = new " + ConvertDataType(eType) + eArr;
+                res = res + " = new " + ConvertDataType(eType) + eArr;
             }
-            Res = Res + ";";
-            if (tLMatch(S, "* "))
+            res = res + ";";
+            if (TLMatch(s, "* "))
             {
-                S = Mid(LTrim(S), 3);
-                N = RegExNMatch(S, "[0-9]+", 0);
-                S = nlTrim(Mid(LTrim(S), Len(N) + 1));
-                Res = Res + " //TODO: Fixed Length Strings Not Supported: * " + N;
+                s = Mid(LTrim(s), 3);
+                n = RegExNMatch(s, "[0-9]+", 0);
+                s = NlTrim(Mid(LTrim(s), Len(n) + 1));
+                res = res + " //TODO: Fixed Length Strings Not Supported: * " + n;
             }
 
         }
-        Res = Res + vbCrLf + "}";
+        res = res + vbCrLf + "}";
 
-        var ConvertType = Res;
-        return ConvertType;
+        var convertType = res;
+        return convertType;
     }
 
-    public static string ConvertParameter(string S, bool NeverUnused = false)
+    public static string ConvertParameter(string s, bool neverUnused = false)
     {
-        bool IsOptional = false;
+        bool isOptional = false;
 
         bool asOut = false;
 
@@ -972,80 +973,80 @@ static class modConvert
         string pDef = "";
 
 
-        S = Trim(S);
-        if (tLeft(S, 9) == "Optional ")
+        s = Trim(s);
+        if (TLeft(s, 9) == "Optional ")
         {
-            IsOptional = true;
-            S = Mid(S, 10);
+            isOptional = true;
+            s = Mid(s, 10);
         }
-        var IsByRef = true;
-        if (tLeft(S, 6) == "ByVal ")
+        var isByRef = true;
+        if (TLeft(s, 6) == "ByVal ")
         {
-            IsByRef = false;
-            S = Mid(S, 7);
+            isByRef = false;
+            s = Mid(s, 7);
         }
-        if (tLeft(S, 6) == "ByRef ")
+        if (TLeft(s, 6) == "ByRef ")
         {
-            IsByRef = true;
-            S = Mid(S, 7);
+            isByRef = true;
+            s = Mid(s, 7);
         }
-        var pName = SplitWord(S, 1);
-        if (IsByRef && SubParam(pName).AssignedBeforeUsed)
+        var pName = SplitWord(s, 1);
+        if (isByRef && SubParam(pName).assignedBeforeUsed)
         {
             asOut = true;
         }
-        S = Trim(Mid(S, Len(pName) + 1));
-        if (tLeft(S, 2) == "As")
+        s = Trim(Mid(s, Len(pName) + 1));
+        if (TLeft(s, 2) == "As")
         {
-            S = tMid(S, 4);
-            pType = SplitWord(S, 1, "=");
-            S = Trim(Mid(S, Len(pType) + 1));
+            s = TMid(s, 4);
+            pType = SplitWord(s, 1, "=");
+            s = Trim(Mid(s, Len(pType) + 1));
         }
         else
         {
             pType = "Variant";
         }
-        if (Left(S, 1) == "=")
+        if (Left(s, 1) == "=")
         {
-            pDef = ConvertValue(Trim(Mid(Trim(S), 2)));
-            S = "";
+            pDef = ConvertValue(Trim(Mid(Trim(s), 2)));
+            s = "";
         }
         else
         {
             pDef = ConvertDefaultDefault(pType);
         }
 
-        var Res = "";
-        if (IsByRef)
+        var res = "";
+        if (isByRef)
         {
-            Res = Res + IIf(asOut, "out ", "ref ");
+            res = res + IIf(asOut, "out ", "ref ");
         }
-        Res = Res + ConvertDataType(pType) + " ";
+        res = res + ConvertDataType(pType) + " ";
         if (IsInStr(pName, "()"))
         {
-            Res = Res + "[] ";
+            res = res + "[] ";
             pName = Replace(pName, "()", "");
         }
-        var TName = pName;
-        if (!NeverUnused)
+        var name = pName;
+        if (!neverUnused)
         {
-            if (!SubParam(pName).Used && !(SubParam(pName).Param && SubParam(pName).Assigned))
+            if (!SubParam(pName).used && !(SubParam(pName).param && SubParam(pName).assigned))
             {
-                TName = TName + "_UNUSED";
+                name = name + "_UNUSED";
             }
         }
-        Res = Res + TName;
-        if (IsOptional && !IsByRef)
+        res = res + name;
+        if (isOptional && !isByRef)
         {
-            Res = Res + "= " + pDef;
+            res = res + "= " + pDef;
         }
 
         SubParamDecl(pName, pType, "False", true, false); // VB6 passed False to the String asArray parameter
-        var ConvertParameter = Trim(Res);
-        return ConvertParameter;
+        var convertParameter = Trim(res);
+        return convertParameter;
     }
 
-    public static string ConvertPrototype(string SS, ref string returnVariable, bool asModule, ref string asName)
+    public static string ConvertPrototype(string ss, ref string returnVariable, bool asModule, ref string asName)
     {
         const string retToken = "#RET#";
 
@@ -1053,69 +1054,69 @@ static class modConvert
         string T = "";
 
 
-        var S = SS;
+        var s = ss;
 
-        var Res = "";
+        var res = "";
         returnVariable = "";
         var isSub = false;
-        if (LMatch(S, "Public "))
+        if (LMatch(s, "Public "))
         {
-            Res = Res + "public ";
-            S = Mid(S, 8);
+            res = res + "public ";
+            s = Mid(s, 8);
         }
-        if (LMatch(S, "Private "))
+        if (LMatch(s, "Private "))
         {
-            Res = Res + "private ";
-            S = Mid(S, 9);
+            res = res + "private ";
+            s = Mid(s, 9);
         }
-        if (LMatch(S, "Friend "))
+        if (LMatch(s, "Friend "))
         {
-            S = Mid(S, 8);
+            s = Mid(s, 8);
         }
         if (asModule)
         {
-            Res = Res + "static ";
+            res = res + "static ";
         }
-        if (LMatch(S, "Sub "))
+        if (LMatch(s, "Sub "))
         {
-            Res = Res + "void ";
-            S = Mid(S, 5);
+            res = res + "void ";
+            s = Mid(s, 5);
             isSub = true;
         }
-        if (LMatch(S, "Function "))
+        if (LMatch(s, "Function "))
         {
-            Res = Res + retToken + " ";
-            S = Mid(S, 10);
+            res = res + retToken + " ";
+            s = Mid(s, 10);
         }
 
-        var fName = Trim(SplitWord(Trim(S), 1, "("));
+        var fName = Trim(SplitWord(Trim(s), 1, "("));
         asName = fName;
 
-        S = Trim(tMid(S, Len(fName) + 2));
-        if (Left(S, 1) == "(")
+        s = Trim(TMid(s, Len(fName) + 2));
+        if (Left(s, 1) == "(")
         {
-            S = Trim(tMid(S, 2));
+            s = Trim(TMid(s, 2));
         }
-        var fArgs = Trim(nextBy(S, ")"));
-        S = Mid(S, Len(fArgs) + 2);
+        var fArgs = Trim(NextBy(s, ")"));
+        s = Mid(s, Len(fArgs) + 2);
         while (Right(fArgs, 1) == "(")
         {
             fArgs = fArgs + ") ";
 
-            var tMore = Trim(nextBy(S, ")"));
+            var tMore = Trim(NextBy(s, ")"));
             fArgs = fArgs + tMore;
-            S = Mid(S, Len(tMore) + 2);
+            s = Mid(s, Len(tMore) + 2);
         }
-        if (Left(S, 1) == ")")
+        if (Left(s, 1) == ")")
         {
-            S = Trim(tMid(S, 2));
+            s = Trim(TMid(s, 2));
         }
 
         if (!isSub)
         {
-            if (tLeft(S, 2) == "As")
+            if (TLeft(s, 2) == "As")
             {
-                retType = Trim(Mid(Trim(S), 3));
+                retType = Trim(Mid(Trim(s), 3));
             }
             else
             {
@@ -1125,11 +1126,11 @@ static class modConvert
             {
                 retType = Left(retType, Len(retType) - 1);
             }
-            Res = Replace(Res, retToken, ConvertDataType(retType));
+            res = Replace(res, retToken, ConvertDataType(retType));
         }
 
-        Res = Res + fName;
-        Res = Res + "(";
+        res = res + fName;
+        res = res + "(";
         var hArgs = false;
         do
         {
@@ -1137,83 +1138,83 @@ static class modConvert
             {
                 break;
             }
-            var tArg = nextBy(fArgs, ",");
+            var tArg = NextBy(fArgs, ",");
             fArgs = LTrim(Mid(fArgs, Len(tArg) + 2));
 
-            Res = Res + IIf(hArgs, ", ", "");
+            res = res + IIf(hArgs, ", ", "");
             if (LMatch(tArg, "ParamArray"))
             {
-                Res = Res + "params ";
+                res = res + "params ";
                 tArg = "ByVal " + Trim(Mid(tArg, 12));
             }
-            Res = Res + ConvertParameter(tArg);
+            res = res + ConvertParameter(tArg);
             hArgs = true;
         } while (!(Len(fArgs) == 0));
 
-        Res = Res + ") {";
+        res = res + ") {";
         if (retType != "")
         {
             returnVariable = fName;
-            Res = Res + vbCrLf + sSpace(SpIndent) + ConvertDataType(retType) + " " + returnVariable + " = " + ConvertDefaultDefault(retType) + ";";
+            res = res + vbCrLf + SSpace(spIndent) + ConvertDataType(retType) + " " + returnVariable + " = " + ConvertDefaultDefault(retType) + ";";
             SubParamDecl(returnVariable, retType, "False", false, true); // VB6 passed False to the String asArray parameter
         }
 
         if (IsEvent(asName))
         {
-            Res = EventStub(asName) + Res;
+            res = EventStub(asName) + res;
         }
-        var ConvertPrototype = Trim(Res);
-        return ConvertPrototype;
+        var convertPrototype = Trim(res);
+        return convertPrototype;
     }
 
-    public static string ConvertCondition(string S)
+    public static string ConvertCondition(string s)
     {
-        var ConvertCondition = "(" + S + ")";
-        return ConvertCondition;
+        var convertCondition = "(" + s + ")";
+        return convertCondition;
     }
 
-    public static string ConvertElement(string S)
+    public static string ConvertElement(string s)
     {
-        string ConvertElement = "";
+        string convertElement = "";
         //Debug.Print "ConvertElement: " & S
         //If IsInStr(S, "frmSetup") Then Stop
         //If IsInStr(S, "chkShowBalance.Value") Then Stop
         //If IsInStr(S, "optTelephone") Then Stop
 
-        bool Complete = false;
+        bool complete = false;
 
-        S = Trim(S);
-        if (S == "")
+        s = Trim(s);
+        if (s == "")
         {
-            return ConvertElement;
+            return convertElement;
 
         }
 
         //If IsInStr(S, "Debug.Print") Then Stop
-        if (Left(Trim(S), 2) == "&H")
+        if (Left(Trim(s), 2) == "&H")
         {
-            ConvertElement = "0x" + Mid(Trim(S), 3);
-            return ConvertElement;
+            convertElement = "0x" + Mid(Trim(s), 3);
+            return convertElement;
 
         }
 
-        if (IsNumeric(Trim(S)))
+        if (IsNumeric(Trim(s)))
         {
-            ConvertElement = Val(S).ToString(System.Globalization.CultureInfo.InvariantCulture);
-            if (IsInStr(S, "."))
+            convertElement = Val(s).ToString(System.Globalization.CultureInfo.InvariantCulture);
+            if (IsInStr(s, "."))
             {
-                ConvertElement = ConvertElement + "m";
+                convertElement = convertElement + "m";
             }
-            return ConvertElement;
+            return convertElement;
 
         }
 
         int vMax = 0;
 
-        while (RegExTest(S, "#[0-9]+/[0-9]+/[0-9]+#"))
+        while (RegExTest(s, "#[0-9]+/[0-9]+/[0-9]+#"))
         {
-            var dStr = RegExNMatch(S, "#[0-9]+/[0-9]+/[0-9]+#", 0);
-            S = Replace(S, dStr, "DateValue(\"" + Mid(dStr, 2, Len(dStr) - 2) + "\")");
+            var dStr = RegExNMatch(s, "#[0-9]+/[0-9]+/[0-9]+#", 0);
+            s = Replace(s, dStr, "DateValue(\"" + Mid(dStr, 2, Len(dStr) - 2) + "\")");
             vMax = vMax + 1;
             if (vMax > 10)
             {
@@ -1233,250 +1234,250 @@ static class modConvert
         //If IsInStr(S, "GitFolder") Then Stop
         //If IsInStr(S, "Array") Then Stop
 
-        S = RegExReplace(S, patNotToken + patToken + "!" + patToken + patNotToken, "$1$2(\"$3\")$4"); // RS!Field -> RS("Field")
-        S = RegExReplace(S, "^" + patToken + "!" + patToken + patNotToken, "$1(\"$2\")$3"); // RS!Field -> RS("Field")
+        s = RegExReplace(s, patNotToken + patToken + "!" + patToken + patNotToken, "$1$2(\"$3\")$4"); // RS!Field -> RS("Field")
+        s = RegExReplace(s, "^" + patToken + "!" + patToken + patNotToken, "$1(\"$2\")$3"); // RS!Field -> RS("Field")
 
-        S = RegExReplace(S, "([^a-zA-Z0-9_.])NullDate([^a-zA-Z0-9_.])", "$1NullDate()$2");
+        s = RegExReplace(s, "([^a-zA-Z0-9_.])NullDate([^a-zA-Z0-9_.])", "$1NullDate()$2");
 
-        S = ConvertVb6Specific(S, out Complete);
-        if (Complete)
+        s = ConvertVb6Specific(s, out complete);
+        if (complete)
         {
-            ConvertElement = S;
-            return ConvertElement;
+            convertElement = s;
+            return convertElement;
 
         }
 
-        if (RegExTest(Trim(S), "^" + patToken + "$"))
+        if (RegExTest(Trim(s), "^" + patToken + "$"))
         {
             //    If S = "SqFt" Then Stop
-            if (IsFuncRef(Trim(S)) && S != CurrSub)
+            if (IsFuncRef(Trim(s)) && s != currSub)
             {
-                ConvertElement = Trim(S) + "()";
-                return ConvertElement;
+                convertElement = Trim(s) + "()";
+                return convertElement;
 
             }
-            else if (IsPrivateFuncRef(CurrentModule, Trim(S)) && S != CurrSub)
+            else if (IsPrivateFuncRef(currentModule, Trim(s)) && s != currSub)
             {
-                ConvertElement = Trim(S) + "()";
-                return ConvertElement;
+                convertElement = Trim(s) + "()";
+                return convertElement;
 
             }
-            else if (IsEnumRef(Trim(S)))
+            else if (IsEnumRef(Trim(s)))
             {
-                ConvertElement = EnumRefRepl(Trim(S));
-                return ConvertElement;
+                convertElement = EnumRefRepl(Trim(s));
+                return convertElement;
 
             }
         }
 
-        if (RegExTest(Trim(S), "^" + patTokenDot + "$") && StrCnt(S, ".") == 1)
+        if (RegExTest(Trim(s), "^" + patTokenDot + "$") && StrCnt(s, ".") == 1)
         {
             //    If S = "SqFt" Then Stop
 
-            var First = SplitWord(S, 1, ".");
-            var Second = SplitWord(S, 2, ".");
-            if (IsModuleRef(First) && IsFuncRef(Second))
+            var first = SplitWord(s, 1, ".");
+            var second = SplitWord(s, 2, ".");
+            if (IsModuleRef(first) && IsFuncRef(second))
             {
-                if (IsFuncRef(Trim(Second)) && S != CurrSub)
+                if (IsFuncRef(Trim(second)) && s != currSub)
                 {
-                    ConvertElement = Trim(S) + "()";
-                    return ConvertElement;
+                    convertElement = Trim(s) + "()";
+                    return convertElement;
 
                 }
-                else if (IsEnumRef(Trim(S)))
+                else if (IsEnumRef(Trim(s)))
                 {
-                    ConvertElement = EnumRefRepl(Trim(S));
-                    return ConvertElement;
+                    convertElement = EnumRefRepl(Trim(s));
+                    return convertElement;
 
                 }
             }
         }
 
         //If IsInStr(S, "Not optTagIncoming") Then Stop
-        if (IsControlRef(Trim(S), FormName))
+        if (IsControlRef(Trim(s), formName))
         {
             //If IsInStr(S, "optTagIncoming") Then Stop
-            S = FormControlRepl(S, FormName);
+            s = FormControlRepl(s, formName);
         }
-        else if (LMatch(Trim(S), "Not ") && IsControlRef(Mid(Trim(S), 5), FormName))
+        else if (LMatch(Trim(s), "Not ") && IsControlRef(Mid(Trim(s), 5), formName))
         {
-            S = "!(" + FormControlRepl(Mid(Trim(S), 5), FormName) + ")";
-        }
-
-        if (IsFormRef(Trim(S)))
-        {
-            ConvertElement = FormRefRepl(Trim(S));
-            return ConvertElement;
-
+            s = "!(" + FormControlRepl(Mid(Trim(s), 5), formName) + ")";
         }
 
+        if (IsFormRef(Trim(s)))
+        {
+            convertElement = FormRefRepl(Trim(s));
+            return convertElement;
 
-        var FirstToken = RegExNMatch(S, patTokenDot, 0);
-        var FirstWord = SplitWord(S, 1);
-        if (FirstWord == "Not")
-        {
-            S = "!" + ConvertValue(Mid(S, 5));
-            FirstWord = SplitWord(Mid(S, 2));
         }
-        if (S == FirstWord)
+
+
+        var firstToken = RegExNMatch(s, patTokenDot, 0);
+        var firstWord = SplitWord(s, 1);
+        if (firstWord == "Not")
         {
-            ConvertElement = S;
+            s = "!" + ConvertValue(Mid(s, 5));
+            firstWord = SplitWord(Mid(s, 2));
+        }
+        if (s == firstWord)
+        {
+            convertElement = s;
             goto ManageFunctions;
         }
-        if (S == FirstToken)
+        if (s == firstToken)
         {
-            ConvertElement = S + "()";
+            convertElement = s + "()";
             goto ManageFunctions;
         }
 
-        if (FirstToken == FirstWord && !isOperator(SplitWord(S, 2)))
+        if (firstToken == firstWord && !IsOperator(SplitWord(s, 2)))
         { // Sub without parenthesis
-            ConvertElement = FirstWord + "(" + SplitWord(S, 2, " ", true, true) + ")";
+            convertElement = firstWord + "(" + SplitWord(s, 2, " ", true, true) + ")";
         }
         else
         {
-            ConvertElement = S;
+            convertElement = s;
         }
 
-    ManageFunctions:;
+        ManageFunctions:;
         //If IsInStr(ConvertElement, "New_CDbTypeAhead") Then Stop
-        if (RegExTest(ConvertElement, "(\\!)?[a-zA-Z0-9_.]+[ ]*\\(.*\\)$"))
+        if (RegExTest(convertElement, "(\\!)?[a-zA-Z0-9_.]+[ ]*\\(.*\\)$"))
         {
-            if ((Left(ConvertElement, 1) == "!"))
+            if ((Left(convertElement, 1) == "!"))
             {
-                ConvertElement = "!" + ConvertFunctionCall(Mid(ConvertElement, 2));
+                convertElement = "!" + ConvertFunctionCall(Mid(convertElement, 2));
             }
             else
             {
-                ConvertElement = ConvertFunctionCall(ConvertElement);
+                convertElement = ConvertFunctionCall(convertElement);
             }
         }
 
-    DoReplacements:;
-        if (IsInStr(ConvertElement, ":="))
+        DoReplacements:;
+        if (IsInStr(convertElement, ":="))
         {
-            var Ts = SplitWord(ConvertElement, 1, ":=");
-            Ts = Ts + ": ";
-            Ts = Ts + modConvert.ConvertElement(SplitWord(ConvertElement, 2, ":=", true, true));
-            ConvertElement = Ts;
+            var ts = SplitWord(convertElement, 1, ":=");
+            ts = ts + ": ";
+            ts = ts + ModConvert.ConvertElement(SplitWord(convertElement, 2, ":=", true, true));
+            convertElement = ts;
         }
 
-        ConvertElement = Replace(ConvertElement, " & ", " + ");
-        ConvertElement = Replace(ConvertElement, " = ", " == ");
-        ConvertElement = Replace(ConvertElement, "<>", "!=");
-        ConvertElement = Replace(ConvertElement, " Not ", " !");
-        ConvertElement = Replace(ConvertElement, "(Not ", "(!");
-        ConvertElement = Replace(ConvertElement, " Or ", " || ");
-        ConvertElement = Replace(ConvertElement, " And ", " && ");
-        ConvertElement = Replace(ConvertElement, " Mod ", " % ");
-        ConvertElement = Replace(ConvertElement, "Err.", "Err().");
-        ConvertElement = Replace(ConvertElement, "Debug.Print", "Console.WriteLine");
+        convertElement = Replace(convertElement, " & ", " + ");
+        convertElement = Replace(convertElement, " = ", " == ");
+        convertElement = Replace(convertElement, "<>", "!=");
+        convertElement = Replace(convertElement, " Not ", " !");
+        convertElement = Replace(convertElement, "(Not ", "(!");
+        convertElement = Replace(convertElement, " Or ", " || ");
+        convertElement = Replace(convertElement, " And ", " && ");
+        convertElement = Replace(convertElement, " Mod ", " % ");
+        convertElement = Replace(convertElement, "Err.", "Err().");
+        convertElement = Replace(convertElement, "Debug.Print", "Console.WriteLine");
 
-        ConvertElement = Replace(ConvertElement, "NullDate", "NullDate");
-        while (IsInStr(ConvertElement, ", ,"))
+        convertElement = Replace(convertElement, "NullDate", "NullDate");
+        while (IsInStr(convertElement, ", ,"))
         {
-            ConvertElement = Replace(ConvertElement, ", ,", ", _,");
+            convertElement = Replace(convertElement, ", ,", ", _,");
         }
-        ConvertElement = Replace(ConvertElement, "(,", "(_,");
+        convertElement = Replace(convertElement, "(,", "(_,");
 
         //If IsInStr(ConvertElement, "&H") And Right(ConvertElement, 1) = "&" Then Stop
         //If IsInStr(ConvertElement, "1/1/2001") Then Stop
 
-        ConvertElement = RegExReplace(ConvertElement, "([0-9])#", "$1");
+        convertElement = RegExReplace(convertElement, "([0-9])#", "$1");
 
-        if (Left(ConvertElement, 2) == "&H")
+        if (Left(convertElement, 2) == "&H")
         {
-            ConvertElement = "0x" + Mid(ConvertElement, 3);
-            if (Right(ConvertElement, 1) == "&")
+            convertElement = "0x" + Mid(convertElement, 3);
+            if (Right(convertElement, 1) == "&")
             {
-                ConvertElement = Left(ConvertElement, Len(ConvertElement) - 1);
+                convertElement = Left(convertElement, Len(convertElement) - 1);
             }
         }
 
-        if (WithLevel > 0)
+        if (withLevel > 0)
         {
-            var T = Stack(ref WithVars, "##REM##", true);
-            ConvertElement = Trim(RegExReplace(ConvertElement, "([ (])(\\.)" + patToken, "$1" + T + "$2$3"));
-            if (Left(ConvertElement, 1) == ".")
+            var T = Stack(ref withVars, "##REM##", true);
+            convertElement = Trim(RegExReplace(convertElement, "([ (])(\\.)" + patToken, "$1" + T + "$2$3"));
+            if (Left(convertElement, 1) == ".")
             {
-                ConvertElement = T + ConvertElement;
+                convertElement = T + convertElement;
             }
         }
-        return ConvertElement;
+        return convertElement;
     }
 
     public static string ConvertFunctionCall(string fCall)
     {
         //Debug.Print "ConvertFunctionCall: " & fCall
-        var TB = "";
-        var TName = RegExNMatch(fCall, "^[a-zA-Z0-9_.]*");
-        TB = TB + TName;
+        var tb = "";
+        var name = RegExNMatch(fCall, "^[a-zA-Z0-9_.]*");
+        tb = tb + name;
 
-        var Ts = Mid(fCall, Len(TName) + 2);
-        Ts = Left(Ts, Len(Ts) - 1);
+        var ts = Mid(fCall, Len(name) + 2);
+        ts = Left(ts, Len(ts) - 1);
 
-        var vP = SubParam(TName);
+        var vP = SubParam(name);
         if (ConvertDataType(vP.asType) == "Recordset")
         {
-            TB = TB + ".Fields[";
-            TB = TB + ConvertValue(Ts);
-            TB = TB + "].Value";
+            tb = tb + ".Fields[";
+            tb = tb + ConvertValue(ts);
+            tb = tb + "].Value";
         }
         else if (vP.asArray != "")
         {
-            TB = TB + "[";
-            TB = TB + ConvertValue(Ts);
-            TB = TB + "]";
+            tb = tb + "[";
+            tb = tb + ConvertValue(ts);
+            tb = tb + "]";
             //    TB = Replace(TB, ", ", "][")
         }
         else
         {
-            var N = nextByPCt(Ts, ",");
-            TB = TB + "(";
-            for (var I = 1; I <= N; I++)
+            var n = NextByPCt(ts, ",");
+            tb = tb + "(";
+            for (var I = 1; I <= n; I++)
             {
                 if (I != 1)
                 {
-                    TB = TB + ", ";
+                    tb = tb + ", ";
                 }
-                var TV = nextByP(Ts, ",", I);
-                if (IsFuncRef(TName))
+                var tv = NextByP(ts, ",", I);
+                if (IsFuncRef(name))
                 {
-                    if (Trim(TV) == "")
+                    if (Trim(tv) == "")
                     {
-                        TB = TB + ConvertElement(FuncRefArgDefault(TName, I));
+                        tb = tb + ConvertElement(FuncRefArgDefault(name, I));
                     }
                     else
                     {
-                        if (FuncRefArgByRef(TName, I))
+                        if (FuncRefArgByRef(name, I))
                         {
-                            TB = TB + "ref ";
+                            tb = tb + "ref ";
                         }
-                        TB = TB + ConvertValue(TV);
+                        tb = tb + ConvertValue(tv);
                     }
                 }
                 else
                 {
-                    TB = TB + ConvertValue(TV);
+                    tb = tb + ConvertValue(tv);
                 }
             }
-            TB = TB + ")";
+            tb = tb + ")";
         }
-        var ConvertFunctionCall = TB;
-        return ConvertFunctionCall;
+        var convertFunctionCall = tb;
+        return convertFunctionCall;
     }
 
-    public static string ConvertValue(string S)
+    public static string ConvertValue(string s)
     {
-        string ConvertValue = "";
-        string Op = "";
-        string OpN = "";
+        string convertValue = "";
+        string op = "";
+        string opN = "";
 
-        var O = "";
-        S = Trim(S);
-        if (S == "")
+        var o = "";
+        s = Trim(s);
+        if (s == "")
         {
-            return ConvertValue;
+            return convertValue;
 
         }
 
@@ -1487,163 +1488,163 @@ static class modConvert
         //If Left(S, 6) = "DBName" Then Stop
         //If Left(S, 6) = "fName" Then Stop
 
-        SubParamUsedList(TokenList(S));
+        SubParamUsedList(TokenList(s));
 
-        if (RegExTest(S, "^-[a-zA-Z0-9_]"))
+        if (RegExTest(s, "^-[a-zA-Z0-9_]"))
         {
-            ConvertValue = "-" + modConvert.ConvertValue(Mid(S, 2));
-            return ConvertValue;
+            convertValue = "-" + ModConvert.ConvertValue(Mid(s, 2));
+            return convertValue;
 
         }
 
         while (true)
         {
-            var F = NextByOp(S, 1, ref Op);
-            if (F == "")
+            var f = NextByOp(s, 1, ref op);
+            if (f == "")
             {
                 break;
             }
-            switch (Trim(Op))
+            switch (Trim(op))
             {
                 case "\\":
-                    OpN = "/";
+                    opN = "/";
                     break;
                 case "=":
-                    OpN = " == ";
+                    opN = " == ";
                     break;
                 case "<>":
-                    OpN = " != ";
+                    opN = " != ";
                     break;
                 case "&":
-                    OpN = " + ";
+                    opN = " + ";
                     break;
                 case "Mod":
-                    OpN = " % ";
+                    opN = " % ";
                     break;
                 case "Is":
-                    OpN = " == ";
+                    opN = " == ";
                     break;
                 case "Like":
-                    OpN = " == ";
+                    opN = " == ";
                     break;
                 case "And":
-                    OpN = " && ";
+                    opN = " && ";
                     break;
                 case "Or":
-                    OpN = " || ";
+                    opN = " || ";
                     break;
                 default:
-                    OpN = Op;
+                    opN = op;
                     break;
             }
 
 
-            if (Left(F, 1) == "(" && Right(F, 1) == ")")
+            if (Left(f, 1) == "(" && Right(f, 1) == ")")
             {
-                O = O + "(" + modConvert.ConvertValue(Mid(F, 2, Len(F) - 2)) + ")" + OpN;
+                o = o + "(" + ModConvert.ConvertValue(Mid(f, 2, Len(f) - 2)) + ")" + opN;
             }
             else
             {
-                O = O + ConvertElement(F) + OpN;
+                o = o + ConvertElement(f) + opN;
             }
 
-            if (Op == "")
+            if (op == "")
             {
                 break;
             }
-            S = Mid(S, Len(F) + Len(Op) + 1);
-            if (S == "" || Op == "")
+            s = Mid(s, Len(f) + Len(op) + 1);
+            if (s == "" || op == "")
             {
                 break;
             }
         }
-        ConvertValue = O;
-        return ConvertValue;
+        convertValue = o;
+        return convertValue;
     }
 
-    public static string ConvertGlobals(string Str, bool asModule = false)
+    public static string ConvertGlobals(string str, bool asModule = false)
     {
-        string[] S = new string[0];
+        string[] s = new string[0];
 
         int inCase = 0;
 
         string returnVariable = "";
 
 
-        var Res = "";
-        var Building = "";
-        Str = Replace(Str, vbLf, "");
-        S = Split(Str, vbCr);
-        var Ind = 0;
-        var N = 0;
+        var res = "";
+        var building = "";
+        str = Replace(str, vbLf, "");
+        s = Split(str, vbCr);
+        var ind = 0;
+        var n = 0;
         //  Prg 0, UBound(S) - LBound(S) + 1, "Globals..."
         InitDeString();
-        foreach (var iterL in S)
+        foreach (var iterL in s)
         {
-            var L = iterL;
-            L = DeComment(L);
-            L = DeString(L);
-            var O = "";
-            if (Building != "")
+            var l = iterL;
+            l = DeComment(l);
+            l = DeString(l);
+            var o = "";
+            if (building != "")
             {
-                Building = Building + vbCrLf + L;
-                if (tLeft(L, 8) == "End Type")
+                building = building + vbCrLf + l;
+                if (TLeft(l, 8) == "End Type")
                 {
-                    O = ConvertType(Building);
-                    Building = "";
+                    o = ConvertType(building);
+                    building = "";
                 }
-                else if (tLeft(L, 8) == "End Enum")
+                else if (TLeft(l, 8) == "End Enum")
                 {
-                    O = ConvertEnum(Building);
-                    Building = "";
+                    o = ConvertEnum(building);
+                    building = "";
                 }
             }
-            else if (L == "Option *")
+            else if (l == "Option *")
             {
-                O = "// " + L;
+                o = "// " + l;
             }
-            else if (RegExTest(L, "^(Public |Private |)Declare "))
+            else if (RegExTest(l, "^(Public |Private |)Declare "))
             {
-                O = ConvertAPIDef(L);
+                o = ConvertApiDef(l);
             }
-            else if (RegExTest(L, "^(Global |Public |Private |)Const "))
+            else if (RegExTest(l, "^(Global |Public |Private |)Const "))
             {
-                O = ConvertConstant(L, true);
+                o = ConvertConstant(l, true);
             }
-            else if (RegExTest(L, "^(Public |Private |)Event "))
+            else if (RegExTest(l, "^(Public |Private |)Event "))
             {
-                O = ConvertEvent(L);
+                o = ConvertEvent(l);
             }
-            else if (RegExTest(L, "^(Public |Private |)Enum "))
+            else if (RegExTest(l, "^(Public |Private |)Enum "))
             {
-                Building = L;
+                building = l;
             }
-            else if (RegExTest(LTrim(L), "^(Public |Private |)Type "))
+            else if (RegExTest(LTrim(l), "^(Public |Private |)Type "))
             {
-                Building = L;
+                building = l;
             }
-            else if (tLeft(L, 8) == "Private " || tLeft(L, 7) == "Public " || tLeft(L, 4) == "Dim ")
+            else if (TLeft(l, 8) == "Private " || TLeft(l, 7) == "Public " || TLeft(l, 4) == "Dim ")
             {
-                O = ConvertDeclare(L, 0, true, asModule);
+                o = ConvertDeclare(l, 0, true, asModule);
             }
 
-            O = ReComment(O);
-            Res = Res + ReComment(O) + IIf(O == "" || Right(O, 2) == vbCrLf, "", vbCrLf);
-            N = N + 1;
+            o = ReComment(o);
+            res = res + ReComment(o) + IIf(o == "" || Right(o, 2) == vbCrLf, "", vbCrLf);
+            n = n + 1;
             //    Prg N
             //    If N Mod 10000 = 0 Then Stop
         }
         //  Prg
 
-        Res = ReString(Res, true);
-        var ConvertGlobals = Res;
-        return ConvertGlobals;
+        res = ReString(res, true);
+        var convertGlobals = res;
+        return convertGlobals;
     }
 
-    public static string ConvertCodeLine(string S)
+    public static string ConvertCodeLine(string s)
     {
-        string ConvertCodeLine = "";
-        string B = "";
+        string convertCodeLine = "";
+        string b = "";
 
 
         //If IsInStr(S, "dbClose") Then Stop
@@ -1663,217 +1664,217 @@ static class modConvert
         //If IsInStr(S, "Array()") Then Stop
         //If IsInStr(S, "App.Path") Then Stop
 
-        if (Trim(S) == "")
+        if (Trim(s) == "")
         {
-            ConvertCodeLine = "";
-            return ConvertCodeLine;
+            convertCodeLine = "";
+            return convertCodeLine;
 
         }
-        bool Complete = false;
+        bool complete = false;
 
-        S = ConvertVb6Specific(S, out Complete);
-        if (Complete)
+        s = ConvertVb6Specific(s, out complete);
+        if (complete)
         {
-            ConvertCodeLine = S;
-            return ConvertCodeLine;
+            convertCodeLine = s;
+            return convertCodeLine;
 
         }
 
-        if (RegExTest(Trim(S), "^[a-zA-Z0-9_.()]+ \\= ") || RegExTest(Trim(S), "^Set [a-zA-Z0-9_.()]+ \\= "))
+        if (RegExTest(Trim(s), "^[a-zA-Z0-9_.()]+ \\= ") || RegExTest(Trim(s), "^Set [a-zA-Z0-9_.()]+ \\= "))
         {
             // Assignment
-            var T = InStr(S, "=");
-            var A = Trim(Left(S, T - 1));
-            if (tLeft(A, 4) == "Set ")
+            var T = InStr(s, "=");
+            var a = Trim(Left(s, T - 1));
+            if (TLeft(a, 4) == "Set ")
             {
-                A = Trim(Mid(A, 5));
+                a = Trim(Mid(a, 5));
             }
-            SubParamAssign(RegExNMatch(A, patToken));
-            if (RegExTest(A, "^" + patToken + "\\(\"[^\"]+\"\\)"))
+            SubParamAssign(RegExNMatch(a, patToken));
+            if (RegExTest(a, "^" + patToken + "\\(\"[^\"]+\"\\)"))
             {
-                var P = RegExNMatch(A, "^" + patToken);
-                var V = SubParam(P);
-                if (V.Name == P)
+                var p = RegExNMatch(a, "^" + patToken);
+                var v = SubParam(p);
+                if (v.name == p)
                 {
-                    SubParamAssign(P);
-                    switch (V.asType)
+                    SubParamAssign(p);
+                    switch (v.asType)
                     {
                         case "Recordset":
-                            ConvertCodeLine = RegExReplace(A, "^" + patToken + "(\\(\")([^\"]+)(\"\\))", "$1.Fields[\"$3\"].Value");
+                            convertCodeLine = RegExReplace(a, "^" + patToken + "(\\(\")([^\"]+)(\"\\))", "$1.Fields[\"$3\"].Value");
                             break;
                         default:
-                            if (Left(A, 1) == ".")
+                            if (Left(a, 1) == ".")
                             {
-                                A = Stack(ref WithVars, "##REM##", true) + A;
+                                a = Stack(ref withVars, "##REM##", true) + a;
                             }
-                            ConvertCodeLine = A;
+                            convertCodeLine = a;
                             break;
                     }
                 }
             }
             else
             {
-                if (Left(A, 1) == ".")
+                if (Left(a, 1) == ".")
                 {
-                    A = Stack(ref WithVars, "##REM##", true) + A;
+                    a = Stack(ref withVars, "##REM##", true) + a;
                 }
-                ConvertCodeLine = A;
+                convertCodeLine = a;
             }
 
-            var tAWord = SplitWord(A, 1, ".");
+            var tAWord = SplitWord(a, 1, ".");
             if (IsFormRef(tAWord))
             {
-                A = Replace(A, tAWord, tAWord + ".instance", 1, 1);
+                a = Replace(a, tAWord, tAWord + ".instance", 1, 1);
             }
 
-            ConvertCodeLine = ConvertValue(ConvertCodeLine) + " = ";
+            convertCodeLine = ConvertValue(convertCodeLine) + " = ";
 
-            B = ConvertValue(Trim(Mid(S, T + 1)));
-            ConvertCodeLine = ConvertCodeLine + B;
+            b = ConvertValue(Trim(Mid(s, T + 1)));
+            convertCodeLine = convertCodeLine + b;
         }
         else
         {
             //Debug.Print S
             //If IsInStr(S, "Call ") Then Stop
-            if (LMatch(LTrim(S), "Call "))
+            if (LMatch(LTrim(s), "Call "))
             {
-                S = Mid(LTrim(S), 6);
+                s = Mid(LTrim(s), 6);
             }
 
-            var FirstWord = SplitWord(Trim(S));
-            var Rest = SplitWord(Trim(S), 2, " ", true, true);
-            if (Rest == "")
+            var firstWord = SplitWord(Trim(s));
+            var rest = SplitWord(Trim(s), 2, " ", true, true);
+            if (rest == "")
             {
-                ConvertCodeLine = S + IIf(Right(S, 1) != ")", "()", "");
-                ConvertCodeLine = ConvertElement(ConvertCodeLine);
+                convertCodeLine = s + IIf(Right(s, 1) != ")", "()", "");
+                convertCodeLine = ConvertElement(convertCodeLine);
             }
-            else if (FirstWord == "RaiseEvent")
+            else if (firstWord == "RaiseEvent")
             {
-                ConvertCodeLine = ConvertValue(S);
+                convertCodeLine = ConvertValue(s);
             }
-            else if (FirstWord == "Debug.Print")
+            else if (firstWord == "Debug.Print")
             {
-                ConvertCodeLine = "Console.WriteLine(" + ConvertValue(Rest) + ")";
+                convertCodeLine = "Console.WriteLine(" + ConvertValue(rest) + ")";
             }
-            else if (StrQCnt(FirstWord, "(") == 0)
+            else if (StrQCnt(firstWord, "(") == 0)
             {
-                ConvertCodeLine = "";
-                ConvertCodeLine = ConvertCodeLine + FirstWord + "(";
-                var N = 0;
+                convertCodeLine = "";
+                convertCodeLine = convertCodeLine + firstWord + "(";
+                var n = 0;
                 do
                 {
-                    N = N + 1;
-                    B = nextByP(Rest, ", ", N);
-                    if (B == "")
+                    n = n + 1;
+                    b = NextByP(rest, ", ", n);
+                    if (b == "")
                     {
                         break;
                     }
-                    ConvertCodeLine = ConvertCodeLine + IIf(N == 1, "", ", ") + ConvertValue(B);
+                    convertCodeLine = convertCodeLine + IIf(n == 1, "", ", ") + ConvertValue(b);
                 } while (!(true));
-                ConvertCodeLine = ConvertCodeLine + ")";
+                convertCodeLine = convertCodeLine + ")";
                 //      ConvertCodeLine = ConvertElement(ConvertCodeLine)
             }
             else
             {
-                ConvertCodeLine = ConvertValue(S);
+                convertCodeLine = ConvertValue(s);
             }
-            if (WithLevel > 0 & Left(Trim(ConvertCodeLine), 1) == ".")
+            if (withLevel > 0 & Left(Trim(convertCodeLine), 1) == ".")
             {
-                ConvertCodeLine = Stack(ref WithVars, "##REM##", true) + Trim(ConvertCodeLine);
+                convertCodeLine = Stack(ref withVars, "##REM##", true) + Trim(convertCodeLine);
             }
         }
 
         //  If IsInStr(ConvertCodeLine, ",,,,,,,") Then Stop
 
-        ConvertCodeLine = ConvertCodeLine + ";";
+        convertCodeLine = convertCodeLine + ";";
         //Debug.Print ConvertCodeLine
-        return ConvertCodeLine;
+        return convertCodeLine;
     }
 
-    public static string PostConvertCodeLine(string Str)
+    public static string PostConvertCodeLine(string str)
     {
-        var S = Str;
+        var s = str;
 
         //  If IsInStr(S, "optPoNo") Then Stop
-        if (IsInStr(S, "0 &"))
+        if (IsInStr(s, "0 &"))
         {
-            S = Replace(S, "0 &", "0");
+            s = Replace(s, "0 &", "0");
         }
-        if (IsInStr(S, ".instance.instance"))
+        if (IsInStr(s, ".instance.instance"))
         {
-            S = Replace(S, ".instance.instance", ".instance");
+            s = Replace(s, ".instance.instance", ".instance");
         }
-        if (IsInStr(S, ".IsChecked)"))
+        if (IsInStr(s, ".IsChecked)"))
         {
-            S = Replace(S, ".IsChecked)", ".IsChecked == true)", 1);
+            s = Replace(s, ".IsChecked)", ".IsChecked == true)", 1);
         }
-        if (IsInStr(S, ".IsChecked &"))
+        if (IsInStr(s, ".IsChecked &"))
         {
-            S = Replace(S, ".IsChecked", ".IsChecked == true", 1);
+            s = Replace(s, ".IsChecked", ".IsChecked == true", 1);
         }
-        if (IsInStr(S, ".IsChecked |"))
+        if (IsInStr(s, ".IsChecked |"))
         {
-            S = Replace(S, ".IsChecked", ".IsChecked == true", 1);
+            s = Replace(s, ".IsChecked", ".IsChecked == true", 1);
         }
-        if (IsInStr(S, ".IsChecked,"))
+        if (IsInStr(s, ".IsChecked,"))
         {
-            S = Replace(S, ".IsChecked", ".IsChecked == true", 1);
+            s = Replace(s, ".IsChecked", ".IsChecked == true", 1);
         }
-        if (IsInStr(S, ".IsChecked == 1,"))
+        if (IsInStr(s, ".IsChecked == 1,"))
         {
-            S = Replace(S, ".IsChecked == 1", ".IsChecked == true", 1);
+            s = Replace(s, ".IsChecked == 1", ".IsChecked == true", 1);
         }
-        if (IsInStr(S, ".IsChecked == 0,"))
+        if (IsInStr(s, ".IsChecked == 0,"))
         {
-            S = Replace(S, ".IsChecked == 1", ".IsChecked == false", 1);
-        }
-
-        if (IsInStr(S, ".Visibility = true"))
-        {
-            S = Replace(S, ".Visibility = true", ".setVisible(true)");
-        }
-        if (IsInStr(S, ".Visibility = false"))
-        {
-            S = Replace(S, ".Visibility = false", ".setVisible(false)");
+            s = Replace(s, ".IsChecked == 1", ".IsChecked == false", 1);
         }
 
-        if (IsInStr(S, ".Print("))
+        if (IsInStr(s, ".Visibility = true"))
         {
-            if (IsInStr(S, ";);"))
+            s = Replace(s, ".Visibility = true", ".setVisible(true)");
+        }
+        if (IsInStr(s, ".Visibility = false"))
+        {
+            s = Replace(s, ".Visibility = false", ".setVisible(false)");
+        }
+
+        if (IsInStr(s, ".Print("))
+        {
+            if (IsInStr(s, ";);"))
             {
-                S = Replace(S, ";);", ");");
-                S = Replace(S, "Print(", "PrintNNL(");
+                s = Replace(s, ";);", ");");
+                s = Replace(s, "Print(", "PrintNNL(");
             }
-            S = Replace(S, "; ", ", ");
+            s = Replace(s, "; ", ", ");
         }
-        if (IsInStr(S, ".Line(("))
+        if (IsInStr(s, ".Line(("))
         {
-            S = Replace(S, ") - (", ", ");
-            S = Replace(S, "Line((", "Line(");
-            S = Replace(S, "));", ");");
+            s = Replace(s, ") - (", ", ");
+            s = Replace(s, "Line((", "Line(");
+            s = Replace(s, "));", ");");
         }
 
-        S = Replace(S, "vbRetryCancel +", "vbRetryCancel |");
-        S = Replace(S, "vbOkOnly +", "vbOkOnly |");
-        S = Replace(S, "vbOkCancel +", "vbOkCancel |");
-        S = Replace(S, "vbExclamation +", "vbExclamation |");
-        S = Replace(S, "vbYesNo +", "vbYesNo |");
-        S = Replace(S, "vbQuestion +", "vbQuestion |");
-        S = Replace(S, "vbOKCancel +", "vbOKCancel |");
-        S = Replace(S, "+ vbExclamation", "| vbExclamation");
+        s = Replace(s, "vbRetryCancel +", "vbRetryCancel |");
+        s = Replace(s, "vbOkOnly +", "vbOkOnly |");
+        s = Replace(s, "vbOkCancel +", "vbOkCancel |");
+        s = Replace(s, "vbExclamation +", "vbExclamation |");
+        s = Replace(s, "vbYesNo +", "vbYesNo |");
+        s = Replace(s, "vbQuestion +", "vbQuestion |");
+        s = Replace(s, "vbOKCancel +", "vbOKCancel |");
+        s = Replace(s, "+ vbExclamation", "| vbExclamation");
 
-        var PostConvertCodeLine = S;
-        return PostConvertCodeLine;
+        var postConvertCodeLine = s;
+        return postConvertCodeLine;
     }
 
-    public static string ConvertSub(string Str, bool asModule = false, vbTriState ScanFirst = vbTriState.vbUseDefault)
+    public static string ConvertSub(string str, bool asModule = false, vbTriState scanFirst = vbTriState.vbUseDefault)
     {
-        string ConvertSub = "";
+        string convertSub = "";
 
-        string[] S = new string[0];
+        string[] s = new string[0];
         string T = "";
-        string U = "";
-        string V = "";
+        string u = "";
+        string v = "";
 
         int inCase = 0;
 
@@ -1885,14 +1886,14 @@ static class modConvert
         //If IsInStr(Str, "IsIDE") Then Stop
 
 
-        switch (ScanFirst)
+        switch (scanFirst)
         {
             case vbTriState.vbUseDefault:
-                var oStr = Str;
-                modConvert.ConvertSub(oStr, asModule, vbTriState.vbTrue);
+                var oStr = str;
+                ModConvert.ConvertSub(oStr, asModule, vbTriState.vbTrue);
                 //                          If IsInStr(Str, "StoreStockToolTipText") Then Stop
-                ConvertSub = modConvert.ConvertSub(oStr, asModule, vbTriState.vbFalse);
-                return ConvertSub;
+                convertSub = ModConvert.ConvertSub(oStr, asModule, vbTriState.vbFalse);
+                return convertSub;
 
                 break;
             case vbTriState.vbTrue:
@@ -1904,23 +1905,23 @@ static class modConvert
         }
 
 
-        var Res = "";
-        Str = Replace(Str, vbLf, "");
-        S = Split(Str, vbCr);
-        var Ind = 0;
+        var res = "";
+        str = Replace(str, vbLf, "");
+        s = Split(str, vbCr);
+        var ind = 0;
 
         //If IsInStr(Str, " WinCDSDataPath(") Then Stop
         //If IsInStr(Str, " RunShellExecute(") Then Stop
         //If IsInStr(Str, " ValidateSI(") Then Stop
-        foreach (var iterL in S)
+        foreach (var iterL in s)
         {
-            var L = iterL;
+            var l = iterL;
             //If IsInStr(L, "OrdVoid") Then Stop
             //If IsInStr(L, "MsgBox") Then Stop
             //If IsInStr(L, "And Not IsDoddsLtd Then") Then Stop
-            L = DeComment(L);
-            L = DeString(L);
-            var O = "";
+            l = DeComment(l);
+            l = DeString(l);
+            var o = "";
 
 
             //If IsInStr(L, "1/1/2001") Then Stop
@@ -1929,9 +1930,9 @@ static class modConvert
             //If IsInStr(L, "GetCustomerBalance") Then Stop
             //If IsInStr(L, "IsIDE") Then Stop
 
-            var PP = "^(Public |Private |)(Friend |)(Function |Sub )" + patToken + "[ ]*\\(";
-            var PQ = "^(Public |Private )(Property )(Get |Let |Set )" + patToken + "[ ]*\\(";
-            if (RegExNMatch(L, PP) != "")
+            var pp = "^(Public |Private |)(Friend |)(Function |Sub )" + patToken + "[ ]*\\(";
+            var pq = "^(Public |Private )(Property )(Get |Let |Set )" + patToken + "[ ]*\\(";
+            if (RegExNMatch(l, pp) != "")
             {
                 int nK = 0;
 
@@ -1942,254 +1943,254 @@ static class modConvert
                 //      If (LMatch(CurrSub, "Function ")) Then CurrSub = Mid(CurrSub, 10)
                 //      If (LMatch(CurrSub, "Sub ")) Then CurrSub = Mid(CurrSub, 5)
                 //If IsInStr(L, "Public Function IsIn") Then Stop
-                O = O + sSpace(Ind) + ConvertPrototype(L, ref returnVariable, asModule, ref CurrSub);
-                Ind = Ind + SpIndent;
+                o = o + SSpace(ind) + ConvertPrototype(l, ref returnVariable, asModule, ref currSub);
+                ind = ind + spIndent;
             }
-            else if (RegExNMatch(L, PQ) != "")
+            else if (RegExNMatch(l, pq) != "")
             {
                 //      If IsInStr(L, "edi888_Admin888_Src") Then Stop
-                AddProperty(Str);
-                return ConvertSub;// repacked later...  not added here.
+                AddProperty(str);
+                return convertSub;// repacked later...  not added here.
 
             }
-            else if (tLMatch(L, "End Sub") || tLMatch(L, "End Function"))
+            else if (TLMatch(l, "End Sub") || TLMatch(l, "End Function"))
             {
                 if (returnVariable != "")
                 {
-                    O = O + sSpace(Ind) + "return " + returnVariable + ";" + vbCrLf;
+                    o = o + SSpace(ind) + "return " + returnVariable + ";" + vbCrLf;
                 }
-                Ind = Ind - SpIndent;
-                O = O + sSpace(Ind) + "}";
+                ind = ind - spIndent;
+                o = o + SSpace(ind) + "}";
             }
-            else if (tLMatch(L, "Exit Function") || tLMatch(L, "Exit Sub"))
+            else if (TLMatch(l, "Exit Function") || TLMatch(l, "Exit Sub"))
             {
                 if (returnVariable != "")
                 {
-                    O = O + sSpace(Ind) + "return " + returnVariable + ";" + vbCrLf;
+                    o = o + SSpace(ind) + "return " + returnVariable + ";" + vbCrLf;
                 }
                 else
                 {
-                    O = O + "return;" + vbCrLf;
+                    o = o + "return;" + vbCrLf;
                 }
             }
-            else if (tLMatch(L, "GoTo "))
+            else if (TLMatch(l, "GoTo "))
             {
-                O = O + "goto " + SplitWord(Trim(L), 2) + ";";
+                o = o + "goto " + SplitWord(Trim(l), 2) + ";";
             }
-            else if (RegExTest(Trim(L), "^[a-zA-Z_][a-zA-Z_0-9]*:$"))
+            else if (RegExTest(Trim(l), "^[a-zA-Z_][a-zA-Z_0-9]*:$"))
             { // Goto Label
-                O = O + L + ";"; // c# requires a trailing ; on goto labels without trailing statements.  Likely a C# bug/oversight, but it's there.
+                o = o + l + ";"; // c# requires a trailing ; on goto labels without trailing statements.  Likely a C# bug/oversight, but it's there.
             }
-            else if (tLeft(L, 3) == "Dim")
+            else if (TLeft(l, 3) == "Dim")
             {
-                O = ConvertDeclare(L, Ind);
+                o = ConvertDeclare(l, ind);
             }
-            else if (tLeft(L, 5) == "Const")
+            else if (TLeft(l, 5) == "Const")
             {
-                O = sSpace(Ind) + ConvertConstant(L, false);
+                o = SSpace(ind) + ConvertConstant(l, false);
             }
-            else if (tLeft(L, 3) == "If ")
+            else if (TLeft(l, 3) == "If ")
             { // Code sanitization prevents all single-line ifs.
-              //If IsInStr(L, "optDelivered") Then Stop
-              //If IsInStr(L, "PRFolder") Then Stop
-                T = Mid(Trim(L), 4, Len(Trim(L)) - 8);
-                O = sSpace(Ind) + "if (" + ConvertValue(T) + ") {";
-                Ind = Ind + SpIndent;
+                //If IsInStr(L, "optDelivered") Then Stop
+                //If IsInStr(L, "PRFolder") Then Stop
+                T = Mid(Trim(l), 4, Len(Trim(l)) - 8);
+                o = SSpace(ind) + "if (" + ConvertValue(T) + ") {";
+                ind = ind + spIndent;
             }
-            else if (tLeft(L, 7) == "ElseIf ")
+            else if (TLeft(l, 7) == "ElseIf ")
             {
-                T = tMid(L, 8);
-                if (Right(Trim(L), 5) == " Then")
+                T = TMid(l, 8);
+                if (Right(Trim(l), 5) == " Then")
                 {
                     T = Left(T, Len(T) - 5);
                 }
-                O = sSpace(Ind - SpIndent) + "} else if (" + ConvertValue(T) + ") {";
+                o = SSpace(ind - spIndent) + "} else if (" + ConvertValue(T) + ") {";
             }
-            else if (tLeft(L, 5) == "Else")
+            else if (TLeft(l, 5) == "Else")
             {
-                O = sSpace(Ind - SpIndent) + "} else {";
+                o = SSpace(ind - spIndent) + "} else {";
             }
-            else if (tLeft(L, 6) == "End If")
+            else if (TLeft(l, 6) == "End If")
             {
-                Ind = Ind - SpIndent;
-                O = sSpace(Ind) + "}";
+                ind = ind - spIndent;
+                o = SSpace(ind) + "}";
             }
-            else if (tLeft(L, 12) == "Select Case ")
+            else if (TLeft(l, 12) == "Select Case ")
             {
-                O = O + sSpace(Ind) + "switch(" + ConvertValue(tMid(L, 13)) + ") {";
-                Ind = Ind + SpIndent;
+                o = o + SSpace(ind) + "switch(" + ConvertValue(TMid(l, 13)) + ") {";
+                ind = ind + spIndent;
             }
-            else if (tLeft(L, 10) == "End Select")
-            {
-                if (inCase > 0)
-                {
-                    Ind = Ind - SpIndent;
-                    inCase = inCase - 1;
-                }
-                Ind = Ind - SpIndent;
-                O = O + "break;" + vbCrLf;
-                O = O + "}";
-            }
-            else if (tLeft(L, 9) == "Case Else")
+            else if (TLeft(l, 10) == "End Select")
             {
                 if (inCase > 0)
                 {
-                    O = O + sSpace(Ind) + "break;" + vbCrLf;
-                    Ind = Ind - SpIndent;
+                    ind = ind - spIndent;
                     inCase = inCase - 1;
                 }
-                O = O + sSpace(Ind) + "default:";
+                ind = ind - spIndent;
+                o = o + "break;" + vbCrLf;
+                o = o + "}";
+            }
+            else if (TLeft(l, 9) == "Case Else")
+            {
+                if (inCase > 0)
+                {
+                    o = o + SSpace(ind) + "break;" + vbCrLf;
+                    ind = ind - spIndent;
+                    inCase = inCase - 1;
+                }
+                o = o + SSpace(ind) + "default:";
                 inCase = inCase + 1;
-                Ind = Ind + SpIndent;
+                ind = ind + spIndent;
             }
-            else if (tLeft(L, 5) == "Case ")
+            else if (TLeft(l, 5) == "Case ")
             {
-                T = Mid(Res, InStrRev(Res, "switch("));
+                T = Mid(res, InStrRev(res, "switch("));
                 if (RegExTest(T, "case [^:]+:"))
                 {
-                    O = O + sSpace(Ind) + "break;" + vbCrLf;
-                    Ind = Ind - SpIndent;
+                    o = o + SSpace(ind) + "break;" + vbCrLf;
+                    ind = ind - spIndent;
                     inCase = inCase - 1;
                 }
-                T = tMid(L, 6);
-                if (tLeft(T, 5) == "Like " || tLeft(T, 3) == "Is " || T == "* = *")
+                T = TMid(l, 6);
+                if (TLeft(T, 5) == "Like " || TLeft(T, 3) == "Is " || T == "* = *")
                 {
-                    O = O + "// TODO: Cannot convert case: " + T + vbCrLf;
-                    O = O + sSpace(Ind) + "case 0: ";
+                    o = o + "// TODO: Cannot convert case: " + T + vbCrLf;
+                    o = o + SSpace(ind) + "case 0: ";
                 }
-                else if (nextBy(T, ",", 2) != "")
+                else if (NextBy(T, ",", 2) != "")
                 {
-                    O = O + sSpace(Ind);
+                    o = o + SSpace(ind);
                     do
                     {
-                        U = nextBy(T, ", ");
-                        if (U == "")
+                        u = NextBy(T, ", ");
+                        if (u == "")
                         {
                             break;
                         }
-                        T = Trim(Mid(T, Len(U) + 1));
-                        O = O + "case " + ConvertValue(U) + ": ";
+                        T = Trim(Mid(T, Len(u) + 1));
+                        o = o + "case " + ConvertValue(u) + ": ";
                     } while (!(true));
                 }
                 else if (T == "* To *")
                 {
-                    O = O + "// CONVERSION: Case was " + T + vbCrLf;
-                    O = O + sSpace(Ind);
+                    o = o + "// CONVERSION: Case was " + T + vbCrLf;
+                    o = o + SSpace(ind);
                     var cN = ValI(SplitWord(T, 1, " To "));
-                    var CM = ValI(SplitWord(T, 2, " To "));
-                    for (var K = cN; K <= CM; K++)
+                    var cm = ValI(SplitWord(T, 2, " To "));
+                    for (var k = cN; k <= cm; k++)
                     {
-                        O = O + "case " + K + ": ";
+                        o = o + "case " + k + ": ";
                     }
                 }
                 else
                 {
-                    dynamic TT = null;
+                    dynamic tt = null;
 
                     //          O = O & sSpace(Ind) & "case " & ConvertValue(T) & ":"
-                    O = O + Space(Ind);
-                    foreach (var iterLL in Split(T, ","))
+                    o = o + Space(ind);
+                    foreach (var iterLl in Split(T, ","))
                     {
-                        dynamic LL = iterLL;
-                        O = O + "case " + ConvertValue(T) + ": ";
+                        dynamic ll = iterLl;
+                        o = o + "case " + ConvertValue(T) + ": ";
                     }
                 }
                 inCase = inCase + 1;
-                Ind = Ind + SpIndent;
+                ind = ind + spIndent;
             }
-            else if (Trim(L) == "Do")
+            else if (Trim(l) == "Do")
             {
-                O = O + sSpace(Ind) + "do {";
-                Ind = Ind + SpIndent;
+                o = o + SSpace(ind) + "do {";
+                ind = ind + spIndent;
             }
-            else if (tLeft(L, 9) == "Do While ")
+            else if (TLeft(l, 9) == "Do While ")
             {
-                O = O + sSpace(Ind) + "while(" + ConvertValue(tMid(L, 10)) + ") {";
-                Ind = Ind + SpIndent;
+                o = o + SSpace(ind) + "while(" + ConvertValue(TMid(l, 10)) + ") {";
+                ind = ind + spIndent;
             }
-            else if (tLeft(L, 9) == "Do Until ")
+            else if (TLeft(l, 9) == "Do Until ")
             {
-                O = O + sSpace(Ind) + "while(!(" + ConvertValue(tMid(L, 10)) + ")) {";
-                Ind = Ind + SpIndent;
+                o = o + SSpace(ind) + "while(!(" + ConvertValue(TMid(l, 10)) + ")) {";
+                ind = ind + spIndent;
             }
-            else if (tLeft(L, 9) == "For Each ")
+            else if (TLeft(l, 9) == "For Each ")
             {
-                L = tMid(L, 10);
+                l = TMid(l, 10);
 
-                var iterVar = SplitWord(L, 1, " In ");
-                O = O + sSpace(Ind) + "foreach(var iter" + iterVar + " in " + SplitWord(L, 2, " In ") + ") {" + vbCrLf + iterVar + " = iter" + iterVar + ";";
-                Ind = Ind + SpIndent;
+                var iterVar = SplitWord(l, 1, " In ");
+                o = o + SSpace(ind) + "foreach(var iter" + iterVar + " in " + SplitWord(l, 2, " In ") + ") {" + vbCrLf + iterVar + " = iter" + iterVar + ";";
+                ind = ind + spIndent;
             }
-            else if (tLeft(L, 4) == "For ")
+            else if (TLeft(l, 4) == "For ")
             {
-                L = tMid(L, 5);
-                var forKey = SplitWord(L, 1, "=");
-                L = SplitWord(L, 2, "=");
-                var forStr = SplitWord(L, 1, " To ");
-                var forEnd = SplitWord(L, 2, " To ");
-                O = O + sSpace(Ind) + "for(" + ConvertElement(forKey) + "=" + ConvertElement(forStr) + "; " + ConvertElement(forKey) + "<" + ConvertElement(forEnd) + "; " + ConvertElement(forKey) + "++) {";
-                Ind = Ind + SpIndent;
+                l = TMid(l, 5);
+                var forKey = SplitWord(l, 1, "=");
+                l = SplitWord(l, 2, "=");
+                var forStr = SplitWord(l, 1, " To ");
+                var forEnd = SplitWord(l, 2, " To ");
+                o = o + SSpace(ind) + "for(" + ConvertElement(forKey) + "=" + ConvertElement(forStr) + "; " + ConvertElement(forKey) + "<" + ConvertElement(forEnd) + "; " + ConvertElement(forKey) + "++) {";
+                ind = ind + spIndent;
             }
-            else if (tLeft(L, 11) == "Loop While ")
+            else if (TLeft(l, 11) == "Loop While ")
             {
-                Ind = Ind - SpIndent;
-                O = O + sSpace(Ind) + "} while(!(" + ConvertValue(tMid(L, 12)) + "));";
+                ind = ind - spIndent;
+                o = o + SSpace(ind) + "} while(!(" + ConvertValue(TMid(l, 12)) + "));";
             }
-            else if (tLeft(L, 11) == "Loop Until ")
+            else if (TLeft(l, 11) == "Loop Until ")
             {
-                Ind = Ind - SpIndent;
-                O = O + sSpace(Ind) + "} while(!(" + ConvertValue(tMid(L, 12)) + "));";
+                ind = ind - spIndent;
+                o = o + SSpace(ind) + "} while(!(" + ConvertValue(TMid(l, 12)) + "));";
             }
-            else if (tLeft(L, 5) == "Loop")
+            else if (TLeft(l, 5) == "Loop")
             {
-                Ind = Ind - SpIndent;
-                O = O + sSpace(Ind) + "}";
+                ind = ind - spIndent;
+                o = o + SSpace(ind) + "}";
             }
-            else if (tLeft(L, 8) == "Exit For" || tLeft(L, 7) == "Exit Do" || tLeft(L, 10) == "Exit While")
+            else if (TLeft(l, 8) == "Exit For" || TLeft(l, 7) == "Exit Do" || TLeft(l, 10) == "Exit While")
             {
-                O = O + sSpace(Ind) + "break;";
+                o = o + SSpace(ind) + "break;";
             }
-            else if (tLeft(L, 5) == "Next")
+            else if (TLeft(l, 5) == "Next")
             {
-                Ind = Ind - SpIndent;
-                O = sSpace(Ind) + "}";
+                ind = ind - spIndent;
+                o = SSpace(ind) + "}";
             }
-            else if (tLeft(L, 5) == "With ")
+            else if (TLeft(l, 5) == "With ")
             {
-                WithLevel = WithLevel + 1;
+                withLevel = withLevel + 1;
 
-                T = ConvertValue(tMid(L, 6));
-                U = ConvertDataType(SubParam(T).asType);
-                V = WithMark + (SubParam(T).Name != "" ? T : Random().ToString());
-                if (U == "")
+                T = ConvertValue(TMid(l, 6));
+                u = ConvertDataType(SubParam(T).asType);
+                v = withMark + (SubParam(T).name != "" ? T : Random().ToString());
+                if (u == "")
                 {
-                    U = DefaultDataType;
+                    u = defaultDataType;
                 }
 
-                Stack(ref WithAssign, T);
-                Stack(ref WithTypes, U);
-                Stack(ref WithVars, V);
+                Stack(ref withAssign, T);
+                Stack(ref withTypes, u);
+                Stack(ref withVars, v);
 
-                O = O + sSpace(Ind) + U + " " + V + ";" + vbCrLf;
-                MaxWithLevel = MaxWithLevel + 1;
-                O = O + sSpace(Ind) + V + " = " + T + ";";
-                Ind = Ind + SpIndent;
+                o = o + SSpace(ind) + u + " " + v + ";" + vbCrLf;
+                maxWithLevel = maxWithLevel + 1;
+                o = o + SSpace(ind) + v + " = " + T + ";";
+                ind = ind + spIndent;
             }
-            else if (tLeft(L, 8) == "End With")
+            else if (TLeft(l, 8) == "End With")
             {
-                WithLevel = WithLevel - 1;
-                T = Stack(ref WithAssign);
-                U = Stack(ref WithTypes);
-                V = Stack(ref WithVars);
-                if (SubParam(T).Name != "")
+                withLevel = withLevel - 1;
+                T = Stack(ref withAssign);
+                u = Stack(ref withTypes);
+                v = Stack(ref withVars);
+                if (SubParam(T).name != "")
                 {
-                    O = O + sSpace(Ind) + T + " = " + V + ";";
+                    o = o + SSpace(ind) + T + " = " + v + ";";
                 }
-                Ind = Ind - SpIndent;
+                ind = ind - spIndent;
             }
-            else if (IsInStr(L, "On Error ") || IsInStr(L, "Resume "))
+            else if (IsInStr(l, "On Error ") || IsInStr(l, "Resume "))
             {
-                O = sSpace(Ind) + "// TODO (not supported): " + L;
+                o = SSpace(ind) + "// TODO (not supported): " + l;
             }
             else
             {
@@ -2197,17 +2198,17 @@ static class modConvert
                 //If IsInStr(L, "RaiseEvent") Then Stop
                 //If IsInStr(L, "Debug.Print") Then Stop
                 //If IsInStr(L, "HasGit") Then Stop
-                O = sSpace(Ind) + ConvertCodeLine(L);
+                o = SSpace(ind) + ConvertCodeLine(l);
             }
 
-            O = modConvert.PostConvertCodeLine(O);
-            O = modProjectSpecific.ProjectSpecificPostCodeLineConvert(O);
+            o = ModConvert.PostConvertCodeLine(o);
+            o = ModProjectSpecific.ProjectSpecificPostCodeLineConvert(o);
 
-            O = ReComment(O);
-            Res = Res + ReComment(O) + IIf(O == "", "", vbCrLf);
+            o = ReComment(o);
+            res = res + ReComment(o) + IIf(o == "", "", vbCrLf);
         }
 
-        ConvertSub = Res;
-        return ConvertSub;
+        convertSub = res;
+        return convertSub;
     }
 }

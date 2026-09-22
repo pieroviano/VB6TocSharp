@@ -1,53 +1,54 @@
 using System.Collections.Generic;
 using static Microsoft.VisualBasic.Constants;
-using static Microsoft.VisualBasic.Information;
 using static Microsoft.VisualBasic.Strings;
-using static modConvert;
-using static modRegEx;
-using static modUtils;
-using static modVB6ToCS;
-using static VBExtension;
+using static Vb6ToCSharp.Modules.ModConvert;
+using static Vb6ToCSharp.Modules.ModRegEx;
+using static Vb6ToCSharp.Modules.ModUtils;
+using static Vb6ToCSharp.Modules.ModVb6ToCs;
+using static Vb6ToCSharp.VbExtension;
 
 
-static class modSubTracking
+namespace Vb6ToCSharp.Modules;
+
+static class ModSubTracking
 {
     // Option Explicit
     public class Variable
     {
-        public string Name = "";
+        public string name = "";
         public string asType = "";
         public string asArray = "";
-        public bool Param = false;
-        public bool RetVal = false;
-        public bool Assigned = false;
-        public bool Used = false;
-        public bool AssignedBeforeUsed = false;
-        public bool UsedBeforeAssigned = false;
+        public bool param = false;
+        public bool retVal = false;
+        public bool assigned = false;
+        public bool used = false;
+        public bool assignedBeforeUsed = false;
+        public bool usedBeforeAssigned = false;
     }
     public class Property
     {
-        public string Name = "";
+        public string name = "";
         public bool asPublic = false;
         public string asType = "";
         public bool asFunc = false;
-        public string Getter = "";
-        public string Setter = "";
+        public string getter = "";
+        public string setter = "";
         public string origArgName = "";
         public string funcArgs = "";
         public string origProto = "";
     }
-    private static bool Lockout = false;
-    private static List<Variable> Vars = new List<Variable> { }; 
-    private static List<Property> Props = new List<Property> { }; 
+    private static bool lockout = false;
+    private static List<Variable> vars = new List<Variable> { }; 
+    private static List<Property> props = new List<Property> { }; 
 
 
     public static bool Analyze
     {
         get
         {
-            var Analyze = Lockout;
+            var analyze = lockout;
 
-            return Analyze;
+            return analyze;
         }
     }
 
@@ -58,108 +59,108 @@ static class modSubTracking
         {
             List<Variable> nVars = new List<Variable> { };
 
-            Vars = nVars;
+            vars = nVars;
         }
 
-        Lockout = Lockout; // as in VB6 source (no-op)
+        lockout = lockout; // as in VB6 source (no-op)
     }
 
-    private static int SubParamIndex(string P)
+    private static int SubParamIndex(string p)
     {
-        int SubParamIndex = 0;
+        int subParamIndex = 0;
         // TODO (not supported):   On Error GoTo NoEntries
-        for (SubParamIndex = 0; SubParamIndex < Vars.Count; SubParamIndex++)
+        for (subParamIndex = 0; subParamIndex < vars.Count; subParamIndex++)
         {
-            if (Vars[SubParamIndex].Name == P)
+            if (vars[subParamIndex].name == p)
             {
-                return SubParamIndex;
+                return subParamIndex;
 
             }
         }
-        SubParamIndex = -1;
-        return SubParamIndex;
+        subParamIndex = -1;
+        return subParamIndex;
     }
 
-    public static Variable SubParam(string P)
+    public static Variable SubParam(string p)
     {
-        var SubParam =
+        var subParam =
             // TODO (not supported): On Error Resume Next
-            SubParamIndex(P) >= 0 ? Vars[SubParamIndex(P)] : new Variable();
-        return SubParam;
+            SubParamIndex(p) >= 0 ? vars[SubParamIndex(p)] : new Variable();
+        return subParam;
     }
 
-    public static void SubParamDecl(string P, string asType, string asArray, bool isParam, bool isReturn)
+    public static void SubParamDecl(string p, string asType, string asArray, bool isParam, bool isReturn)
     {
-        if (Lockout)
+        if (lockout)
         {
             return;
 
         }
 
-        var N = Vars.Count;
-        Vars.Add(new Variable());
-        Vars[N].Name = P;
-        Vars[N].asType = asType;
-        Vars[N].Param = isParam;
-        Vars[N].RetVal = isReturn;
-        Vars[N].asArray = asArray;
+        var n = vars.Count;
+        vars.Add(new Variable());
+        vars[n].name = p;
+        vars[n].asType = asType;
+        vars[n].param = isParam;
+        vars[n].retVal = isReturn;
+        vars[n].asArray = asArray;
     }
 
-    public static void SubParamAssign(string P)
+    public static void SubParamAssign(string p)
     {
-        if (Lockout)
+        if (lockout)
         {
             return;
 
         }
 
-        var K = SubParamIndex(P);
-        if (K >= 0)
+        var k = SubParamIndex(p);
+        if (k >= 0)
         {
-            Vars[K].Assigned = true;
-            if (!Vars[K].Used)
+            vars[k].assigned = true;
+            if (!vars[k].used)
             {
-                Vars[K].AssignedBeforeUsed = true;
+                vars[k].assignedBeforeUsed = true;
             }
         }
     }
 
-    public static void SubParamUsed(string P)
+    public static void SubParamUsed(string p)
     {
-        if (Lockout)
+        if (lockout)
         {
             return;
 
         }
 
-        var K = SubParamIndex(P);
-        if (K >= 0)
+        var k = SubParamIndex(p);
+        if (k >= 0)
         {
-            Vars[K].Used = true;
-            if (!Vars[K].Assigned)
+            vars[k].used = true;
+            if (!vars[k].assigned)
             {
-                Vars[K].UsedBeforeAssigned = true;
+                vars[k].usedBeforeAssigned = true;
             }
         }
     }
 
-    public static void SubParamUsedList(string S)
+    public static void SubParamUsedList(string s)
     {
-        string[] Sp = new string[0];
+        string[] sp = new string[0];
 
-        if (Lockout)
+        if (lockout)
         {
             return;
 
         }
 
-        Sp = Split(S, ",");
-        foreach (var iterL in Sp)
+        sp = Split(s, ",");
+        foreach (var iterL in sp)
         {
-            var L = iterL;
-            if (L != "")
+            var l = iterL;
+            if (l != "")
             {
-                SubParamUsed(L);
+                SubParamUsed(l);
             }
         }
     }
@@ -168,91 +169,91 @@ static class modSubTracking
     {
         List<Property> nProps = new List<Property> { };
 
-        Props = nProps;
+        props = nProps;
     }
 
-    private static int PropIndex(string P)
+    private static int PropIndex(string p)
     {
-        int PropIndex = 0;
+        int propIndex = 0;
         // TODO (not supported):   On Error GoTo NoEntries
-        for (PropIndex = 0; PropIndex < Props.Count; PropIndex++)
+        for (propIndex = 0; propIndex < props.Count; propIndex++)
         {
-            if (Props[PropIndex].Name == P)
+            if (props[propIndex].name == p)
             {
-                return PropIndex;
+                return propIndex;
 
             }
         }
-        PropIndex = -1;
-        return PropIndex;
+        propIndex = -1;
+        return propIndex;
     }
 
-    public static void AddProperty(string S)
+    public static void AddProperty(string s)
     {
         bool asPublic = false;
 
         bool asFunc = false;
 
-        string GSL = "";
+        string gsl = "";
         string pArgName = "";
         string pType = "";
 
 
-        var Pro = SplitWord(S, 1, vbCr);
-        var origProto = Pro;
+        var pro = SplitWord(s, 1, vbCr);
+        var origProto = pro;
 
-        S = nlTrim(Replace(S, Pro, ""));
-        if (Right(S, 12) == "End Property")
+        s = NlTrim(Replace(s, pro, ""));
+        if (Right(s, 12) == "End Property")
         {
-            S = nlTrim(Left(S, Len(S) - 12));
+            s = NlTrim(Left(s, Len(s) - 12));
         }
 
 
-        if (LMatch(Pro, "Public "))
+        if (LMatch(pro, "Public "))
         {
-            Pro = Mid(Pro, 8); // if one is public, both are...
+            pro = Mid(pro, 8); // if one is public, both are...
             asPublic = true;
         }
-        if (LMatch(Pro, "Private "))
+        if (LMatch(pro, "Private "))
         {
-            Pro = Mid(Pro, 9);
+            pro = Mid(pro, 9);
         }
-        if (LMatch(Pro, "Friend "))
+        if (LMatch(pro, "Friend "))
         {
-            Pro = Mid(Pro, 8);
+            pro = Mid(pro, 8);
         }
-        if (LMatch(Pro, "Property "))
+        if (LMatch(pro, "Property "))
         {
-            Pro = Mid(Pro, 10);
+            pro = Mid(pro, 10);
         }
 
-        if (LMatch(Pro, "Get "))
+        if (LMatch(pro, "Get "))
         {
-            Pro = Mid(Pro, 5);
-            GSL = "get";
+            pro = Mid(pro, 5);
+            gsl = "get";
         }
-        if (LMatch(Pro, "Let "))
+        if (LMatch(pro, "Let "))
         {
-            Pro = Mid(Pro, 5);
-            GSL = "let";
+            pro = Mid(pro, 5);
+            gsl = "let";
         }
-        if (LMatch(Pro, "Set "))
+        if (LMatch(pro, "Set "))
         {
-            Pro = Mid(Pro, 5);
-            GSL = "set";
+            pro = Mid(pro, 5);
+            gsl = "set";
         }
-        var pName = RegExNMatch(Pro, patToken);
-        Pro = Mid(Pro, Len(pName) + 1);
-        if (LMatch(Pro, "("))
+        var pName = RegExNMatch(pro, patToken);
+        pro = Mid(pro, Len(pName) + 1);
+        if (LMatch(pro, "("))
         {
-            Pro = Mid(Pro, 2);
+            pro = Mid(pro, 2);
         }
-        var pArgs = nextBy(Pro, ")");
-        if ((GSL == "get" && pArgs != "") || (GSL != "get" && InStr(pArgs, ",") > 0))
+        var pArgs = NextBy(pro, ")");
+        if ((gsl == "get" && pArgs != "") || (gsl != "get" && InStr(pArgs, ",") > 0))
         {
             asFunc = true;
         }
-        if (GSL == "set" || GSL == "let")
+        if (gsl == "set" || gsl == "let")
         {
             var fArg = Trim(SplitWord(pArgs, -1, ","));
             if (LMatch(fArg, "ByVal "))
@@ -273,15 +274,15 @@ static class modSubTracking
                 pType = "Variant";
             }
         }
-        Pro = Mid(Pro, Len(pArgs) + 1);
-        if (LMatch(Pro, ")"))
+        pro = Mid(pro, Len(pArgs) + 1);
+        if (LMatch(pro, ")"))
         {
-            Pro = Trim(Mid(Pro, 2));
+            pro = Trim(Mid(pro, 2));
         }
-        if (LMatch(Pro, "As "))
+        if (LMatch(pro, "As "))
         {
-            Pro = Mid(Pro, 4);
-            pType = Pro;
+            pro = Mid(pro, 4);
+            pType = pro;
         }
 
         if (pType == "")
@@ -290,42 +291,42 @@ static class modSubTracking
         }
 
 
-        var X = PropIndex(pName);
-        if (X == -1)
+        var x = PropIndex(pName);
+        if (x == -1)
         {
-            X = Props.Count;
-            Props.Add(new Property());
+            x = props.Count;
+            props.Add(new Property());
         }
 
-        Props[X].Name = pName;
-        Props[X].origProto = origProto;
+        props[x].name = pName;
+        props[x].origProto = origProto;
         if (asPublic)
         {
-            Props[X].asPublic = true; // if one is public, both are...
+            props[x].asPublic = true; // if one is public, both are...
         }
-        switch (GSL)
+        switch (gsl)
         {
             case "get":
-                Props[X].Getter = ConvertSub(S, false, vbTriState.vbFalse);
-                Props[X].asType = ConvertDataType(pType);
-                Props[X].asFunc = asFunc;
-                Props[X].funcArgs = pArgs;
+                props[x].getter = ConvertSub(s, false, vbTriState.vbFalse);
+                props[x].asType = ConvertDataType(pType);
+                props[x].asFunc = asFunc;
+                props[x].funcArgs = pArgs;
                 break;
             case "set":
             case "let":
-                Props[X].Setter = ConvertSub(S, false, vbTriState.vbFalse);
-                Props[X].origArgName = pArgName;
+                props[x].setter = ConvertSub(s, false, vbTriState.vbFalse);
+                props[x].origArgName = pArgName;
                 if (pType != "")
                 {
-                    Props[X].asType = ConvertDataType(pType);
+                    props[x].asType = ConvertDataType(pType);
                 }
                 if (asFunc)
                 {
-                    Props[X].asFunc = true;
+                    props[x].asFunc = true;
                 }
                 if (pArgs != "")
                 {
-                    Props[X].funcArgs = pArgs;
+                    props[x].funcArgs = pArgs;
                 }
                 break;
         }
@@ -337,58 +338,58 @@ static class modSubTracking
 
         string T = "";
 
-        var R = "";
-        var M = "";
-        var N = vbCrLf;
-        for (var I = 0; I < Props.Count; I++)
+        var r = "";
+        var m = "";
+        var n = vbCrLf;
+        for (var I = 0; I < props.Count; I++)
         {
-            if (Props[I].Name != "" && !(Props[I].Getter == "" && Props[I].Setter == ""))
+            if (props[I].name != "" && !(props[I].getter == "" && props[I].setter == ""))
             {
-                if (Props[I].asPublic)
+                if (props[I].asPublic)
                 {
-                    R = R + "public ";
+                    r = r + "public ";
                 }
                 if (asModule)
                 {
-                    R = R + "static ";
+                    r = r + "static ";
                 }
 
                 //          If .Getter = "" Then R = R & "writeonly "
                 //          If .Setter = "" Then R = R & "readonly "
-                if (Props[I].asFunc)
+                if (props[I].asFunc)
                 {
-                    R = R + " // TODO: Arguments not allowed on properties: " + Props[I].funcArgs + vbCrLf;
-                    R = R + " //       " + Props[I].origProto + vbCrLf;
+                    r = r + " // TODO: Arguments not allowed on properties: " + props[I].funcArgs + vbCrLf;
+                    r = r + " //       " + props[I].origProto + vbCrLf;
                 }
-                R = R + M + Props[I].asType + " " + Props[I].Name;
-                R = R + " {";
+                r = r + m + props[I].asType + " " + props[I].name;
+                r = r + " {";
 
-                if (Props[I].Getter != "")
+                if (props[I].getter != "")
                 {
-                    R = R + N + "  get {";
-                    R = R + N + "    " + Props[I].asType + " " + Props[I].Name + ";";
-                    T = Props[I].Getter;
-                    T = Replace(T, "Exit(Property)", "return " + Props[I].Name + ";");
-                    R = R + N + "    " + T;
-                    R = R + N + "  return " + Props[I].Name + ";";
-                    R = R + N + "  }";
+                    r = r + n + "  get {";
+                    r = r + n + "    " + props[I].asType + " " + props[I].name + ";";
+                    T = props[I].getter;
+                    T = Replace(T, "Exit(Property)", "return " + props[I].name + ";");
+                    r = r + n + "    " + T;
+                    r = r + n + "  return " + props[I].name + ";";
+                    r = r + n + "  }";
                 }
-                if (Props[I].Setter != "")
+                if (props[I].setter != "")
                 {
-                    R = R + N + "  set {";
-                    T = Props[I].Setter;
+                    r = r + n + "  set {";
+                    T = props[I].setter;
                     T = ReplaceToken(T, "value", "valueOrig");
-                    T = Replace(T, Props[I].origArgName, "value");
+                    T = Replace(T, props[I].origArgName, "value");
                     T = Replace(T, "Exit Property", "return;");
-                    R = R + N + "    " + T;
-                    R = R + N + "  }";
+                    r = r + n + "    " + T;
+                    r = r + n + "  }";
                 }
-                R = R + N + "}";
-                R = R + N;
+                r = r + n + "}";
+                r = r + n;
             }
         }
 
-        var ReadOutProperties = R;
-        return ReadOutProperties;
+        var readOutProperties = r;
+        return readOutProperties;
     }
 }

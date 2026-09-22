@@ -2,82 +2,84 @@ using System;
 using static Microsoft.VisualBasic.Constants;
 using static Microsoft.VisualBasic.Interaction;
 using static Microsoft.VisualBasic.Strings;
-using static modDirStack;
-using static modShell;
-using static modUtils;
+using static Vb6ToCSharp.Modules.ModDirStack;
+using static Vb6ToCSharp.Modules.ModShell;
+using static Vb6ToCSharp.Modules.ModUtils;
 
 
-static class modGit
+namespace Vb6ToCSharp.Modules;
+
+static class ModGit
 {
     // Option Explicit
-    public const string Status = "status ";
-    public const string St = "status ";
-    public const string Commit = "commit -m ";
-    public const string Push = "push ";
-    public const string Pull = "pull ";
-    public const string Branch = "branch ";
-    public const string BR = "branch ";
-    public const string Stash = "stash";
-    public const string CheckOut = "checkout ";
+    public const string status = "status ";
+    public const string st = "status ";
+    public const string commit = "commit -m ";
+    public const string push = "push ";
+    public const string pull = "pull ";
+    public const string branch = "branch ";
+    public const string br = "branch ";
+    public const string stash = "stash";
+    public const string checkOut = "checkout ";
 
 
     private static string GitFolder()
     {
-        var GitFolder = AppDomain.CurrentDomain.BaseDirectory + "\\";
-        return GitFolder;
+        var gitFolder = AppDomain.CurrentDomain.BaseDirectory + "\\";
+        return gitFolder;
     }
 
-    public static string GitCmd(string C, bool NoOutput = false, bool HideCommand = false)
+    public static string GitCmd(string c, bool noOutput = false, bool hideCommand = false)
     {
-        string ErrSt = "";
+        string errSt = "";
 
         PushDir(GitFolder());
-        if (!HideCommand)
+        if (!hideCommand)
         {
-            GitOut("$ " + C);
+            GitOut("$ " + c);
         }
-        var GitCmd = RunCmdToOutput(C, out ErrSt);
+        var gitCmd = RunCmdToOutput(c, out errSt);
         PopDir();
-        if (!NoOutput)
+        if (!noOutput)
         {
-            GitOut(GitCmd);
+            GitOut(gitCmd);
         }
-        if (ErrSt != "")
+        if (errSt != "")
         {
-            GitOut("ERR: " + ErrSt);
+            GitOut("ERR: " + errSt);
         }
-        return GitCmd;
+        return gitCmd;
     }
 
-    private static bool GitOut(string Msg)
+    private static bool GitOut(string msg)
     {
-        bool GitOut = false;
-        Msg = Trim(Msg);
-        while ((Left(Msg, 1) == vbCr || Left(Msg, 1) == vbLf))
+        bool gitOut = false;
+        msg = Trim(msg);
+        while ((Left(msg, 1) == vbCr || Left(msg, 1) == vbLf))
         {
-            Msg = Mid(Msg, 2);
+            msg = Mid(msg, 2);
         }
-        if (Len(Msg) > 0)
+        if (Len(msg) > 0)
         {
-            Console.WriteLine(Msg);
+            Console.WriteLine(msg);
         }
-        return GitOut;
+        return gitOut;
     }
 
-    public static bool Git(string C)
+    public static bool Git(string c)
     {
-        if (LCase(Left(C, 4)) != "git ")
+        if (LCase(Left(c, 4)) != "git ")
         {
-            C = "git " + C;
+            c = "git " + c;
         }
-        GitCmd(C);
-        var Git = true;
-        return Git;
+        GitCmd(c);
+        var git = true;
+        return git;
     }
 
-    public static void GitConf(string vName = "", string vEMail = "", bool Clear = false)
+    public static void GitConf(string vName = "", string vEMail = "", bool clear = false)
     {
-        if (!IsIDE())
+        if (!IsIde())
         {
             return;
 
@@ -85,7 +87,7 @@ static class modGit
 
         GitCmd("git config --unset user.name", true, true);
         GitCmd("git config --unset user.email", true, true);
-        if (Clear)
+        if (clear)
         {
             GitCmd("git config --unset --global user.name", true);
             GitCmd("git config --unset --global user.email", true);
@@ -106,10 +108,10 @@ static class modGit
 
     public static bool GitPull(bool withReset = true)
     {
-        bool GitPull = false;
-        if (!IsIDE())
+        bool gitPull = false;
+        if (!IsIde())
         {
-            return GitPull;
+            return gitPull;
 
         }
         //  If withReset Then GitReset
@@ -122,59 +124,59 @@ static class modGit
         GitCmd("git pull -r");
         if (MsgBox("Restarting IDE in 5s...", vbOKCancel) == vbCancel)
         {
-            return GitPull;
+            return gitPull;
 
         }
         //  RestartIDE
-        GitPull = true;
-        return GitPull;
+        gitPull = true;
+        return gitPull;
     }
 
     public static string GitStatus()
     {
-        string GitStatus = "";
-        if (!IsIDE())
+        string gitStatus = "";
+        if (!IsIde())
         {
-            return GitStatus;
+            return gitStatus;
 
         }
-        GitStatus = GitCmd("git status");
-        return GitStatus;
+        gitStatus = GitCmd("git status");
+        return gitStatus;
     }
 
     public static string GitVersion()
     {
-        string GitVersion = "";
-        if (!IsIDE())
+        string gitVersion = "";
+        if (!IsIde())
         {
-            return GitVersion;
+            return gitVersion;
 
         }
-        GitVersion = GitCmd("git --version");
-        return GitVersion;
+        gitVersion = GitCmd("git --version");
+        return gitVersion;
     }
 
     public static bool HasGit()
     {
-        bool HasGit = false;
-        if (!IsIDE())
+        bool hasGit = false;
+        if (!IsIde())
         {
-            return HasGit;
+            return hasGit;
 
         }
-        HasGit = GitVersion() != "";
-        return HasGit;
+        hasGit = GitVersion() != "";
+        return hasGit;
     }
 
-    public static bool GitReset(bool Hard = false, bool toMaster = false)
+    public static bool GitReset(bool hard = false, bool toMaster = false)
     {
-        bool GitReset = false;
-        if (!IsIDE())
+        bool gitReset = false;
+        if (!IsIde())
         {
-            return GitReset;
+            return gitReset;
 
         }
-        if (!Hard)
+        if (!hard)
         {
             GitCmd("git checkout -- .");
             if (toMaster)
@@ -192,16 +194,16 @@ static class modGit
             GitCmd("git pull -r --force");
         }
         //  RestartIDE
-        GitReset = true;
-        return GitReset;
+        gitReset = true;
+        return gitReset;
     }
 
-    public static bool GitPush(string Committer_UNUSED, string CommitMessage)
+    public static bool GitPush(string committerUnused, string commitMessage)
     {
-        bool GitPush = false;
-        if (!IsIDE())
+        bool gitPush = false;
+        if (!IsIde())
         {
-            return GitPush;
+            return gitPush;
 
         }
 
@@ -214,7 +216,7 @@ static class modGit
         //    Exit Function
         //  End If
 
-        GitCmd("git commit -m \"" + CommitMessage + "\"");
+        GitCmd("git commit -m \"" + commitMessage + "\"");
         GitCmd("git pull -r");
 
         //  If MsgBox("Continue with Push?", vbOKCancel + vbQuestion + vbDefaultButton1, "git push", , , 10) = vbCancel Then
@@ -234,34 +236,34 @@ static class modGit
         //    GitProgress
         //  End If
 
-        GitPush = true;
-        return GitPush;
+        gitPush = true;
+        return gitPush;
     }
 
-    public static void GitLog(int CharLimit = 3000)
+    public static void GitLog(int charLimit = 3000)
     {
-        if (!IsIDE())
+        if (!IsIde())
         {
             return;
 
         }
-        var Res = GitCmd("git log", true);
-        Res = Left(Res, CharLimit);
-        Console.WriteLine(Res);
+        var res = GitCmd("git log", true);
+        res = Left(res, charLimit);
+        Console.WriteLine(res);
     }
 
     public static bool GitCommits()
     {
         GitCmd("git log --pretty=format:\"%h - %an, %ar : %s\" -10");
 
-        var GitCommits = true;
-        return GitCommits;
+        var gitCommits = true;
+        return gitCommits;
     }
 
     public static bool GitRemoteBranches()
     {
         GitCmd("git branch --remote --list");
-        var GitRemoteBranches = true;
-        return GitRemoteBranches;
+        var gitRemoteBranches = true;
+        return gitRemoteBranches;
     }
 }

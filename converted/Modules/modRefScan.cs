@@ -1,259 +1,261 @@
-﻿using Microsoft.VisualBasic;
-using System;
+﻿using System;
+using Microsoft.VisualBasic;
 using static Microsoft.VisualBasic.Constants;
 using static Microsoft.VisualBasic.FileSystem;
 using static Microsoft.VisualBasic.Strings;
-using static modConfig;
-using static modControlProperties;
-using static modConvertForm;
-using static modProjectFiles;
-using static modRegEx;
-using static modTextFiles;
-using static modUtils;
-using static modVB6ToCS;
-using static VBExtension;
+using static Vb6ToCSharp.Modules.ModConfig;
+using static Vb6ToCSharp.Modules.ModControlProperties;
+using static Vb6ToCSharp.Modules.ModConvertForm;
+using static Vb6ToCSharp.Modules.ModProjectFiles;
+using static Vb6ToCSharp.Modules.ModRegEx;
+using static Vb6ToCSharp.Modules.ModTextFiles;
+using static Vb6ToCSharp.Modules.ModUtils;
+using static Vb6ToCSharp.Modules.ModVb6ToCs;
+using static Vb6ToCSharp.VbExtension;
 
 
-static class modRefScan
+namespace Vb6ToCSharp.Modules;
+
+static class ModRefScan
 {
     // Option Explicit
-    private static string OutRes = "";
-    private static string cFuncRef_Name = "";
-    private static string cFuncRef_Value = "";
-    private static string cEnuRef_Name = "";
-    private static string cEnumRef_Value = "";
-    private static Collection Funcs = null;
-    private static Collection LocalFuncs = null;
+    private static string outRes = "";
+    private static string cFuncRefName = "";
+    private static string cFuncRefValue = "";
+    private static string cEnuRefName = "";
+    private static string cEnumRefValue = "";
+    private static Collection funcs = null;
+    private static Collection localFuncs = null;
 
 
-    private static string RefList(bool KillRef = false)
+    private static string RefList(bool killRef = false)
     {
-        var RefList =
+        var refList =
             // TODO (not supported): On Error Resume Next
             AppDomain.CurrentDomain.BaseDirectory + "\\refs.txt";
-        if (KillRef)
+        if (killRef)
         {
-            System.IO.File.Delete(RefList);
+            System.IO.File.Delete(refList);
         }
-        return RefList;
+        return refList;
     }
 
     public static int FuncsCount(bool vLocal = false)
     {
-        int FuncsCount = 0;
+        int funcsCount = 0;
         // TODO (not supported): On Error Resume Next
         if (vLocal)
         {
-            FuncsCount = LocalFuncs.Count;
+            funcsCount = localFuncs.Count;
         }
         else
         {
-            FuncsCount = Funcs.Count;
+            funcsCount = funcs.Count;
         }
-        return FuncsCount;
+        return funcsCount;
     }
 
     public static int ScanRefs()
     {
-        dynamic L = null;
+        dynamic l = null;
 
         // TODO (not supported): On Error Resume Next
-        OutRes = "";
-        var ScanRefs = 0;
-        foreach (var iterL in Split(VBPModules(vbpFile), vbCrLf))
+        outRes = "";
+        var scanRefs = 0;
+        foreach (var iterL in Split(VbpModules(VbpFile), vbCrLf))
         {
-            L = iterL;
-            if (L == "")
+            l = iterL;
+            if (l == "")
             {
                 goto SkipMod;
             }
-            string LL = Replace(L, ".bas", "");
-            OutRes = OutRes + vbCrLf + LL + ":" + LL + ":Module:";
-            ScanRefs = ScanRefs + ScanRefsFile(FilePath(vbpFile) + L);
-        SkipMod:;
+            string ll = Replace(l, ".bas", "");
+            outRes = outRes + vbCrLf + ll + ":" + ll + ":Module:";
+            scanRefs = scanRefs + ScanRefsFile(FilePath(VbpFile) + l);
+            SkipMod:;
         }
 
-        foreach (var iterL in Split(VBPForms(vbpFile), vbCrLf))
+        foreach (var iterL in Split(VbpForms(VbpFile), vbCrLf))
         {
-            L = iterL;
-            L = Replace(L, ".frm", "");
-            if (L == "")
+            l = iterL;
+            l = Replace(l, ".frm", "");
+            if (l == "")
             {
                 goto SkipForm;
             }
-            string T = vbCrLf + L + ":" + L + ":Form:";
-            OutRes = OutRes + T;
+            string T = vbCrLf + l + ":" + l + ":Form:";
+            outRes = outRes + T;
 
             //'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-            string S = ReadEntireFile(vbpPath + L + ".frm");
-            var J = CodeSectionLoc(S);
-            var Preamble = Left(S, J - 1);
-            string ControlRefs = FormControls(L, Preamble, false);
-            OutRes = OutRes + ControlRefs;
+            string s = ReadEntireFile(VbpPath + l + ".frm");
+            var j = CodeSectionLoc(s);
+            var preamble = Left(s, j - 1);
+            string controlRefs = FormControls(l, preamble, false);
+            outRes = outRes + controlRefs;
             //'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-            ScanRefs = ScanRefs + 1;
-        SkipForm:;
+            scanRefs = scanRefs + 1;
+            SkipForm:;
         }
-        RefList(KillRef: true);
-        WriteFile(RefList(), OutRes);
-        OutRes = "";
-        return ScanRefs;
+        RefList(killRef: true);
+        WriteFile(RefList(), outRes);
+        outRes = "";
+        return scanRefs;
     }
 
-    private static int ScanRefsFile(string FN)
+    private static int ScanRefsFile(string fn)
     {
-        string L = "";
+        string l = "";
 
-        string F = "";
-        string G = "";
+        string f = "";
+        string g = "";
 
-        bool Cont = false;
+        bool cont = false;
 
-        string CurrEnum = "";
+        string currEnum = "";
 
-        var M = FileBaseName(FN);
-        var S = ReadEntireFile(FN);
-        var ScanRefsFile = 0;
-        foreach (var iterLL in Split(S, vbCrLf))
+        var m = FileBaseName(fn);
+        var s = ReadEntireFile(fn);
+        var scanRefsFile = 0;
+        foreach (var iterLl in Split(s, vbCrLf))
         {
-            dynamic LL = iterLL;
-            bool DoCont = Right(LL, 1) == "_";
-            if (!Cont && !DoCont)
+            dynamic ll = iterLl;
+            bool doCont = Right(ll, 1) == "_";
+            if (!cont && !doCont)
             {
-                L = Trim(LL);
-                Cont = false;
+                l = Trim(ll);
+                cont = false;
             }
-            else if (Cont && !DoCont)
+            else if (cont && !doCont)
             {
-                L = L + Trim(LL);
-                Cont = false;
+                l = l + Trim(ll);
+                cont = false;
             }
-            else if (!Cont && DoCont)
+            else if (!cont && doCont)
             {
-                L = Trim(Left(LL, Len(LL) - 2));
-                Cont = true;
+                l = Trim(Left(ll, Len(ll) - 2));
+                cont = true;
                 goto NextLine;
             }
-            else if (Cont && DoCont)
+            else if (cont && doCont)
             {
-                L = L + Trim(Left(LL, Len(LL) - 2));
-                Cont = true;
+                l = l + Trim(Left(ll, Len(ll) - 2));
+                cont = true;
                 goto NextLine;
             }
 
-            if (tLMatch(L, "Function ") || tLMatch(L, "Public Function ") || tLMatch(L, "Sub ") || tLMatch(L, "Public Sub ") || false)
+            if (TLMatch(l, "Function ") || TLMatch(l, "Public Function ") || TLMatch(l, "Sub ") || TLMatch(l, "Public Sub ") || false)
             {
-                F = Trim(L);
-                if (Left(F, 7) == "Public ")
+                f = Trim(l);
+                if (Left(f, 7) == "Public ")
                 {
-                    F = Mid(F, 8);
+                    f = Mid(f, 8);
                 }
-                F = Trim(nextBy(F, ":"));
+                f = Trim(NextBy(f, ":"));
 
-                G = F;
-                if (tLMatch(G, "Function "))
+                g = f;
+                if (TLMatch(g, "Function "))
                 {
-                    G = Mid(G, 10);
+                    g = Mid(g, 10);
                 }
-                if (tLMatch(G, "Sub "))
+                if (TLMatch(g, "Sub "))
                 {
-                    G = Mid(G, 5);
+                    g = Mid(g, 5);
                 }
-                G = nextBy(G, "(");
+                g = NextBy(g, "(");
 
-                F = M + ":" + G + ":Function:" + F;
-                OutRes = OutRes + vbCrLf + F;
-                ScanRefsFile = ScanRefsFile + 1;
+                f = m + ":" + g + ":Function:" + f;
+                outRes = outRes + vbCrLf + f;
+                scanRefsFile = scanRefsFile + 1;
             }
-            else if (tLMatch(L, "Private Function ") || tLMatch(L, "Private Sub ") || false)
+            else if (TLMatch(l, "Private Function ") || TLMatch(l, "Private Sub ") || false)
             {
-                F = Trim(L);
-                F = Trim(nextBy(F, ":"));
+                f = Trim(l);
+                f = Trim(NextBy(f, ":"));
 
-                G = F;
-                if (tLMatch(G, "Private Function "))
+                g = f;
+                if (TLMatch(g, "Private Function "))
                 {
-                    G = Mid(G, 17);
+                    g = Mid(g, 17);
                 }
-                if (tLMatch(G, "Private Sub "))
+                if (TLMatch(g, "Private Sub "))
                 {
-                    G = Mid(G, 12);
+                    g = Mid(g, 12);
                 }
-                G = nextBy(G, "(");
+                g = NextBy(g, "(");
 
-                F = M + ":" + Trim(M) + "." + Trim(G) + ":Private Function:" + F;
-                OutRes = OutRes + vbCrLf + F;
-                ScanRefsFile = ScanRefsFile + 1;
+                f = m + ":" + Trim(m) + "." + Trim(g) + ":Private Function:" + f;
+                outRes = outRes + vbCrLf + f;
+                scanRefsFile = scanRefsFile + 1;
             }
-            else if (tLMatch(L, "Declare ") || tLMatch(L, "Public Decalre "))
+            else if (TLMatch(l, "Declare ") || TLMatch(l, "Public Decalre "))
             {
-                L = LTrim(L);
-                if (LMatch(L, "Public "))
+                l = LTrim(l);
+                if (LMatch(l, "Public "))
                 {
-                    L = Mid(L, 8);
+                    l = Mid(l, 8);
                 }
-                if (LMatch(L, "Declare "))
+                if (LMatch(l, "Declare "))
                 {
-                    L = Mid(L, 9);
+                    l = Mid(l, 9);
                 }
-                G = SplitWord(L);
+                g = SplitWord(l);
 
             }
-            else if (tLMatch(L, "Const ") || tLMatch(L, "Public Const ") || tLMatch(L, "Global Const "))
+            else if (TLMatch(l, "Const ") || TLMatch(l, "Public Const ") || TLMatch(l, "Global Const "))
             {
-                L = LTrim(L);
-                if (LMatch(L, "Public "))
+                l = LTrim(l);
+                if (LMatch(l, "Public "))
                 {
-                    L = Mid(L, 8);
+                    l = Mid(l, 8);
                 }
-                if (LMatch(L, "Global "))
+                if (LMatch(l, "Global "))
                 {
-                    L = Mid(L, 8);
+                    l = Mid(l, 8);
                 }
-                if (LMatch(L, "Const "))
+                if (LMatch(l, "Const "))
                 {
-                    L = Mid(L, 7);
+                    l = Mid(l, 7);
                 }
-                G = SplitWord(L);
+                g = SplitWord(l);
             }
-            else if (tLMatch(L, "Enum ") || tLMatch(L, "Public Enum "))
+            else if (TLMatch(l, "Enum ") || TLMatch(l, "Public Enum "))
             {
-                L = LTrim(L);
-                if (LMatch(L, "Public "))
+                l = LTrim(l);
+                if (LMatch(l, "Public "))
                 {
-                    L = Mid(L, 8);
+                    l = Mid(l, 8);
                 }
-                if (LMatch(L, "Enum "))
+                if (LMatch(l, "Enum "))
                 {
-                    L = Mid(L, 5);
+                    l = Mid(l, 5);
                 }
-                CurrEnum = Trim(L);
+                currEnum = Trim(l);
             }
-            else if (tLMatch(L, "End Enum"))
+            else if (TLMatch(l, "End Enum"))
             {
-                CurrEnum = "";
+                currEnum = "";
             }
-            else if (CurrEnum != "")
+            else if (currEnum != "")
             {
-                G = SplitWord(L);
-                F = M + ":" + G + ":Enum:" + CurrEnum + "." + G;
-                OutRes = OutRes + vbCrLf + F;
-                ScanRefsFile = ScanRefsFile + 1;
+                g = SplitWord(l);
+                f = m + ":" + g + ":Enum:" + currEnum + "." + g;
+                outRes = outRes + vbCrLf + f;
+                scanRefsFile = scanRefsFile + 1;
             }
-        NextLine:;
+            NextLine:;
         }
-        return ScanRefsFile;
+        return scanRefsFile;
     }
 
-    public static string ScanRefsFileToString(string FN)
+    public static string ScanRefsFileToString(string fn)
     {
-        OutRes = "";
-        ScanRefsFile(FN);
-        var ScanRefsFileToString = OutRes;
-        OutRes = "";
-        return ScanRefsFileToString;
+        outRes = "";
+        ScanRefsFile(fn);
+        var scanRefsFileToString = outRes;
+        outRes = "";
+        return scanRefsFileToString;
     }
 
     private static void InitFuncs()
@@ -262,271 +264,271 @@ static class modRefScan
         {
             ScanRefs();
         }
-        if (!(Funcs == null))
+        if (!(funcs == null))
         {
             return;
 
         }
-        var S = ReadEntireFile(RefList());
-        Funcs = new Collection(); ;
+        var s = ReadEntireFile(RefList());
+        funcs = new Collection(); ;
         // TODO (not supported): On Error Resume Next
-        foreach (var iterL in Split(S, vbCrLf))
+        foreach (var iterL in Split(s, vbCrLf))
         {
-            dynamic L = iterL;
-            if (!Funcs.Contains(SplitWord(L, 2, ":"))) Funcs.Add(L, SplitWord(L, 2, ":")); // VB: On Error Resume Next skipped duplicates
+            dynamic l = iterL;
+            if (!funcs.Contains(SplitWord(l, 2, ":"))) funcs.Add(l, SplitWord(l, 2, ":")); // VB: On Error Resume Next skipped duplicates
         }
         InitLocalFuncs();
     }
 
-    public static void InitLocalFuncs(string S = "")
+    public static void InitLocalFuncs(string s = "")
     {
         // TODO (not supported): On Error Resume Next
 
-        LocalFuncs = new Collection(); ;
-        foreach (var iterL in Split(S, vbCrLf))
+        localFuncs = new Collection(); ;
+        foreach (var iterL in Split(s, vbCrLf))
         {
-            dynamic L = iterL;
-            if (!LocalFuncs.Contains(SplitWord(L, 2, ":"))) LocalFuncs.Add(L, SplitWord(L, 2, ":")); // VB: On Error Resume Next skipped duplicates
+            dynamic l = iterL;
+            if (!localFuncs.Contains(SplitWord(l, 2, ":"))) localFuncs.Add(l, SplitWord(l, 2, ":")); // VB: On Error Resume Next skipped duplicates
         }
     }
 
     public static string FuncRef(string fName)
     {
-        string FuncRef = "";
-        if (fName == cFuncRef_Name)
+        string funcRef = "";
+        if (fName == cFuncRefName)
         {
-            FuncRef = cFuncRef_Value;
-            return FuncRef;
+            funcRef = cFuncRefValue;
+            return funcRef;
 
         }
 
         InitFuncs();
         // TODO (not supported): On Error Resume Next
-        FuncRef = Funcs.Contains(fName) ? (string)Funcs[fName] : "";
-        if (FuncRef == "" && LocalFuncs != null && LocalFuncs.Contains(fName))
+        funcRef = funcs.Contains(fName) ? (string)funcs[fName] : "";
+        if (funcRef == "" && localFuncs != null && localFuncs.Contains(fName))
         {
-            FuncRef = (string)LocalFuncs[fName];
+            funcRef = (string)localFuncs[fName];
         }
 
-        cFuncRef_Name = fName;
-        cFuncRef_Value = FuncRef;
-        return FuncRef;
+        cFuncRefName = fName;
+        cFuncRefValue = funcRef;
+        return funcRef;
     }
 
     public static string FuncRefModule(string fName)
     {
-        var FuncRefModule = nextBy(FuncRef(fName), ":");
-        return FuncRefModule;
+        var funcRefModule = NextBy(FuncRef(fName), ":");
+        return funcRefModule;
     }
 
     public static string FuncRefEntity(string fName)
     {
-        var FuncRefEntity = nextBy(FuncRef(fName), ":", 3);
-        return FuncRefEntity;
+        var funcRefEntity = NextBy(FuncRef(fName), ":", 3);
+        return funcRefEntity;
     }
 
     public static string FuncRefDecl(string fName)
     {
-        var FuncRefDecl = nextBy(FuncRef(fName), ":", 4);
-        return FuncRefDecl;
+        var funcRefDecl = NextBy(FuncRef(fName), ":", 4);
+        return funcRefDecl;
     }
 
     public static bool IsFuncRef(string fName)
     {
-        var IsFuncRef = FuncRef(fName) != "" && FuncRefEntity(fName) == "Function";
-        return IsFuncRef;
+        var isFuncRef = FuncRef(fName) != "" && FuncRefEntity(fName) == "Function";
+        return isFuncRef;
     }
 
-    public static bool IsPrivateFuncRef(string Module, string fName)
+    public static bool IsPrivateFuncRef(string module, string fName)
     {
-        var TName = Trim(Module) + "." + Trim(fName);
-        var IsPrivateFuncRef = FuncRef(TName) != "" && FuncRefEntity(TName) == "Private Function";
-        return IsPrivateFuncRef;
+        var name = Trim(module) + "." + Trim(fName);
+        var isPrivateFuncRef = FuncRef(name) != "" && FuncRefEntity(name) == "Private Function";
+        return isPrivateFuncRef;
     }
 
     public static bool IsEnumRef(string fName)
     {
-        var IsEnumRef = FuncRef(fName) != "" && FuncRefEntity(fName) == "Enum";
-        return IsEnumRef;
+        var isEnumRef = FuncRef(fName) != "" && FuncRefEntity(fName) == "Enum";
+        return isEnumRef;
     }
 
     public static bool IsFormRef(string fName)
     {
         var T = SplitWord(fName, 1, ".");
-        var IsFormRef = FuncRef(T) != "" && FuncRefEntity(T) == "Form";
-        return IsFormRef;
+        var isFormRef = FuncRef(T) != "" && FuncRefEntity(T) == "Form";
+        return isFormRef;
     }
 
     public static bool IsModuleRef(string fName)
     {
         var T = SplitWord(fName, 1, ".");
-        var IsModuleRef = FuncRef(T) != "" && FuncRefEntity(T) == "Module";
-        return IsModuleRef;
+        var isModuleRef = FuncRef(T) != "" && FuncRefEntity(T) == "Module";
+        return isModuleRef;
     }
 
-    public static bool IsControlRef(string Src, string FormName = "")
+    public static bool IsControlRef(string src, string formName = "")
     {
-        bool IsControlRef = false;
+        bool isControlRef = false;
 
-        var Tok = RegExNMatch(Src, patToken);
-        var Tok2 = RegExNMatch(Src, patToken, 1);
-        var TTok = Tok + "." + Tok2;
-        var FTok = FormName + "." + Tok;
+        var tok = RegExNMatch(src, patToken);
+        var tok2 = RegExNMatch(src, patToken, 1);
+        var name = tok + "." + tok2;
+        var fTok = formName + "." + tok;
         //If IsInStr(Src, "SetFocus") Then Stop
-        if (FuncRef(TTok) != "" && FuncRefEntity(TTok) == "Control" || FuncRef(FTok) != "" && FuncRefEntity(FTok) == "Control")
+        if (FuncRef(name) != "" && FuncRefEntity(name) == "Control" || FuncRef(fTok) != "" && FuncRefEntity(fTok) == "Control")
         {
-            IsControlRef = true;
+            isControlRef = true;
         }
-        return IsControlRef;
+        return isControlRef;
     }
 
     public static string FuncRefDeclTyp(string fName)
     {
-        var FuncRefDeclTyp = SplitWord(FuncRefDecl(fName), 1);
-        return FuncRefDeclTyp;
+        var funcRefDeclTyp = SplitWord(FuncRefDecl(fName), 1);
+        return funcRefDeclTyp;
     }
 
     public static string FuncRefDeclRet(string fName)
     {
-        var FuncRefDeclRet = FuncRefDecl(fName);
-        FuncRefDeclRet = Trim(Mid(FuncRefDeclRet, InStrRev(FuncRefDeclRet, " ")));
-        if (Right(FuncRefDeclRet, 1) == ")" && Right(FuncRefDeclRet, 2) != "()")
+        var funcRefDeclRet = FuncRefDecl(fName);
+        funcRefDeclRet = Trim(Mid(funcRefDeclRet, InStrRev(funcRefDeclRet, " ")));
+        if (Right(funcRefDeclRet, 1) == ")" && Right(funcRefDeclRet, 2) != "()")
         {
-            FuncRefDeclRet = "";
+            funcRefDeclRet = "";
         }
-        return FuncRefDeclRet;
+        return funcRefDeclRet;
     }
 
     public static string FuncRefDeclArgs(string fName)
     {
-        var FuncRefDeclArgs =
+        var funcRefDeclArgs =
             // TODO (not supported): On Error Resume Next
             FuncRefDecl(fName);
-        FuncRefDeclArgs = Mid(FuncRefDeclArgs, InStr(FuncRefDeclArgs, "(") + 1);
-        FuncRefDeclArgs = Left(FuncRefDeclArgs, InStrRev(FuncRefDeclArgs, ")") - 1);
-        FuncRefDeclArgs = Trim(FuncRefDeclArgs);
-        return FuncRefDeclArgs;
+        funcRefDeclArgs = Mid(funcRefDeclArgs, InStr(funcRefDeclArgs, "(") + 1);
+        funcRefDeclArgs = Left(funcRefDeclArgs, InStrRev(funcRefDeclArgs, ")") - 1);
+        funcRefDeclArgs = Trim(funcRefDeclArgs);
+        return funcRefDeclArgs;
     }
 
-    public static string FuncRefDeclArgN(string fName, int N)
+    public static string FuncRefDeclArgN(string fName, int n)
     {
-        var F = FuncRefDeclArgs(fName);
-        var FuncRefDeclArgN = nextBy(F, ", ", N);
-        return FuncRefDeclArgN;
+        var f = FuncRefDeclArgs(fName);
+        var funcRefDeclArgN = NextBy(f, ", ", n);
+        return funcRefDeclArgN;
     }
 
     public static int FuncRefDeclArgCnt(string fName)
     {
-        var F = FuncRefDeclArgs(fName);
-        var FuncRefDeclArgCnt = 0;
+        var f = FuncRefDeclArgs(fName);
+        var funcRefDeclArgCnt = 0;
         do
         {
-            var K = nextBy(F, ", ", FuncRefDeclArgCnt + 1);
-            if (K == "")
+            var k = NextBy(f, ", ", funcRefDeclArgCnt + 1);
+            if (k == "")
             {
-                return FuncRefDeclArgCnt;
+                return funcRefDeclArgCnt;
 
             }
-            FuncRefDeclArgCnt = FuncRefDeclArgCnt + 1;
+            funcRefDeclArgCnt = funcRefDeclArgCnt + 1;
         } while (!(true));
-        return FuncRefDeclArgCnt;
+        return funcRefDeclArgCnt;
     }
 
-    public static string FuncRefArgType(string fName, int N)
+    public static string FuncRefArgType(string fName, int n)
     {
-        var FuncRefArgType = FuncRefDeclArgN(fName, N);
-        if (FuncRefArgType == "")
+        var funcRefArgType = FuncRefDeclArgN(fName, n);
+        if (funcRefArgType == "")
         {
-            return FuncRefArgType;
+            return funcRefArgType;
 
         }
-        FuncRefArgType = SplitWord(FuncRefArgType, 2, " As ");
-        return FuncRefArgType;
+        funcRefArgType = SplitWord(funcRefArgType, 2, " As ");
+        return funcRefArgType;
     }
 
-    public static bool FuncRefArgByRef(string fName, int N)
+    public static bool FuncRefArgByRef(string fName, int n)
     {
-        var FuncRefArgByRef = !IsInStr(FuncRefDeclArgN(fName, N), "ByVal ");
-        return FuncRefArgByRef;
+        var funcRefArgByRef = !IsInStr(FuncRefDeclArgN(fName, n), "ByVal ");
+        return funcRefArgByRef;
     }
 
-    public static bool FuncRefArgOptional(string fName, int N)
+    public static bool FuncRefArgOptional(string fName, int n)
     {
-        var FuncRefArgOptional = IsInStr(FuncRefDeclArgN(fName, N), "Optional ");
-        return FuncRefArgOptional;
+        var funcRefArgOptional = IsInStr(FuncRefDeclArgN(fName, n), "Optional ");
+        return funcRefArgOptional;
     }
 
-    public static string FuncRefArgDefault(string fName, int N)
+    public static string FuncRefArgDefault(string fName, int n)
     {
-        string FuncRefArgDefault = "";
+        string funcRefArgDefault = "";
         string aTyp = "";
 
-        if (!FuncRefArgOptional(fName, N))
+        if (!FuncRefArgOptional(fName, n))
         {
-            return FuncRefArgDefault;
+            return funcRefArgDefault;
 
         }
-        FuncRefArgDefault = SplitWord(FuncRefDeclArgN(fName, N), 2, " = ", true, true);
-        if (FuncRefArgDefault == "")
+        funcRefArgDefault = SplitWord(FuncRefDeclArgN(fName, n), 2, " = ", true, true);
+        if (funcRefArgDefault == "")
         {
-            FuncRefArgDefault = ConvertDefaultDefault(FuncRefArgType(fName, N));
+            funcRefArgDefault = ConvertDefaultDefault(FuncRefArgType(fName, n));
         }
-        return FuncRefArgDefault;
+        return funcRefArgDefault;
     }
 
-    public static string EnumRefRepl(string EName)
+    public static string EnumRefRepl(string eName)
     {
-        var EnumRefRepl = FuncRefDecl(EName);
-        return EnumRefRepl;
+        var enumRefRepl = FuncRefDecl(eName);
+        return enumRefRepl;
     }
 
     public static string FormRefRepl(string fName)
     {
         var T = SplitWord(fName, 1, ".");
-        var U = FuncRefModule(T) + ".instance";
-        var FormRefRepl = Replace(fName, T, U);
-        return FormRefRepl;
+        var u = FuncRefModule(T) + ".instance";
+        var formRefRepl = Replace(fName, T, u);
+        return formRefRepl;
     }
 
-    public static string FormControlRepl(string Src, string FormName = "")
+    public static string FormControlRepl(string src, string formName = "")
     {
-        string FormControlRepl = "";
+        string formControlRepl = "";
 
-        string F = "";
-        string V = "";
+        string f = "";
+        string v = "";
 
-        var Tok = RegExNMatch(Src, patToken);
-        var Tok2 = RegExNMatch(Src, patToken, 1);
-        var Tok3 = RegExNMatch(Src, patToken, 2);
+        var tok = RegExNMatch(src, patToken);
+        var tok2 = RegExNMatch(src, patToken, 1);
+        var tok3 = RegExNMatch(src, patToken, 2);
 
         //If IsInStr(Tok, "BillOSale") Then Stop
         //If IsInStr(Src, "SetFocus") Then Stop
-        if (!IsFormRef(Tok))
+        if (!IsFormRef(tok))
         {
-            F = Tok;
-            V = ConvertControlProperty(F, Tok2, FuncRefDecl(FormName + "." + Tok));
-            if (Tok2 != "")
+            f = tok;
+            v = ConvertControlProperty(f, tok2, FuncRefDecl(formName + "." + tok));
+            if (tok2 != "")
             {
-                FormControlRepl = Replace(Src, Tok2, V);
+                formControlRepl = Replace(src, tok2, v);
             }
             else
             {
-                FormControlRepl = Src + "." + V;
+                formControlRepl = src + "." + v;
             }
         }
         else
         {
-            F = Tok + "." + Tok2;
-            V = ConvertControlProperty(F, Tok3, FuncRefDecl(Tok + "." + Tok2));
-            if (Tok3 != "")
+            f = tok + "." + tok2;
+            v = ConvertControlProperty(f, tok3, FuncRefDecl(tok + "." + tok2));
+            if (tok3 != "")
             {
-                FormControlRepl = Replace(Src, Tok3, V);
+                formControlRepl = Replace(src, tok3, v);
             }
             else
             {
-                FormControlRepl = Src + "." + V;
+                formControlRepl = src + "." + v;
             }
         }
-        return FormControlRepl;
+        return formControlRepl;
     }
 }

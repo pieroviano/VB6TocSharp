@@ -1,26 +1,27 @@
 using System.Windows;
+using Vb6ToCSharp.Modules;
 using static Microsoft.VisualBasic.Constants;
 using static Microsoft.VisualBasic.FileSystem;
 using static Microsoft.VisualBasic.Interaction;
-using static modConfig;
-using static modConvert;
-using static modProjectFiles;
-using static modRefScan;
-using static modSupportFiles;
-using static modUtils;
-using static VBConstants;
-using static VBExtension;
+using static Vb6ToCSharp.Modules.ModConfig;
+using static Vb6ToCSharp.Modules.ModConvert;
+using static Vb6ToCSharp.Modules.ModProjectFiles;
+using static Vb6ToCSharp.Modules.ModRefScan;
+using static Vb6ToCSharp.Modules.ModSupportFiles;
+using static Vb6ToCSharp.Modules.ModUtils;
+using static Vb6ToCSharp.VbConstants;
+using static Vb6ToCSharp.VbExtension;
 
 
-namespace VB2CS.Forms
+namespace Vb6ToCSharp.Forms
 {
-    public partial class frm : Window
+    public partial class Frm : Window
     {
-        private static frm _instance;
-        public static frm instance { set { _instance = null; } get { return _instance ?? (_instance = new frm()); } }
-        public static void Load() { if (_instance == null) { dynamic A = frm.instance; } }
-        public static void Unload() { if (_instance != null) instance.Close(); _instance = null; }
-        public frm() { InitializeComponent(); }
+        private static Frm _instance;
+        public static Frm Instance { set { _instance = null; } get { return _instance ?? (_instance = new Frm()); } }
+        public static void Load() { if (_instance == null) { dynamic a = Frm.Instance; } }
+        public static void Unload() { if (_instance != null) Instance.Close(); _instance = null; }
+        public Frm() { InitializeComponent(); }
 
 
         // Option Explicit //Right Justify
@@ -49,15 +50,15 @@ namespace VB2CS.Forms
 
             }
             IsWorking();
-            ConvertFileList(FilePath(txtSrc.Text), VBPClasses(txtSrc.Text));
+            ConvertFileList(FilePath(txtSrc.Text), VbpClasses(txtSrc.Text));
             IsWorking(true);
         }
 
         private void cmdConfig_Click(object sender, RoutedEventArgs e) { cmdConfig_Click(); }
         private void cmdConfig_Click()
         {
-            frmConfig.instance.Show(1);
-            modConfig.LoadSettings();
+            FrmConfig.Instance.Show(1);
+            ModConfig.LoadSettings();
         }
 
         private void cmdExit_Click(object sender, RoutedEventArgs e) { cmdExit_Click(); }
@@ -81,9 +82,9 @@ namespace VB2CS.Forms
 
             }
             IsWorking();
-            var Success = ConvertFile(txtFile.Text);
+            var success = ConvertFile(txtFile.Text);
             IsWorking(true);
-            if (Success)
+            if (success)
             {
                 MsgBox("Converted " + txtFile.Text + ".");
             }
@@ -98,7 +99,7 @@ namespace VB2CS.Forms
 
             }
             IsWorking();
-            ConvertFileList(FilePath(txtSrc.Text), VBPForms(txtSrc.Text));
+            ConvertFileList(FilePath(txtSrc.Text), VbpForms(txtSrc.Text));
             IsWorking(true);
         }
 
@@ -111,70 +112,70 @@ namespace VB2CS.Forms
 
             }
             IsWorking();
-            ConvertFileList(FilePath(txtSrc.Text), VBPModules(txtSrc.Text));
+            ConvertFileList(FilePath(txtSrc.Text), VbpModules(txtSrc.Text));
             IsWorking(true);
         }
 
         private bool ConfigValid()
         {
-            bool ConfigValid = false;
-            modConfig.LoadSettings();
+            bool configValid = false;
+            ModConfig.LoadSettings();
 
-            if (Dir(modConfig.vbpFile) == "")
+            if (Dir(ModConfig.VbpFile) == "")
             {
                 MsgBox("Project file not found.  Perhaps do config first?", vbExclamation, "File Not Found");
-                return ConfigValid;
+                return configValid;
 
             }
-            if (Dir(modConfig.OutputFolder(), vbDirectory) == "")
+            if (Dir(ModConfig.OutputFolder(), vbDirectory) == "")
             {
                 MsgBox("Ouptut Folder not found.  Perhaps do config first?", vbExclamation, "Directory Not Found");
-                return ConfigValid;
+                return configValid;
 
             }
-            if (modConfig.AssemblyName() == "")
+            if (ModConfig.AssemblyName() == "")
             {
                 MsgBox("Assembly name not set.  Perhaps do config first?", vbExclamation, "Setting Not Found");
-                return ConfigValid;
+                return configValid;
 
             }
-            ConfigValid = true;
-            return ConfigValid;
+            configValid = true;
+            return configValid;
         }
 
-        private void IsWorking(bool Done = false)
+        private void IsWorking(bool done = false)
         {
-            txtFile.IsEnabled = Done;
-            cmdConfig.IsEnabled = Done;
-            cmdLint.IsEnabled = Done;
-            cmdFile.IsEnabled = Done;
-            cmdAll.IsEnabled = Done;
-            cmdClasses.IsEnabled = Done;
-            cmdExit.IsEnabled = Done;
-            cmdForms.IsEnabled = Done;
-            cmdModules.IsEnabled = Done;
-            txtSrc.IsEnabled = Done;
-            cmdScan.IsEnabled = Done;
-            cmdSupport.IsEnabled = Done;
-            MousePointer = IIf(Done, vbDefault, vbHourglass);
+            txtFile.IsEnabled = done;
+            cmdConfig.IsEnabled = done;
+            cmdLint.IsEnabled = done;
+            cmdFile.IsEnabled = done;
+            cmdAll.IsEnabled = done;
+            cmdClasses.IsEnabled = done;
+            cmdExit.IsEnabled = done;
+            cmdForms.IsEnabled = done;
+            cmdModules.IsEnabled = done;
+            txtSrc.IsEnabled = done;
+            cmdScan.IsEnabled = done;
+            cmdSupport.IsEnabled = done;
+            MousePointer = IIf(done, vbDefault, vbHourglass);
         }
 
-        public string Prg(int Val = -1, int Max = -1, string Cap = "#")
+        public string Prg(int val = -1, int max = -1, string cap = "#")
         {
-            string Prg = "";
+            string prg = "";
             // TODO (not supported): On Error Resume Next
-            if (Max >= 0)
+            if (max >= 0)
             {
-                pMax = Max;
+                pMax = max;
             }
-            lblPrg.Content = IIf(Prg == "#", "", Cap);
+            lblPrg.Content = IIf(prg == "#", "", cap);
             if (pMax != 0)
             {
-                shpPrg.Width = (double)Val / pMax * shpPrgBack.Width;
+                shpPrg.Width = (double)val / pMax * shpPrgBack.Width;
             }
-            shpPrg.Visibility = Val >= 0 ? Visibility.Visible : Visibility.Hidden;
+            shpPrg.Visibility = val >= 0 ? Visibility.Visible : Visibility.Hidden;
             lblPrg.Visibility = shpPrg.Visibility;
-            return Prg;
+            return prg;
         }
 
         private void cmdLint_Click(object sender, RoutedEventArgs e) { cmdLint_Click(); }
@@ -185,7 +186,7 @@ namespace VB2CS.Forms
                 return;
 
             }
-            frmLinter.instance.Show(vbModal);
+            FrmLinter.Instance.Show(vbModal);
         }
 
         private void cmdScan_Click(object sender, RoutedEventArgs e) { cmdScan_Click(); }
@@ -211,7 +212,7 @@ namespace VB2CS.Forms
             }
             if (MsgBox("Generate Project files?", vbYesNo) == vbYes)
             {
-                CreateProjectFile(vbpFile);
+                CreateProjectFile(VbpFile);
             }
             if (MsgBox("Generate Support files?", vbYesNo) == vbYes)
             {
@@ -222,10 +223,10 @@ namespace VB2CS.Forms
         private void Form_Load(object sender, RoutedEventArgs e) { Form_Load(); }
         private void Form_Load()
         {
-            modConfig.Hush = true;
-            modConfig.LoadSettings();
-            modConfig.Hush = false;
-            txtSrc.Text = vbpFile;
+            ModConfig.hush = true;
+            ModConfig.LoadSettings();
+            ModConfig.hush = false;
+            txtSrc.Text = VbpFile;
         }
 
 
