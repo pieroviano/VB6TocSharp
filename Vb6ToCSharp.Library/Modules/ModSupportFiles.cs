@@ -117,7 +117,9 @@ public static class ModSupportFiles
         s = s + n + "    <DebugType>full</DebugType>";
         s = s + n + "    <Optimize>false</Optimize>";
         s = s + n + "    <OutputPath>bin\\Debug\\</OutputPath>";
-        s = s + n + "    <DefineConstants>DEBUG;TRACE</DefineConstants>";
+        // VB6 conditional compilation arguments that are true become C# symbols
+        var vbSymbols = string.Concat(ModConvertStatements.ProjectSymbols(Vb6ToCSharp.FormConversion.VbpInfo.Load(vbpFile).CondComp).ConvertAll(c => ";" + c));
+        s = s + n + "    <DefineConstants>DEBUG;TRACE" + vbSymbols + "</DefineConstants>";
         s = s + n + "    <ErrorReport>prompt</ErrorReport>";
         s = s + n + "    <WarningLevel>4</WarningLevel>";
         s = s + n + "  </PropertyGroup>";
@@ -126,7 +128,7 @@ public static class ModSupportFiles
         s = s + n + "    <DebugType>pdbonly</DebugType>";
         s = s + n + "    <Optimize>true</Optimize>";
         s = s + n + "    <OutputPath>bin\\Release\\</OutputPath>";
-        s = s + n + "    <DefineConstants>TRACE</DefineConstants>";
+        s = s + n + "    <DefineConstants>TRACE" + vbSymbols + "</DefineConstants>";
         s = s + n + "    <ErrorReport>prompt</ErrorReport>";
         s = s + n + "    <WarningLevel>4</WarningLevel>";
         s = s + n + "  </PropertyGroup>";

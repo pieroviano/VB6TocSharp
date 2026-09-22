@@ -147,35 +147,371 @@ public static class ModConvertStatements
 
     public static bool IsDirective(string t) => Regex.IsMatch(Trim(t), "^#(If|ElseIf|Else|End If|Const)\\b", RegexOptions.IgnoreCase);
 
+    /// <summary>
+    /// Conditional-compilation constants of the file being converted: the project's (VBP CondComp) overlaid with the
+    /// module's #Const values. Names are case-insensitive, as in VB6.
+    /// </summary>
+    private static Dictionary<string, object> ppConsts = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>C# symbol of a VB6 constant: C# symbols are case-sensitive, VB6 ones are not.</summary>
+    private static readonly Dictionary<string, string> ppNames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+    private static string SymbolName(string name) => ppNames.TryGetValue(name, out var n) ? n : name;
+
+    /// <summary>
+    /// Starts converting a file: collects its #Const values (on top of the project's) and returns the #define / #undef
+    /// lines that must open the C# file. VB6 #Const is private to its module, as a C# #define is to its file.
+    /// </summary>
+    public static string BeginFile(string vbSource, IDictionary<string, string> projectConstants = null)
+    {
+        ppConsts = ProjectConstantValues(projectConstants);
+        var header = new StringBuilder();
+        var defined = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
+        foreach (var raw in (vbSource ?? "").Replace("\r\n", "\n").Split('\n'))
+        {
+            var m = Regex.Match(StripComment(raw), "^\\s*#Const\\s+(" + Id + ")\\s*=\\s*(.+)$", RegexOptions.IgnoreCase);
+            if (!m.Success) continue;
+            var name = m.Groups[1].Value;
+            var v = Evaluate(m.Groups[2].Value) ?? 0.0;
+            ppConsts[name] = v;
+            if (!ppNames.ContainsKey(name)) ppNames[name] = name;
+            var on = IsTrue(v);
+            if (defined.TryGetValue(name, out var was) && was != on)
+            {
+                header.Append("// TODO: VB6 #Const " + name + " changes value within the module (C# symbols are file-wide)\r\n");
+            }
+            defined[name] = on;
+        }
+        foreach (var d in defined) header.Append((d.Value ? "#define " : "#undef ") + SymbolName(d.Key) + "\r\n");
+        return header.ToString();
+    }
+
+    /// <summary>Evaluated project constants (VBP CondComp, "Name = value").</summary>
+    public static Dictionary<string, object> ProjectConstantValues(IDictionary<string, string> projectConstants)
+    {
+        var r = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+        if (projectConstants == null) return r;
+        foreach (var c in projectConstants)
+        {
+            ppNames[c.Key] = c.Key;
+            ppConsts = r; // later constants may use earlier ones
+            r[c.Key] = Evaluate(c.Value) ?? 0.0;
+        }
+        return r;
+    }
+
+    /// <summary>Project constants that are true, for the C# project's DefineConstants.</summary>
+    public static List<string> ProjectSymbols(IDictionary<string, string> projectConstants)
+    {
+        var r = new List<string>();
+        foreach (var c in ProjectConstantValues(projectConstants))
+        {
+            if (IsTrue(c.Value)) r.Add(c.Key);
+        }
+        return r;
+    }
+
+    private static string StripComment(string l)
+    {
+        var q = false;
+        for (var i = 0; i < l.Length; i++)
+        {
+            if (l[i] == '"') q = !q;
+            else if (l[i] == '\'' && !q) return l.Substring(0, i);
+        }
+        return l;
+    }
+
     /// <summary>#If/#ElseIf/#Else/#End If/#Const to the C# preprocessor.</summary>
     public static string ConvertDirective(string t)
     {
-        t = Trim(t);
+        t = Trim(StripComment(Trim(t)));
         Match m;
         if ((m = Regex.Match(t, "^#If (.*) Then$", RegexOptions.IgnoreCase)).Success) return "#if " + PreprocessorCondition(m.Groups[1].Value);
         if ((m = Regex.Match(t, "^#ElseIf (.*) Then$", RegexOptions.IgnoreCase)).Success) return "#elif " + PreprocessorCondition(m.Groups[1].Value);
         if (Regex.IsMatch(t, "^#Else$", RegexOptions.IgnoreCase)) return "#else";
-        if (Regex.IsMatch(t, "^#End If$", RegexOptions.IgnoreCase)) return "#endif";
-        // C# symbols can only be #define'd at the top of a file (or in <DefineConstants>)
-        return "// TODO: VB6 " + t + " (define the symbol in the project's DefineConstants)";
+        if (Regex.IsMatch(t, "^#End ?If$", RegexOptions.IgnoreCase)) return "#endif";
+        if ((m = Regex.Match(t, "^#Const\\s+(" + Id + ")", RegexOptions.IgnoreCase)).Success)
+        {
+            return "// VB6 " + t + " (#define / #undef " + SymbolName(m.Groups[1].Value) + " at the top of the file)";
+        }
+        return "// TODO: VB6 directive not converted: " + t;
     }
 
+    /// <summary>
+    /// A live C# condition when the VB6 one is boolean over symbols (so it can still be toggled through the C# symbols);
+    /// otherwise the VB6 condition evaluated now against the known constants.
+    /// </summary>
     private static string PreprocessorCondition(string c)
     {
-        var s = " " + Trim(c) + " ";
-        s = Regex.Replace(s, " (" + Id + ") *(=|<>) *(True|-1|1|False|0) ", m =>
+        c = Trim(c);
+        var vb = Evaluate(c);
+        var live = LiveCondition(c, out var liveTruth);
+        if (live != null && vb != null && liveTruth == IsTrue(vb)) return live;
+        if (vb == null) return "false // TODO: VB6 condition not evaluated: " + c;
+        return (IsTrue(vb) ? "true" : "false") + " // VB6: " + c;
+    }
+
+    /// <summary>Translates Not/And/Or over symbols and "Symbol = True|False|0|n"; also returns its value for the current constants.</summary>
+    private static string LiveCondition(string c, out bool truth)
+    {
+        truth = false;
+        var toks = Tokenize(c);
+        if (toks == null) return null;
+        var cs = new StringBuilder();
+        var check = new StringBuilder(); // the same condition over the symbols' truth values, in VB syntax
+        for (var i = 0; i < toks.Count; i++)
         {
-            var truthy = m.Groups[3].Value == "True" || m.Groups[3].Value == "-1" || m.Groups[3].Value == "1";
-            return (truthy == (m.Groups[2].Value == "=")) ? " " + m.Groups[1].Value + " " : " !" + m.Groups[1].Value + " ";
-        });
-        s = Regex.Replace(s, "\\bAnd\\b", "&&");
-        s = Regex.Replace(s, "\\bOr\\b", "||");
-        s = Regex.Replace(s, "\\bNot\\s+", "!");
-        s = Regex.Replace(s, "\\bWin32\\b", "true"); // VB6 is always Win32
-        s = Regex.Replace(s, "\\b(Win16|Win64|Mac|VBA6|VBA7)\\b", "false");
-        s = Trim(s);
-        if (!Regex.IsMatch(s, "^[A-Za-z0-9_!&|() ]+$")) return "false // TODO: VB6 condition not convertible: " + Trim(c);
-        return s;
+            var k = toks[i];
+            if (k == "(" || k == ")")
+            {
+                cs.Append(k);
+                check.Append(k);
+            }
+            else if (Eq(k, "Not"))
+            {
+                cs.Append("!");
+                check.Append(" Not ");
+            }
+            else if (Eq(k, "And") || Eq(k, "Or"))
+            {
+                cs.Append(Eq(k, "And") ? " && " : " || ");
+                check.Append(" " + k + " ");
+            }
+            else if (Regex.IsMatch(k, "^" + Id + "$") && !IsKeyword(k))
+            {
+                var sym = Eq(k, "Win32") ? "true" : Eq(k, "Win16") ? "false" : SymbolName(k);
+                var value = Eq(k, "Win32") ? -1.0 : Eq(k, "Win16") ? 0.0 : ToNumber(ppConsts.TryGetValue(k, out var v) ? v : 0.0);
+                var positive = true;
+                if (i + 2 < toks.Count && (toks[i + 1] == "=" || toks[i + 1] == "<>"))
+                { // Symbol = literal: a symbol test only when the constant is 0 or that literal
+                    var lit = toks[i + 2];
+                    double l;
+                    if (Eq(lit, "True")) l = -1;
+                    else if (Eq(lit, "False")) l = 0;
+                    else if (!double.TryParse(lit, NumberStyles.Float, CultureInfo.InvariantCulture, out l)) return null;
+                    if (l != 0 && value != 0 && value != l) return null;
+                    positive = (l != 0) == (toks[i + 1] == "=");
+                    i += 2;
+                }
+                cs.Append((positive ? "" : "!") + sym);
+                check.Append((positive ? "" : " Not ") + (value != 0 ? "-1" : "0"));
+            }
+            else
+            {
+                return null;
+            }
+        }
+        var r = Evaluate(check.ToString());
+        if (r == null) return null;
+        truth = IsTrue(r);
+        return cs.ToString();
+    }
+
+    private static bool Eq(string a, string b) => string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsKeyword(string k)
+    {
+        switch (k.ToLowerInvariant())
+        {
+            case "not": case "and": case "or": case "xor": case "eqv": case "imp": case "mod": case "true": case "false": return true;
+            default: return false;
+        }
+    }
+
+    private static bool IsTrue(object v) => v is string s ? s != "" : ToNumber(v) != 0;
+
+    private static double ToNumber(object v)
+    {
+        if (v is double d) return d;
+        return double.TryParse(v as string, NumberStyles.Float, CultureInfo.InvariantCulture, out var r) ? r : 0;
+    }
+
+    private static List<string> Tokenize(string s)
+    {
+        var r = new List<string>();
+        var re = new Regex("\\G\\s*(&[Hh][0-9A-Fa-f]+&?|&[Oo][0-7]+&?|[0-9]+(\\.[0-9]+)?|\"([^\"]|\"\")*\"|" + Id + "|<>|<=|>=|[-+*/\\\\^&=<>()])");
+        var pos = 0;
+        while (pos < s.Length)
+        {
+            if (s.Substring(pos).Trim() == "") break;
+            var m = re.Match(s, pos);
+            if (!m.Success) return null;
+            r.Add(m.Groups[1].Value);
+            pos = m.Index + m.Length;
+        }
+        return r;
+    }
+
+    /// <summary>
+    /// Evaluates a VB6 conditional-compilation expression (numbers, strings, constants, all operators) with VB6 semantics:
+    /// True is -1, logical operators are bitwise, an undefined constant is Empty (0). Null when not an expression.
+    /// </summary>
+    public static object Evaluate(string expr)
+    {
+        var toks = Tokenize(expr ?? "");
+        if (toks == null || toks.Count == 0) return null;
+        var p = 0;
+        try
+        {
+            var v = ParseImp(toks, ref p);
+            return p == toks.Count ? v : null;
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+    }
+
+    private static bool Next(List<string> t, ref int p, string k)
+    {
+        if (p < t.Count && Eq(t[p], k))
+        {
+            p++;
+            return true;
+        }
+        return false;
+    }
+
+    private static long L(object v) => (long)Math.Round(ToNumber(v), MidpointRounding.ToEven);
+
+    private static object Bool(bool b) => b ? -1.0 : 0.0;
+
+    private static object ParseImp(List<string> t, ref int p)
+    {
+        var a = ParseEqv(t, ref p);
+        while (Next(t, ref p, "Imp")) { var b = ParseEqv(t, ref p); a = (double)(~L(a) | L(b)); }
+        return a;
+    }
+
+    private static object ParseEqv(List<string> t, ref int p)
+    {
+        var a = ParseXor(t, ref p);
+        while (Next(t, ref p, "Eqv")) { var b = ParseXor(t, ref p); a = (double)~(L(a) ^ L(b)); }
+        return a;
+    }
+
+    private static object ParseXor(List<string> t, ref int p)
+    {
+        var a = ParseOr(t, ref p);
+        while (Next(t, ref p, "Xor")) { var b = ParseOr(t, ref p); a = (double)(L(a) ^ L(b)); }
+        return a;
+    }
+
+    private static object ParseOr(List<string> t, ref int p)
+    {
+        var a = ParseAnd(t, ref p);
+        while (Next(t, ref p, "Or")) { var b = ParseAnd(t, ref p); a = (double)(L(a) | L(b)); }
+        return a;
+    }
+
+    private static object ParseAnd(List<string> t, ref int p)
+    {
+        var a = ParseNot(t, ref p);
+        while (Next(t, ref p, "And")) { var b = ParseNot(t, ref p); a = (double)(L(a) & L(b)); }
+        return a;
+    }
+
+    private static object ParseNot(List<string> t, ref int p)
+    {
+        if (Next(t, ref p, "Not")) return (double)~L(ParseNot(t, ref p));
+        return ParseCompare(t, ref p);
+    }
+
+    private static object ParseCompare(List<string> t, ref int p)
+    {
+        var a = ParseConcat(t, ref p);
+        while (p < t.Count && (t[p] == "=" || t[p] == "<>" || t[p] == "<" || t[p] == ">" || t[p] == "<=" || t[p] == ">="))
+        {
+            var op = t[p++];
+            var b = ParseConcat(t, ref p);
+            var cmp = a is string || b is string ? string.CompareOrdinal(a as string ?? ToNumber(a).ToString(CultureInfo.InvariantCulture), b as string ?? ToNumber(b).ToString(CultureInfo.InvariantCulture)) : ToNumber(a).CompareTo(ToNumber(b));
+            a = Bool(op == "=" ? cmp == 0 : op == "<>" ? cmp != 0 : op == "<" ? cmp < 0 : op == ">" ? cmp > 0 : op == "<=" ? cmp <= 0 : cmp >= 0);
+        }
+        return a;
+    }
+
+    private static object ParseConcat(List<string> t, ref int p)
+    {
+        var a = ParseAdd(t, ref p);
+        while (Next(t, ref p, "&")) { var b = ParseAdd(t, ref p); a = Text(a) + Text(b); }
+        return a;
+    }
+
+    private static string Text(object v) => v as string ?? ToNumber(v).ToString(CultureInfo.InvariantCulture);
+
+    private static object ParseAdd(List<string> t, ref int p)
+    {
+        var a = ParseMod(t, ref p);
+        while (p < t.Count && (t[p] == "+" || t[p] == "-"))
+        {
+            var op = t[p++];
+            var b = ParseMod(t, ref p);
+            a = op == "+" && (a is string || b is string) ? Text(a) + Text(b) : op == "+" ? ToNumber(a) + ToNumber(b) : ToNumber(a) - ToNumber(b);
+        }
+        return a;
+    }
+
+    private static object ParseMod(List<string> t, ref int p)
+    {
+        var a = ParseIntDiv(t, ref p);
+        while (Next(t, ref p, "Mod")) { var b = ParseIntDiv(t, ref p); a = (double)(L(a) % L(b)); }
+        return a;
+    }
+
+    private static object ParseIntDiv(List<string> t, ref int p)
+    {
+        var a = ParseMul(t, ref p);
+        while (Next(t, ref p, "\\")) { var b = ParseMul(t, ref p); a = (double)(L(a) / L(b)); }
+        return a;
+    }
+
+    private static object ParseMul(List<string> t, ref int p)
+    {
+        var a = ParseUnary(t, ref p);
+        while (p < t.Count && (t[p] == "*" || t[p] == "/"))
+        {
+            var op = t[p++];
+            var b = ParseUnary(t, ref p);
+            a = op == "*" ? ToNumber(a) * ToNumber(b) : ToNumber(a) / ToNumber(b);
+        }
+        return a;
+    }
+
+    private static object ParseUnary(List<string> t, ref int p)
+    {
+        if (Next(t, ref p, "-")) return -ToNumber(ParseUnary(t, ref p));
+        if (Next(t, ref p, "+")) return ToNumber(ParseUnary(t, ref p));
+        return ParsePow(t, ref p);
+    }
+
+    private static object ParsePow(List<string> t, ref int p)
+    {
+        var a = ParseAtom(t, ref p);
+        while (Next(t, ref p, "^")) { var b = ParseAtom(t, ref p); a = Math.Pow(ToNumber(a), ToNumber(b)); }
+        return a;
+    }
+
+    private static object ParseAtom(List<string> t, ref int p)
+    {
+        var k = t[p++];
+        if (k == "(")
+        {
+            var v = ParseImp(t, ref p);
+            if (!Next(t, ref p, ")")) throw new FormatException(")");
+            return v;
+        }
+        if (k.StartsWith("\"")) return k.Substring(1, k.Length - 2).Replace("\"\"", "\"");
+        if (k.StartsWith("&"))
+        {
+            var r = ConvertRadixLiteral(k);
+            return r.StartsWith("0x") ? (double)Convert.ToInt64(r.Substring(2), 16) : double.Parse(r, CultureInfo.InvariantCulture);
+        }
+        if (char.IsDigit(k[0])) return double.Parse(k, CultureInfo.InvariantCulture);
+        if (Eq(k, "True") || Eq(k, "Win32")) return -1.0; // VB6 is always Win32
+        if (Eq(k, "False") || Eq(k, "Win16")) return 0.0;
+        if (Regex.IsMatch(k, "^" + Id + "$") && !IsKeyword(k)) return ppConsts.TryGetValue(k, out var c) ? c : 0.0; // undefined: Empty
+        throw new FormatException(k);
     }
 
     // ---------------------------------------------------------------- error handling

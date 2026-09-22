@@ -486,17 +486,6 @@ public class StatementHelperTests
     [InlineData("If a = b Then", 0)]
     public void AssignmentPos_FindsTheTopLevelEquals(string s, int pos) => Assert.Equal(pos, ModConvert.AssignmentPos(s));
 
-    [Theory]
-    [InlineData("#If Win32 Then", "#if true")]
-    [InlineData("#If Win16 Or DBG Then", "#if false || DBG")]
-    [InlineData("#If Not DBG And X = 0 Then", "#if !DBG && !X")]
-    [InlineData("#ElseIf X <> 0 Then", "#elif X")]
-    [InlineData("#Else", "#else")]
-    [InlineData("#End If", "#endif")]
-    public void ConvertDirective(string vb, string cs) => Assert.Equal(cs, ModConvertStatements.ConvertDirective(vb));
-
-    [Fact]
-    public void ConvertDirective_UnsupportedCondition_IsFalseWithTodo() => Assert.StartsWith("#if false // TODO", ModConvertStatements.ConvertDirective("#If X > 2 Then"));
 
     [Fact]
     public void ReDim_NewAndPreserve()

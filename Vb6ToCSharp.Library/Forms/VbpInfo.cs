@@ -16,6 +16,8 @@ public sealed class VbpInfo
     public List<OcxRef> Objects { get; } = new();
     public List<string> Forms { get; } = new();
     public List<string> UserControls { get; } = new();
+    /// <summary>Conditional compilation arguments (Project Properties, VBP "CondComp"): name to VB6 value expression.</summary>
+    public Dictionary<string, string> CondComp { get; } = new(StringComparer.OrdinalIgnoreCase);
 
     public string Folder => System.IO.Path.GetDirectoryName(Path) ?? "";
     public bool StartsWithSubMain => Startup.Equals("Sub Main", StringComparison.OrdinalIgnoreCase) || Startup == "";
@@ -47,6 +49,13 @@ public sealed class VbpInfo
                     if (o != null && res.Objects.All(x => x.Guid != o.Guid)) res.Objects.Add(o);
                     break;
                 case "form": res.Forms.Add(value.Contains(';') ? value.Split(';')[1].Trim() : value); break;
+                case "condcomp":
+                    foreach (var arg in value.Trim('"').Split(':'))
+                    {
+                        var e = arg.IndexOf('=');
+                        if (e > 0) res.CondComp[arg.Substring(0, e).Trim()] = arg.Substring(e + 1).Trim();
+                    }
+                    break;
                 case "usercontrol": res.UserControls.Add(value.Contains(';') ? value.Split(';')[1].Trim() : value); break;
             }
         }

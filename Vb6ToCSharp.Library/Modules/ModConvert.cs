@@ -162,12 +162,13 @@ public static class ModConvert
             var preamble = Left(s, j - 1);
             var code = Mid(s, j);
             j = CodeSectionGlobalEndLoc(code);
+            var ppHeader = ModConvertStatements.BeginFile(s, ProjectInfo().CondComp); // #Const -> #define
             var globals = ConvertGlobals(Left(code, j));
             InitLocalFuncs(FormControls(fName, preamble) + ScanRefsFileToString(frmFile));
             var functions = ConvertCodeSegment(Mid(code, j));
 
             var x = "";
-            x = x + UsingEverything(fName) + vbCrLf;
+            x = x + ppHeader + UsingEverything(fName) + vbCrLf;
             x = x + vbCrLf;
             x = x + "namespace " + ns + vbCrLf;
             x = x + "{" + vbCrLf;
@@ -271,11 +272,12 @@ public static class ModConvert
         var code = Mid(s, CodeSectionLoc(s));
 
         var j = CodeSectionGlobalEndLoc(code);
+        var ppHeader = ModConvertStatements.BeginFile(s, ProjectInfo().CondComp); // #Const -> #define
         var globals = ConvertGlobals(Left(code, j - 1), true);
         var functions = ConvertCodeSegment(Mid(code, j), true);
 
         var x = "";
-        x = x + UsingEverything(fName) + vbCrLf;
+        x = x + ppHeader + UsingEverything(fName) + vbCrLf;
         x = x + vbCrLf;
         x = x + "public static class " + fName + " {" + vbCrLf;
         x = x + NlTrim(globals + vbCrLf + vbCrLf + functions);
@@ -311,11 +313,12 @@ public static class ModConvert
         var code = Mid(s, CodeSectionLoc(s));
 
         var j = CodeSectionGlobalEndLoc(code);
+        var ppHeader = ModConvertStatements.BeginFile(s, ProjectInfo().CondComp); // #Const -> #define
         var globals = ConvertGlobals(Left(code, j - 1));
         var functions = ConvertCodeSegment(Mid(code, j));
 
         var x = "";
-        x = x + UsingEverything(fName) + vbCrLf;
+        x = x + ppHeader + UsingEverything(fName) + vbCrLf;
         x = x + vbCrLf;
         x = x + "public class " + fName + " {" + vbCrLf;
         x = x + globals + vbCrLf + vbCrLf + functions;
@@ -1034,8 +1037,6 @@ public static class ModConvert
 
     public static string ConvertEnum(string s)
     {
-        var has = false;
-
         if (TLeft(s, 7) == "Public ")
         {
             s = TMid(s, 8);
@@ -1060,6 +1061,11 @@ public static class ModConvert
             {
                 continue;
             }
+            if (ModConvertStatements.IsDirective(t))
+            {
+                res = res + vbCrLf + ModConvertStatements.ConvertDirective(t);
+                continue;
+            }
             string member;
             if (Left(t, 1) == "[" && InStr(t, "]") > 0)
             {
@@ -1071,12 +1077,12 @@ public static class ModConvert
                 member = RegExNMatch(t, patToken, 0);
                 t = Trim(Mid(t, Len(member) + 1));
             }
-            res = res + IIf(has, ",", "") + vbCrLf + SSpace(spIndent) + member;
-            has = true;
+            res = res + vbCrLf + SSpace(spIndent) + member;
             if (Left(t, 1) == "=")
             {
                 res = res + " = " + ConvertValue(Trim(Mid(t, 2)));
             }
+            res = res + ","; // a trailing comma is valid C#, and keeps members apart across #if branches
         }
         res = res + vbCrLf + "}";
 
@@ -1112,6 +1118,13 @@ public static class ModConvert
 
         while (TLeft(s, 8) != "End Type" && s != "")
         {
+            if (TLeft(s, 1) == "#")
+            { // conditional compilation around members
+                var eol = InStr(s, vbCr);
+                res = res + vbCrLf + ModConvertStatements.ConvertDirective(eol > 0 ? Left(s, eol - 1) : s);
+                s = eol > 0 ? NlTrim(Mid(s, eol)) : "";
+                continue;
+            }
             eName = RegExNMatch(s, patToken, 0);
             s = NlTrim(TMid(s, Len(eName) + 1));
             var eArr = "";
@@ -2266,6 +2279,7 @@ public static class ModConvert
         // open loops and switches, innermost last: a C# break leaves only the innermost one
         var breakables = new System.Collections.Generic.List<Breakable>();
         var exitLabels = 0;
+        var ppBranches = new System.Collections.Generic.Stack<int[]>(); // per open #If: indent, selects, breakables at the #If
 
         void OpenBreakable(string kind)
         {
@@ -2361,6 +2375,28 @@ public static class ModConvert
             }
             else if (ModConvertStatements.IsDirective(t))
             {
+                // only one branch is compiled: each starts from the block nesting the #If saw
+                if (LMatch(t, "#If "))
+                {
+                    ppBranches.Push(new[] { ind, selects.Count, breakables.Count });
+                }
+                else if ((LMatch(t, "#ElseIf ") || t == "#Else") && ppBranches.Count > 0)
+                {
+                    var at = ppBranches.Peek();
+                    ind = at[0];
+                    while (selects.Count > at[1])
+                    {
+                        selects.Pop();
+                    }
+                    if (breakables.Count > at[2])
+                    {
+                        breakables.RemoveRange(at[2], breakables.Count - at[2]);
+                    }
+                }
+                else if (LMatch(t, "#End") && ppBranches.Count > 0)
+                {
+                    ppBranches.Pop();
+                }
                 o = SSpace(ind) + ModConvertStatements.ConvertDirective(t);
             }
             else if (isProto)
