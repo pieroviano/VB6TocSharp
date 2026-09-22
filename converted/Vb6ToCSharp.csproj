@@ -44,6 +44,9 @@
         <PackageReference Include="Net4x.NuGetUtility" Version="$(NuGetUtilityVersion)" PrivateAssets="All" />
     </ItemGroup>
     <ItemGroup>
+        <InternalsVisibleTo Include="Vb6ToCSharp.Tests" />
+    </ItemGroup>
+    <ItemGroup>
         <Compile Remove="Modules\modLinter.cs" />
     </ItemGroup>
     <PropertyGroup>
