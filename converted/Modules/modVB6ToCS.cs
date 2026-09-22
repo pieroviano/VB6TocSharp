@@ -43,7 +43,11 @@ static class ModVb6ToCs
 
     public static string ConvertDataType(string s)
     {
-        string convertDataType = "";
+        string convertDataType = IniMap(iniSectionDataTypes, s); // project-specific types from config win
+        if (convertDataType != null)
+        {
+            return convertDataType;
+        }
         switch (s)
         {
             case "Object":
@@ -85,21 +89,6 @@ static class ModVb6ToCs
             case "Collection":
                 convertDataType = "Collection";
                 break;
-            case "TSPNode":
-                convertDataType = "TSPNode";
-                break;
-            case "TSPNetwork":
-                convertDataType = "TSPNetwork";
-                break;
-            case "FindResults":
-                convertDataType = "FindResults";
-                break;
-            case "Pushpin":
-                convertDataType = "Pushpin";
-                break;
-            case "Map":
-                convertDataType = "Map";
-                break;
             case "Node":
                 convertDataType = "TreeViewItem";
                 break;
@@ -115,17 +104,10 @@ static class ModVb6ToCs
             case "ADODB.EventStatusEnum":
                 convertDataType = "ADODB.EventStatusEnum";
                 break;
-            case "SpeechLib.SpeechEngineConfidence":
-                convertDataType = defaultDataType;
-
-                break;
             case "Date":
                 convertDataType = "DateTime";
                 break;
             case "VbMsgBoxResult":
-                convertDataType = s;
-                break;
-            case "XCTransaction2.XChargeTransaction":
                 convertDataType = s;
                 break;
             case "PictureBox":
@@ -156,6 +138,16 @@ static class ModVb6ToCs
         features = "";
         cont = false;
         def = "Caption";
+        var mapped = IniMap(iniSectionControls, cType); // project-specific controls from config: Name[;cont;def;features]
+        if (mapped != null)
+        {
+            var p = Split(mapped, ";");
+            name = Trim(p[0]);
+            cont = p.Length > 1 && (Trim(p[1]) == "1" || LCase(Trim(p[1])) == "true");
+            def = p.Length > 2 && Trim(p[2]) != "" ? Trim(p[2]) : def;
+            features = p.Length > 3 ? Trim(p[3]) : features;
+            return;
+        }
         switch (cType)
         {
             case "VB.Form":
@@ -340,25 +332,6 @@ static class ModVb6ToCs
                 break;
             case "MSWinsockLib.Winsock":
                 name = "Winsock";
-
-                break;
-            case "WinCDS.UGridIO":
-                name = "UGridIO";
-                break;
-            case "WinCDS.CandyButton":
-                name = "Button";
-                break;
-            case "WinCDS.ucPBar":
-                name = "ProgressBar";
-                break;
-            case "WinCDS.PrinterSelector":
-                name = "Label";
-                break;
-            case "WinCDS.RichTextBoxNew":
-                name = "TextBlock";
-                break;
-            case "WinCDS.MaskedPicture":
-                name = "Image";
 
                 break;
             case "VJCZIPLib.VjcZip":

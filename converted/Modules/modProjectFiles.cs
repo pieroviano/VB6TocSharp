@@ -76,30 +76,8 @@ static class ModProjectFiles
                 {
                     T = Left(T, Len(T) - 4);
                 }
-                switch (LCase(T))
-                {
-                    case "faxtest":
-                        T = "FaxPO";
-                        break;
-                    case "frmpos":
-                        T = "frmCashRegister";
-                        break;
-                    case "frmposquantity":
-                        T = "frmCashRegisterQuantity";
-                        break;
-                    case "calendarinst":
-                        T = "CalendarInstr";
-                        break;
-                    case "frmedi":
-                        T = "frmAshleyEDIItemAlign";
-                        break;
-                    case "frmpracticefiles":
-                        T = "PracticeFiles";
-                        break;
-                    case "txttextselect":
-                        T = "frmSelectText";
-                        break;
-                }
+                // project-specific renames come from config (the hard-coded WinCDS list never matched: T keeps ".frm")
+                T = IniMap(iniSectionFormRenames, T) ?? T;
                 vbpForms = vbpForms + IIf(vbpForms == "", "", vbCrLf) + T;
             }
         }

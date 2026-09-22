@@ -121,7 +121,7 @@ namespace Vb6ToCSharp.Forms
             bool configValid = false;
             ModConfig.LoadSettings();
 
-            if (Dir(ModConfig.VbpFile) == "")
+            if (!ModUtils.FileExists(ModConfig.VbpFile)) // Dir("") matches any file: an unset project passed
             {
                 MsgBox("Project file not found.  Perhaps do config first?", vbExclamation, "File Not Found");
                 return configValid;

@@ -21,6 +21,20 @@ If you want to convert the entire project, simply click `ALL`, and it will do th
 
 NOTE:  It might not be the fastest, it still requires a manual effort, but it's faster than doing it ALL manually!
 
+### Project-specific rules
+
+Settings live in `VB6toCS.INI` next to the exe. Optional sections tailor the conversion to one project:
+
+| Section | Entry | Effect |
+|---|---|---|
+| `[FormRenames]` | `frmOld.frm=frmNew` | Renames a form listed in the `.vbp` |
+| `[DataTypes]` | `VBType=CSharpType` | Overrides/extends type mapping |
+| `[Controls]` | `Lib.Ctl=WpfType[;container 0/1;default prop;features]` | Overrides/extends control mapping |
+| `[PostCodeLine]` | `n=replace\|find\|repl`, `n=ifcontains\|trigger\|find\|repl`, `n=regex\|pattern\|repl`, `n=blankif\|trigger` | Rewrites every converted line, in order |
+
+`converted/VB6toCS.WinCDS.sample.ini` holds the rules formerly hard-coded for the original author's WinCDS project.
+With no project configured, the output folder defaults to `converted\` under the `.vbp` folder.
+
 ## Updates 2021-12-01
 
 The original version of the converter approached the problem in a block-by-block approach, separating every logical program unit into its own string and converting it on its own.  As a result, the converter made multiple passes and basically ran extremely slow.  After updating the linter to not use this approach, but simply to run through the code from top to bottom, it appeared evident that the converter could do the same thing with just as much accuracy.

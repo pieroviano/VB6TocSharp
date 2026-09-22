@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using static Microsoft.VisualBasic.Constants;
 using static Microsoft.VisualBasic.FileSystem;
 using static Microsoft.VisualBasic.Interaction;
@@ -14,8 +15,8 @@ static class ModConfig
     public const int spIndent = 2;
     public const string defaultDataType = "dynamic";
     public const string packagePrefix = "";
-    private const string defVbpFile = "C:\\WinCDS.NET\\cnv\\prj.vbp";
-    private const string defOutputFolder = "C:\\WinCDS.NET\\cnv\\converted\\";
+    private const string defVbpFile = ""; // no default project (was the original author's C:\WinCDS.NET\cnv\prj.vbp)
+    private const string defOutputSubFolder = "converted\\"; // under the project's folder (or the exe's when no project is set)
     private const string defAssemblyName = "VB2CS";
     private static string mVbpFile = "";
     private static string mOutputFolder = "";
@@ -26,6 +27,13 @@ static class ModConfig
     public const string iniKeyVbpFile = "VBPFile";
     public const string iniKeyOutputFolder = "OutputFolder";
     public const string iniKeyAssemblyName = "AssemblyName";
+
+    // Project-specific conversion rules (all optional, empty by default)
+    public const string iniSectionFormRenames = "FormRenames";   // <vbp Form= entry>=<new name>
+    public const string iniSectionDataTypes = "DataTypes";       // <VB type>=<C# type>
+    public const string iniSectionControls = "Controls";         // <VB control type>=<WPF type>[;<container 0|1>;<default property>;<features>]
+    public const string iniSectionPostCodeLine = "PostCodeLine"; // <n>=<rule>, see ModProjectSpecific
+    private static readonly Dictionary<string, List<KeyValuePair<string, string>>> sections = new Dictionary<string, List<KeyValuePair<string, string>>>();
 
 
     public static string VbpFile
@@ -67,6 +75,7 @@ static class ModConfig
 
         }
         loaded = true;
+        sections.Clear();
         mVbpFile = ModIni.IniRead(iniSectionSettings, iniKeyVbpFile, IniFile());
         mOutputFolder = ModIni.IniRead(iniSectionSettings, iniKeyOutputFolder, IniFile());
         mAssemblyName = ModIni.IniRead(iniSectionSettings, iniKeyAssemblyName, IniFile());
@@ -77,7 +86,7 @@ static class ModConfig
         LoadSettings();
         if (mOutputFolder == "")
         {
-            mOutputFolder = defOutputFolder;
+            mOutputFolder = (VbpFile != "" ? VbpPath : AppDomain.CurrentDomain.BaseDirectory) + defOutputSubFolder;
         }
         var outputFolder = mOutputFolder;
         if (Right(outputFolder, 1) != "\\")
@@ -91,6 +100,40 @@ static class ModConfig
             System.IO.Directory.CreateDirectory(outputFolder); // MkDir creates one level only (Modules\ etc. under a new folder threw)
         }
         return outputFolder;
+    }
+
+    /// <summary>Key/value pairs of an INI section in file order (cached until LoadSettings(true)); comment lines skipped.</summary>
+    public static List<KeyValuePair<string, string>> IniSection(string section)
+    {
+        LoadSettings();
+        if (!sections.TryGetValue(section, out var list))
+        {
+            list = new List<KeyValuePair<string, string>>();
+            foreach (var key in ModIni.IniSectionKeys(IniFile(), section) ?? new string[0])
+            {
+                var k = Trim(key);
+                if (k == "" || Left(k, 1) == ";" || Left(k, 1) == "#")
+                {
+                    continue;
+                }
+                list.Add(new KeyValuePair<string, string>(k, ModIni.IniRead(section, k, IniFile())));
+            }
+            sections[section] = list;
+        }
+        return list;
+    }
+
+    /// <summary>Value for <paramref name="key"/> (case-insensitive) in an INI section, or null.</summary>
+    public static string IniMap(string section, string key)
+    {
+        foreach (var kv in IniSection(section))
+        {
+            if (string.Equals(kv.Key, key, StringComparison.OrdinalIgnoreCase))
+            {
+                return kv.Value;
+            }
+        }
+        return null;
     }
 
     public static string AssemblyName()
