@@ -10,7 +10,7 @@ Partner's conversion rules, adapted to C#. Anything it cannot convert is marked 
 | [Vb6ToCSharp.Library](Vb6ToCSharp.Library/README.md) | Library | `Net4x.Vb6ToCSharp.Library` | Converter engine: parsing, statement/type conversion, `.frm` → XAML / WinForms, `.csproj`, migration report, linter |
 | [Vb6ToCSharp.UpgradeHelpers](Vb6ToCSharp.UpgradeHelpers/README.md) | Library | `Net4x.Vb6ToCSharp.UpgradeHelpers` | Runtime used by converted code (`VB6Array<T>`, UDTs, fixed strings, control arrays, FlexGrid, CommonDialog…) |
 | [Extras](extras/README.md) | Library | `Net4x.Extras` | Optional helpers for converted code (`Recordset`, `FixedWidthRecord`, `CsvRecord`) |
-| [Vb6ToCSharp](Vb6ToCSharp/Vb6ToCSharp.csproj) | WPF app | — | GUI: `Config`, `SCAN`, `SUPPORT`, `Forms` / `Modules` / `Classes`, `Single File`, `ALL`, `Lint` |
+| [Vb6ToCSharp](Vb6ToCSharp/README.md) | WPF app | — | GUI: `Config`, `SCAN`, `SUPPORT`, `Forms` / `Modules` / `Classes`, `Single File`, `ALL`, `Lint` |
 | [Vb6ToCSharp.Console](Vb6ToCSharp.Console/README.md) | Console app | — | Scriptable front end: `all`, `file`, `scan`, `support`, `lint`, `config` |
 | Vb6ToCSharp.Tests | xUnit | — | Converter unit, functional and integration tests |
 | Vb6ToCSharp.UpgradeHelpers.Tests | xUnit | — | Runtime tests (WinForms, WPF) |
