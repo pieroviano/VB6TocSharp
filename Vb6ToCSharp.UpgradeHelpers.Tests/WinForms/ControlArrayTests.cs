@@ -131,6 +131,7 @@ public class ControlArrayTests
             var clicked = new List<int>();
             a.Wire(b => b.Click += (s, _) => clicked.Add(a.GetIndex(s!)));
             var clone = a.Load(4);
+            clone.Visible = true; // Load clones invisible (VB6); PerformClick ignores controls that cannot be selected
             a[0].PerformClick();
             clone.PerformClick();
             a[3].PerformClick();

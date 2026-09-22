@@ -1,5 +1,6 @@
 using System.Drawing;
 using System.Windows.Media;
+using Brush = System.Windows.Media.Brush; // Fill is a WPF brush (OcxHelper converts OLE colors to it)
 using Color = System.Drawing.Color;
 using SystemColors = System.Drawing.SystemColors;
 

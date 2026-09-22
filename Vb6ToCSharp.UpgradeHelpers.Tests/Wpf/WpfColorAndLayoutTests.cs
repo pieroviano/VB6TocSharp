@@ -3,9 +3,10 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using Vb6ToCSharp.UpgradeHelpers.Internal;
 using Vb6ToCSharp.UpgradeHelpers.Wpf;
-using Vb6Color = Vb6ToCSharp.UpgradeHelpers.Wpf.Vb6Color;
-
 namespace Vb6ToCSharp.UpgradeHelpers.Tests.Wpf;
+
+// inside the namespace: a file-level alias loses to Vb6ToCSharp.UpgradeHelpers.Vb6Color of the enclosing namespace
+using Vb6Color = Vb6ToCSharp.UpgradeHelpers.Wpf.Vb6Color;
 
 public class WpfColorTests
 {
