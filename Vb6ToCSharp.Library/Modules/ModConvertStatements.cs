@@ -440,7 +440,8 @@ public static class ModConvertStatements
         if (IsNumericType(type))
         {
             var cs = ConvertValue(inner);
-            return negate ? "~(" + (type == "Integer" || type == "Long" || type == "Byte" ? cs : "(long)" + cs) + ") != 0" : cs + " != 0";
+            // VB6 Not converts to Long rounding to even (a cast would truncate: Not -0.6 is Not -1)
+            return negate ? "~(" + (type == "Integer" || type == "Long" || type == "Byte" ? cs : "Conversions.ToLong(" + cs + ")") + ") != 0" : cs + " != 0";
         }
         if (type == "Variant" || type == "String")
         {
@@ -901,6 +902,7 @@ public static class ModConvertStatements
         {
             var op = t[p++];
             var b = ParseUnary(t, ref p);
+            if (op == "/" && ToNumber(b) == 0) throw new DivideByZeroException(); // VB6 error, not Infinity
             a = op == "*" ? ToNumber(a) * ToNumber(b) : ToNumber(a) / ToNumber(b);
         }
         return a;
@@ -1103,6 +1105,10 @@ public static class ModConvertStatements
                     {
                         info.ResumeLabels.Add(LabelName(Mid(t, 8)));
                     }
+                    else if (LMatch(t, "GoTo ") && !info.ResumeLabels.Contains(LabelName(Mid(t, 6))))
+                    { // leaving the handler with GoTo jumps like Resume label (was taken for a retry)
+                        info.ResumeLabels.Add(LabelName(Mid(t, 6)));
+                    }
                 }
                 if (resumes) plan.Handlers[h] = info; // only Resume / Resume Next need the local-function form
             }
@@ -1187,6 +1193,14 @@ public static class ModConvertStatements
             || Regex.IsMatch(s, "^-?&[HhOo][0-9A-Fa-f]+&?$");
     }
 
+    /// <summary>One Case comparison; C# has no relational operators on strings, so a string operand compares as VB6 does.</summary>
+    private static string CaseCompare(string v, string op, string raw)
+    {
+        var value = ConvertValue(raw);
+        if (op == "==" || op == "!=" || OperandType(raw) != "String") return v + " " + op + " " + value;
+        return (OptionCompareText ? "TextCompare(" : "string.CompareOrdinal(") + v + ", " + value + ") " + op + " 0";
+    }
+
     /// <summary>Case list to C# labels: constants become <c>case x:</c>; Is / To / non-constant items a guarded pattern.</summary>
     public static string ConvertCaseLabels(string list)
     {
@@ -1210,11 +1224,11 @@ public static class ModConvertStatements
             if ((m = Regex.Match(it, "^Is *(<>|<=|>=|=|<|>) *(.+)$")).Success)
             {
                 var op = m.Groups[1].Value == "=" ? "==" : m.Groups[1].Value == "<>" ? "!=" : m.Groups[1].Value;
-                conds.Add(v + " " + op + " " + ConvertValue(m.Groups[2].Value));
+                conds.Add(CaseCompare(v, op, m.Groups[2].Value));
             }
             else if ((m = Regex.Match(it, "^(.+) To (.+)$")).Success)
             {
-                conds.Add("(" + v + " >= " + ConvertValue(m.Groups[1].Value) + " && " + v + " <= " + ConvertValue(m.Groups[2].Value) + ")");
+                conds.Add("(" + CaseCompare(v, ">=", m.Groups[1].Value) + " && " + CaseCompare(v, "<=", m.Groups[2].Value) + ")");
             }
             else
             {
@@ -1508,6 +1522,7 @@ public static class ModConvertStatements
     {
         list = Trim(list);
         var newLine = !(Right(list, 1) == ";" || Right(list, 1) == ",");
+        var nextZone = Right(list, 1) == ","; // a trailing "," still moves to the next print zone (was dropped)
         if (!newLine) list = Trim(Left(list, Len(list) - 1));
         var parts = new List<string>();
         foreach (var zone in SplitTopLevel(list, ','))
@@ -1518,7 +1533,7 @@ public static class ModConvertStatements
             }
             parts.Add("\"\\t\"");
         }
-        parts.RemoveAt(parts.Count - 1);
+        if (!nextZone) parts.RemoveAt(parts.Count - 1);
         var arg = parts.Count == 0 ? "" : parts.Count == 1 ? parts[0] : "string.Concat(" + string.Join(", ", parts) + ")";
         return "Console." + (newLine ? "WriteLine" : "Write") + "(" + arg + ")";
     }

@@ -43,6 +43,7 @@ public static class VbRuntime
     /// <summary>A two-dimensional array of VB6-initialized elements.</summary>
     public static T[,] NewArray<T>(int count1, int count2)
     {
+        if (count1 < 0 || count2 < 0) throw new IndexOutOfRangeException("Subscript out of range"); // as the 1-D form (was an OverflowException)
         var r = new T[count1, count2];
         if (NeedsInit<T>())
         {

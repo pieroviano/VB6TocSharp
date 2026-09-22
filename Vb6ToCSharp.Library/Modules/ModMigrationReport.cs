@@ -25,14 +25,15 @@ public static class ModMigrationReport
         public string Message = "";
     }
 
+    // most specific first (a pragma message may name any other feature); whole words only ("prevents" is no event)
     private static readonly (string Category, string Pattern)[] Categories =
     {
-        ("GoSub", "GoSub"),
-        ("Error handling", "Resume|On Error|Error "),
-        ("Arrays", "lower bound|Array|ReDim"),
-        ("Events", "WithEvents|handler signatures|event"),
-        ("Interfaces", "Implements"),
-        ("Pragmas", "pragma"),
+        ("Pragmas", "\\bpragma\\b"),
+        ("GoSub", "\\bGoSub\\b"),
+        ("Error handling", "\\bResume\\b|\\bOn Error\\b|\\bError "),
+        ("Arrays", "lower bound|\\bArray\\b|\\bReDim\\b"),
+        ("Events", "\\bWithEvents\\b|handler signatures|\\bevents?\\b"),
+        ("Interfaces", "\\bImplements\\b"),
         ("Conditional compilation", "#Const|#If|condition|DefineConstants"),
         ("Variables", "Static local|implicit|Fixed Length|fixed-length|DefInt|DefLng|DefStr"),
         ("Graphics", "Step \\(|\\bBF\\b|omitted argument"),
