@@ -408,7 +408,7 @@ public static class ModConvert
 
             //    If IsInStr(L, "'") Then Stop
             l = DeComment(l);
-            l = DeString(l);
+            l = ModConvertStatements.EscapeKeywords(DeString(l)); // VB6 names that are C# keywords get a "_"
 
             // line number: "10 x = 1" -> "L10:" + "x = 1"
             var lineNo = System.Text.RegularExpressions.Regex.Match(l, "^\\s*([0-9]+):?(\\s+(.*))?$");
@@ -1193,6 +1193,7 @@ public static class ModConvert
         var eName = RegExNMatch(s, patToken, 0);
         s = NlTrim(TMid(s, Len(eName) + 1));
         ModConvertStatements.RegisterUdt(eName);
+        ModConvertStatements.RegisterUdtFields(eName, s);
 
         //If IsInStr(eName, "OSVERSIONINFO") Then Stop
         var res = "[StructLayout(LayoutKind.Sequential)]" + vbCrLf + IIf(isPrivate, "private ", "public ") + "struct " + eName + " : IVbStruct {";
@@ -1370,7 +1371,7 @@ public static class ModConvert
             res = res + "= " + pDef;
         }
 
-        SubParamDecl(pName, pType, "False", true, false); // VB6 passed False to the String asArray parameter
+        SubParamDecl(pName, pType, isArrayParam ? "-1" : "", true, false); // was "False": every parameter looked like an array
         var convertParameter = Trim(res);
         return convertParameter;
     }
@@ -1490,7 +1491,7 @@ public static class ModConvert
         {
             returnVariable = fName;
             res = res + vbCrLf + SSpace(spIndent) + ConvertDataType(retType) + " " + returnVariable + " = " + ConvertDefaultDefault(retType) + ";";
-            SubParamDecl(returnVariable, retType, "False", false, true); // VB6 passed False to the String asArray parameter
+            SubParamDecl(returnVariable, retType, Right(retType, 2) == "()" ? "-1" : "", false, true); // was "False": F(x) inside F became F[x]
         }
 
         var iface = ModConvertClasses.ImplementedInterface(asName);
@@ -1767,7 +1768,7 @@ public static class ModConvert
         { // not a call (e.g. a cast expression)
             return fCall;
         }
-        tb = tb + (ModConvertStatements.ConversionFunction(name) ?? name);
+        tb = tb + (ModConvertStatements.ConversionFunction(name) ?? ModConvertStatements.RuntimeFunction(name) ?? name);
 
         var ts = Mid(fCall, Len(name) + 2);
         ts = Left(ts, Len(ts) - 1);
@@ -1779,7 +1780,7 @@ public static class ModConvert
             tb = tb + ConvertValue(ts);
             tb = tb + "].Value";
         }
-        else if (vP.asArray != "" || ModConvertClasses.HasIndexedDefault(vP.asType))
+        else if (vP.asArray != "" || ModConvertClasses.HasIndexedDefault(vP.asType) || ModConvertStatements.IsUdtArrayField(name))
         { // an array element, or the default member of a Collection / class: obj(i) -> obj[i]
             tb = tb + "[";
             tb = tb + ConvertValue(ts);
@@ -1948,7 +1949,9 @@ public static class ModConvert
         for (var i = 0; i < ops.Count; i++)
         {
             // And/Or/Xor on an integer operand are bitwise in VB6
-            var bitwise = IsIntegerLiteral(raws[i]) || IsIntegerLiteral(raws[i + 1]);
+            // comparisons bind tighter than And / Or: a side holding one is Boolean, whatever its neighbouring operand
+            var bitwise = !ComparisonBetweenLogicals(ops, i)
+                          && (IsIntegerLiteral(raws[i]) || IsIntegerLiteral(raws[i + 1]) || ModConvertStatements.IsIntegralOperand(raws[i]) || ModConvertStatements.IsIntegralOperand(raws[i + 1]));
             switch (ops[i])
             {
                 case "\\":
@@ -1987,6 +1990,22 @@ public static class ModConvert
         return convertValue;
     }
 
+    /// <summary>A comparison among the operators on either side of ops[i], up to the neighbouring logical operators.</summary>
+    private static bool ComparisonBetweenLogicals(System.Collections.Generic.List<string> ops, int i)
+    {
+        bool IsLogical(string op) => op == "And" || op == "Or" || op == "Xor" || op == "Eqv" || op == "Imp";
+        bool IsComparison(string op) => op == "=" || op == "<>" || op == "<" || op == ">" || op == "<=" || op == ">=" || op == "Is" || op == "Like";
+        for (var k = i - 1; k >= 0 && !IsLogical(ops[k]); k--)
+        {
+            if (IsComparison(ops[k])) return true;
+        }
+        for (var k = i + 1; k < ops.Count && !IsLogical(ops[k]); k++)
+        {
+            if (IsComparison(ops[k])) return true;
+        }
+        return false;
+    }
+
     /// <summary>An integer literal operand (decimal, &amp;H or &amp;O, optional type character).</summary>
     private static bool IsIntegerLiteral(string s)
     {
@@ -2011,7 +2030,7 @@ public static class ModConvert
         {
             var l = iterL;
             l = DeComment(l);
-            l = DeString(l);
+            l = ModConvertStatements.EscapeKeywords(DeString(l)); // VB6 names that are C# keywords get a "_"
             var o = "";
             if (building != "")
             {
@@ -2643,7 +2662,7 @@ public static class ModConvert
                 continue;
             }
             l = DeComment(l);
-            l = DeString(l);
+            l = ModConvertStatements.EscapeKeywords(DeString(l)); // VB6 names that are C# keywords get a "_"
             var o = "";
             var pre = "";
             var wrap = false; // a simple statement: guarded under On Error Resume Next

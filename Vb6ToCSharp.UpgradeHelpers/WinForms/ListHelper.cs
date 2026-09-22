@@ -22,7 +22,7 @@ public static class ListHelper
     private static readonly ConditionalWeakTable<Control, ListState> States = new();
 
     /// <summary>VB6 <c>AddItem item, [index]</c>; returns the index of the new item (sorted lists ignore <paramref name="index"/>).</summary>
-    public static int AddItem(Control list, object item, int? index = null)
+    public static int AddItem(this Control list, object item, int? index = null)
     {
         var items = Items(list);
         var state = State(list, items);
@@ -43,7 +43,7 @@ public static class ListHelper
         return at;
     }
 
-    public static void RemoveItem(Control list, int index)
+    public static void RemoveItem(this Control list, int index)
     {
         var items = Items(list);
         var state = State(list, items);
@@ -55,7 +55,7 @@ public static class ListHelper
         else if (state.NewIndex > index) state.NewIndex--;
     }
 
-    public static void Clear(Control list)
+    public static void Clear(this Control list)
     {
         var items = Items(list);
         var state = State(list, items);
@@ -65,9 +65,9 @@ public static class ListHelper
     }
 
     /// <summary>VB6 <c>NewIndex</c>: index of the last added item (-1 if none).</summary>
-    public static int GetNewIndex(Control list) => State(list, Items(list)).NewIndex;
+    public static int GetNewIndex(this Control list) => State(list, Items(list)).NewIndex;
 
-    public static int GetItemData(Control list, int index)
+    public static int GetItemData(this Control list, int index)
     {
         var items = Items(list);
         var state = State(list, items);
@@ -75,7 +75,7 @@ public static class ListHelper
         return state.ItemData[index];
     }
 
-    public static void SetItemData(Control list, int index, int value)
+    public static void SetItemData(this Control list, int index, int value)
     {
         var items = Items(list);
         var state = State(list, items);
@@ -84,7 +84,7 @@ public static class ListHelper
     }
 
     /// <summary>VB6 <c>List(index)</c>: item text, "" when out of range (no error, like VB6).</summary>
-    public static string GetList(Control list, int index)
+    public static string GetList(this Control list, int index)
     {
         var items = Items(list);
         if (index < 0 || index >= items.Count) return "";
@@ -92,23 +92,23 @@ public static class ListHelper
     }
 
     /// <summary>VB6 <c>List(index) = value</c>; ItemData of the item is kept.</summary>
-    public static void SetList(Control list, int index, string value)
+    public static void SetList(this Control list, int index, string value)
     {
         var items = Items(list);
         Check(index, items.Count);
         items[index] = value;
     }
 
-    public static int GetListCount(Control list) => Items(list).Count;
+    public static int GetListCount(this Control list) => Items(list).Count;
 
     /// <summary>VB6 <c>Selected(index)</c>; for a check-box list (Style = 1) it is the checked state.</summary>
-    public static bool GetSelected(ListBox list, int index)
+    public static bool GetSelected(this ListBox list, int index)
     {
         Check(index, list.Items.Count);
         return list is CheckedListBox cl ? cl.GetItemChecked(index) : list.GetSelected(index);
     }
 
-    public static void SetSelected(ListBox list, int index, bool value)
+    public static void SetSelected(this ListBox list, int index, bool value)
     {
         Check(index, list.Items.Count);
         if (list is CheckedListBox cl) cl.SetItemChecked(index, value);

@@ -303,6 +303,14 @@ public partial class ConverterTests
     [Fact]
     public void Evaluate_DivisionByZeroIsNotAValue() => Assert.Null(ModConvertStatements.Evaluate("1 / 0"));
 
+    [Theory]
+    [InlineData("n = a Or b", "n = a | b;")] // two Longs: bitwise
+    [InlineData("ok = a = 0 Or b <> 0", "ok = a == 0 || b != 0;")] // comparisons bind tighter: logical
+    [InlineData("ok = (a Or b) = 0 Or (a Xor b) <> 0", "ok = (a | b) == 0 || (a ^ b) != 0;")]
+    [InlineData("n = a And &HFF", "n = a & 0xFF;")]
+    public void AndOr_BitwiseOnNumbersLogicalOnComparisons(string vb, string expected) =>
+        Assert.Contains(expected, Convert(Sub("  Dim a As Long, b As Long, n As Long, ok As Boolean", "  " + vb)));
+
     [Fact]
     public void ReportRender_NoItems() => Assert.Equal("# Migration report: p\r\n\r\n0 C# files, 0 items to review.\r\n", ModMigrationReport.Render(new List<ModMigrationReport.Issue>(), 0, "p"));
 }

@@ -13,8 +13,7 @@ public static class ModUsingEverything
 {
     // Option Explicit
     private static string everything = "";
-    private static UiTarget everythingUi;
-    private const string vb6Compat = "Microsoft.VisualBasic.Compatibility.VB6";
+    private static string everythingKey;
 
 
     public static string UsingEverything(string packageName = "")
@@ -34,46 +33,29 @@ public static class ModUsingEverything
             r = r + n + "";
         }
 
-        if (everything == "" || everythingUi != Ui)
+        var key = Ui + "|" + VbpFile + "|" + AssemblyName(); // per project and UI (was per UI only: a second project reused the first one's)
+        if (everything == "" || everythingKey != key)
         {
-            everythingUi = Ui;
-            e = e + m + "using VB6 = " + vb6Compat + ";";
-            e = e + n + "using System.Runtime.InteropServices;";
-            e = e + n + "using static VBExtension;";
-            e = e + n + "using static VBConstants;";
+            everythingKey = key;
+            // what the generated project references: .NET Framework, Microsoft.VisualBasic, UpgradeHelpers (ADODB only when used)
+            e = e + m + "using System.Runtime.InteropServices;";
             e = e + n + "using Microsoft.VisualBasic;";
             e = e + n + "using Microsoft.VisualBasic.CompilerServices;"; // Conversions: VB6 implicit conversions
-            e = e + n + "using static Vb6ToCSharp.UpgradeHelpers.VbRuntime;"; // ReDim, NewArray, FixedLen, MidStmt...
-
-            e = e + n + "using System;";
-            e = e + n + "using static System.DateTime;";
+            e = e + n + "using static Vb6ToCSharp.UpgradeHelpers.VbRuntime;"; // ReDim, NewArray, FixedLen, MidStmt, DoEvents, Load / Unload...
             e = e + n + "using static System.Math;";
-
-            e = e + n + "using static Microsoft.VisualBasic.Globals;";
-            e = e + n + "using static Microsoft.VisualBasic.Collection;";
             e = e + n + "using static Microsoft.VisualBasic.Constants;";
             e = e + n + "using static Microsoft.VisualBasic.Conversion;";
             e = e + n + "using static Microsoft.VisualBasic.DateAndTime;";
-            e = e + n + "using static Microsoft.VisualBasic.ErrObject;";
             e = e + n + "using static Microsoft.VisualBasic.FileSystem;";
             e = e + n + "using static Microsoft.VisualBasic.Financial;";
             e = e + n + "using static Microsoft.VisualBasic.Information;";
             e = e + n + "using static Microsoft.VisualBasic.Interaction;";
             e = e + n + "using static Microsoft.VisualBasic.Strings;";
             e = e + n + "using static Microsoft.VisualBasic.VBMath;";
-            e = e + n + "using System.Collections.Generic;";
-
-            e = e + n + "using static Microsoft.VisualBasic.PowerPacks.Printing.Compatibility.VB6.ColorConstants;";
-            e = e + n + "using static Microsoft.VisualBasic.PowerPacks.Printing.Compatibility.VB6.DrawStyleConstants;";
-            e = e + n + "using static Microsoft.VisualBasic.PowerPacks.Printing.Compatibility.VB6.FillStyleConstants;";
-            e = e + n + "using static Microsoft.VisualBasic.PowerPacks.Printing.Compatibility.VB6.GlobalModule;";
-            e = e + n + "using static Microsoft.VisualBasic.PowerPacks.Printing.Compatibility.VB6.Printer;";
-            e = e + n + "using static Microsoft.VisualBasic.PowerPacks.Printing.Compatibility.VB6.PrinterCollection;";
-            e = e + n + "using static Microsoft.VisualBasic.PowerPacks.Printing.Compatibility.VB6.PrinterObjectConstants;";
-            e = e + n + "using static Microsoft.VisualBasic.PowerPacks.Printing.Compatibility.VB6.ScaleModeConstants;";
-            e = e + n + "using static Microsoft.VisualBasic.PowerPacks.Printing.Compatibility.VB6.SystemColorConstants;";
-            e = e + n + "using ADODB;";
-
+            if (VbpFile != "" && ModSupportFiles.UsesAdo(Vb6ToCSharp.FormConversion.VbpInfo.Load(VbpFile)))
+            {
+                e = e + n + "using ADODB;";
+            }
             e = e + n + "using System;";
             e = e + n + "using System.Collections.Generic;";
             e = e + n + "using System.Linq;";
@@ -103,7 +85,10 @@ public static class ModUsingEverything
 
             e = e + n;
 
-            e = e + n + "using " + AssemblyName() + ".Forms;";
+            if (VbpForms(VbpFile) != "")
+            { // the namespace exists only when there are forms
+                e = e + n + "using " + AssemblyName() + ".Forms;";
+            }
             if (VbpUserControls(VbpFile) != "")
             {
                 e = e + n + "using " + AssemblyName() + ".UserControls;";

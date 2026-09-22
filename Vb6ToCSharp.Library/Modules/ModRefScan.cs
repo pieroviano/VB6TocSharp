@@ -499,8 +499,8 @@ public static class ModRefScan
             f = tok;
             v = ConvertControlProperty(f, tok2, FuncRefDecl(formName + "." + tok));
             if (tok2 != "")
-            {
-                formControlRepl = Replace(src, tok2, v);
+            { // only the member after the control (was every occurrence: "List" also inside "ListIndex")
+                formControlRepl = Replace(src, tok + "." + tok2, tok + "." + v, 1, 1);
             }
             else
             {
@@ -513,7 +513,7 @@ public static class ModRefScan
             v = ConvertControlProperty(f, tok3, FuncRefDecl(tok + "." + tok2));
             if (tok3 != "")
             {
-                formControlRepl = Replace(src, tok3, v);
+                formControlRepl = Replace(src, tok2 + "." + tok3, tok2 + "." + v, 1, 1);
             }
             else
             {

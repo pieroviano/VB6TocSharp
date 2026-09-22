@@ -172,7 +172,9 @@ public static class ModUtils
         var writeOut = false;
         if (!IsConverted(f, o))
         {
-            writeOut = WriteFile(OutputFolder(o) + f, s, true);
+            var path = OutputFolder(o) + f;
+            System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(path)); // f may name a subfolder (Properties\AssemblyInfo.cs)
+            writeOut = WriteFile(path, s, true);
         }
         else
         {

@@ -84,9 +84,9 @@ public partial class ConverterTests
         string cs;
         try { cs = Segment("Public Sub T()\n  total = 5\n  For idx = 1 To 3\n  Next\n  Twice 2\nEnd Sub\n"); }
         finally { Begin(); }
-        Assert.Contains("object total = null; // VB6 implicit declaration", cs);
+        Assert.Contains("dynamic total = null; // VB6 implicit declaration", cs); // an implicit Variant is late-bound
         Assert.DoesNotContain("int idx", cs); // DefLng is applied by ConvertGlobals, not seen here
-        Assert.Contains("object idx = null;", cs);
+        Assert.Contains("dynamic idx = null;", cs);
         Assert.DoesNotContain("Twice =", cs);
     }
 

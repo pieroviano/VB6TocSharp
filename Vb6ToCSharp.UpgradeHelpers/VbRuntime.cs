@@ -103,6 +103,41 @@ public static class VbRuntime
     /// <summary>VB6 Mid statement without a length: replaces as many characters as <paramref name="value"/> has.</summary>
     public static void MidStmt(ref string target, int start, string value) => MidStmt(ref target, start, int.MaxValue, value);
 
+    /// <summary>VB6 DoEvents: processes pending UI messages (WPF or WinForms); returns the number of open forms.</summary>
+    public static int DoEvents()
+    {
+        if (System.Windows.Application.Current != null)
+        {
+            var frame = new System.Windows.Threading.DispatcherFrame();
+            System.Windows.Threading.Dispatcher.CurrentDispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background,
+                new Action(() => frame.Continue = false));
+            System.Windows.Threading.Dispatcher.PushFrame(frame);
+            return System.Windows.Application.Current.Windows.Count;
+        }
+        System.Windows.Forms.Application.DoEvents();
+        return System.Windows.Forms.Application.OpenForms.Count;
+    }
+
+    /// <summary>VB6 Load form: creates the form without showing it.</summary>
+    public static void Load(object form)
+    {
+        if (form is System.Windows.Forms.Form f && !f.IsHandleCreated) f.CreateControl();
+    }
+
+    /// <summary>VB6 Unload form: closes it (its default instance is recreated on next use).</summary>
+    public static void Unload(object form)
+    {
+        switch (form)
+        {
+            case System.Windows.Forms.Form f:
+                f.Close();
+                break;
+            case System.Windows.Window w:
+                w.Close();
+                break;
+        }
+    }
+
     /// <summary>VB6 Option Compare Text string comparison (case-insensitive, current culture): -1, 0, 1.</summary>
     public static int TextCompare(object a, object b) =>
         Math.Sign(string.Compare(Convert.ToString(a) ?? "", Convert.ToString(b) ?? "", StringComparison.CurrentCultureIgnoreCase));

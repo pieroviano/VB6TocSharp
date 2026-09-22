@@ -50,11 +50,12 @@ public partial class ConverterTests
             "Private mCol As New Collection\n\n" +
             "Public Property Get Item(ByVal Index As Variant) As Variant\n  Attribute Item.VB_UserMemId = 0\n  Item = mCol(Index)\nEnd Property\n\n" +
             "Public Property Get NewEnum() As IUnknown\n  Attribute NewEnum.VB_UserMemId = -4\n  Set NewEnum = mCol.[_NewEnum]\nEnd Property\n");
-        Assert.Contains("[System.Reflection.DefaultMember(\"Item\")]", cs);
+        Assert.DoesNotContain("DefaultMember", cs); // the indexer is the default member (C# forbids the attribute with an indexer)
+        Assert.Contains("[System.Runtime.CompilerServices.IndexerName(\"DefaultItem\")]", cs); // not "Item": the method has that name
         Assert.Contains("public class CItems : System.Collections.IEnumerable {", cs);
-        Assert.Contains("public object this[object Index] { get { return Item(Index); } }", cs);
+        Assert.Contains("public dynamic this[dynamic Index] { get { return Item(Index); } }", cs); // Variant is late-bound: dynamic
         Assert.Contains("return ((System.Collections.IEnumerable)mCol).GetEnumerator();", cs);
-        Assert.Contains("public object Item(object Index) {", cs); // a property with parameters is a method
+        Assert.Contains("public dynamic Item(dynamic Index) {", cs); // a property with parameters is a method
         Assert.Contains("Item = mCol[Index];", cs); // Collection's default member
         AssertParses(cs);
     }

@@ -399,3 +399,6 @@ FodyWeavers.xsd
 # JetBrains Rider
 .idea/
 *.sln.iml
+
+# integration test output (VB6 sample converted)
+/Converted/

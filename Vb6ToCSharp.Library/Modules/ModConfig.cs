@@ -127,7 +127,7 @@ public static class ModConfig
         {
             return "Project file not found.  Perhaps do config first?";
         }
-        if (Dir(OutputFolder(), vbDirectory) == "")
+        if (!System.IO.Directory.Exists(OutputFolder())) // Dir("folder\", vbDirectory) lists the folder: "" when it is empty
         {
             return "Output folder not found.  Perhaps do config first?";
         }
@@ -169,7 +169,7 @@ public static class ModConfig
             outputFolder = outputFolder + "\\";
         }
         outputFolder = outputFolder + OutputSubFolder(f);
-        if (Dir(outputFolder, vbDirectory) == "")
+        if (!System.IO.Directory.Exists(outputFolder))
         {
             // TODO (not supported): On Error GoTo CantMakeOutputFolder
             System.IO.Directory.CreateDirectory(outputFolder); // MkDir creates one level only (Modules\ etc. under a new folder threw)

@@ -185,7 +185,8 @@ public static class ModConvertClasses
         var bases = new List<string>(model.Implements);
         if (model.HasTerminate) bases.Add("IDisposable");
         if (model.EnumSource != null) bases.Add("System.Collections.IEnumerable");
-        var attr = model.DefaultMember != null ? "[System.Reflection.DefaultMember(\"" + model.DefaultMember + "\")]" + vbCrLf : "";
+        // with parameters the default member is an indexer, which already makes the type's DefaultMember (C# forbids both)
+        var attr = model.DefaultMember != null && model.DefaultParams == "" ? "[System.Reflection.DefaultMember(\"" + model.DefaultMember + "\")]" + vbCrLf : "";
         return attr + "public class " + model.Name + (bases.Count > 0 ? " : " + string.Join(", ", bases) : "") + " {";
     }
 
@@ -225,6 +226,8 @@ public static class ModConvertClasses
                 names.Add(SplitWord(c, -1));
             }
             var type = ConvertDataType(model.DefaultType);
+            // the indexer's metadata name must differ from the default member's method (both would be "Item")
+            r.Append("[System.Runtime.CompilerServices.IndexerName(\"Default" + model.DefaultMember + "\")]" + n);
             r.Append("public " + type + " this[" + string.Join(", ", parms) + "] { get { return " + model.DefaultMember + "(" + string.Join(", ", names) + "); }"
                      + (model.DefaultHasSetter ? " set { set_" + model.DefaultMember + "(" + string.Join(", ", names) + ", value); }" : "") + " }" + n);
         }

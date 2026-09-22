@@ -27,6 +27,8 @@
   <ItemGroup>
     <ProjectReference Include="..\Vb6ToCSharp.Library\Vb6ToCSharp.Library.csproj" />
     <ProjectReference Include="..\Vb6ToCSharp.UpgradeHelpers\Vb6ToCSharp.UpgradeHelpers.csproj" />
+    <!-- integration test: the console converts the VB6 sample (copied next to the tests) -->
+    <ProjectReference Include="..\Vb6ToCSharp.Console\Vb6ToCSharp.Console.csproj" />
   </ItemGroup>
 
   <ItemGroup>

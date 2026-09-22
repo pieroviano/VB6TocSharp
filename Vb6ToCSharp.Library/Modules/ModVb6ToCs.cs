@@ -83,8 +83,8 @@ public static class ModVb6ToCs
             case "Decimal":
                 convertDataType = "decimal";
                 break;
-            case "Variant":
-                convertDataType = "object";
+            case "Variant": // late-bound, as in VB6 (object would reject arithmetic and member calls)
+                convertDataType = "dynamic";
                 break;
             case "Byte":
                 convertDataType = "byte";
@@ -137,7 +137,7 @@ public static class ModVb6ToCs
 
                 break;
             default:
-                if (IsInStr(VbpClasses(classNames: true), s))
+                if (IsInStr(VbpClasses(classNames: true), s) || ModConvertStatements.IsUdt(s))
                 {
                     convertDataType = s;
                 }
@@ -396,7 +396,15 @@ public static class ModVb6ToCs
         var whole = Trim(s) == w;
         if (LMatch(Trim(s), "Me.") && !whole)
         {
-            s = "this." + Mid(Trim(s), 4);
+            var member = RegExNMatch(Mid(Trim(s), 4), patToken);
+            if (Vb6ToCSharp.FormConversion.FormContext.Current != null && member != "")
+            { // a form's own property (Me.Caption -> Text / Title)
+                s = "this." + ModControlProperties.ConvertControlProperty("", member, "VB.Form") + Mid(Trim(s), 4 + Len(member));
+            }
+            else
+            {
+                s = "this." + Mid(Trim(s), 4);
+            }
             w = "";
         }
         switch (w)

@@ -183,7 +183,11 @@ public static class ModConvertStatements
                 foreach (var f in Split(files, vbCrLf))
                 {
                     if (Trim(f) == "" || !System.IO.File.Exists(folder + f)) continue;
-                    foreach (Match m in Regex.Matches(System.IO.File.ReadAllText(folder + f), "(?m)^(?:Public |Private |Global )?Type (" + Id + ")")) udts.Add(m.Groups[1].Value);
+                    foreach (Match m in Regex.Matches(System.IO.File.ReadAllText(folder + f), "(?ms)^(?:Public |Private |Global )?Type (" + Id + ")(.*?)^End Type"))
+                    {
+                        udts.Add(m.Groups[1].Value);
+                        RegisterUdtFields(m.Groups[1].Value, m.Groups[2].Value);
+                    }
                 }
             }
             catch (Exception)
@@ -192,6 +196,46 @@ public static class ModConvertStatements
             }
         }
         return udts.Contains(vbType);
+    }
+
+    /// <summary>Array fields of the known UDTs (type name to field names).</summary>
+    private static readonly Dictionary<string, HashSet<string>> udtArrayFields = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Records the array fields of a UDT, read from its Type ... End Type source.</summary>
+    public static void RegisterUdtFields(string name, string typeBlock)
+    {
+        var fields = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (Match m in Regex.Matches(typeBlock ?? "", "(?m)^\\s*(" + Id + ")\\s*\\(")) fields.Add(m.Groups[1].Value);
+        udtArrayFields[name] = fields;
+    }
+
+    /// <summary>"var.Field" where var is a UDT and Field one of its arrays: indexed with [ ].</summary>
+    public static bool IsUdtArrayField(string dotted)
+    {
+        var parts = (dotted ?? "").Split('.');
+        if (parts.Length != 2) return false;
+        var type = SubParam(parts[0]).asType;
+        return IsUdt(type) && udtArrayFields.TryGetValue(type, out var f) && f.Contains(parts[1]);
+    }
+
+    /// <summary>An operand typed Integer / Long / Byte (VB6 And / Or on it are bitwise).</summary>
+    public static bool IsIntegralOperand(string raw)
+    {
+        var t = ExprType(raw);
+        return t == "Integer" || t == "Long" || t == "Byte";
+    }
+
+    /// <summary>VB6 functions whose .NET counterpart has another name (Math / Microsoft.VisualBasic.Strings).</summary>
+    public static string RuntimeFunction(string name)
+    {
+        switch (name)
+        {
+            case "Sgn": return "Sign";
+            case "Sqr": return "Sqrt";
+            case "Atn": return "Atan";
+            case "String": return "StrDup";
+            default: return null;
+        }
     }
 
     /// <summary>Initial value of a VB6 variable (an initialized UDT for user-defined types).</summary>
@@ -450,6 +494,18 @@ public static class ModConvertStatements
         }
         return ConvertValue(vb);
     }
+
+    /// <summary>C# keywords a VB6 identifier can be (they are not VB6 keywords); VB6 is case-insensitive, C# keywords are lowercase.</summary>
+    private static readonly Regex CsOnlyKeywords = new Regex(
+        "(?<![A-Za-z0-9_.])(abstract|base|bool|break|catch|char|checked|class|continue|decimal|default|delegate|explicit|extern|finally|fixed|float|foreach"
+        + "|implicit|int|interface|internal|lock|namespace|null|operator|out|override|params|protected|readonly|ref|sbyte|sealed|short|sizeof"
+        + "|stackalloc|struct|switch|this|throw|try|uint|ulong|unchecked|unsafe|ushort|using|virtual|void|volatile)(?![A-Za-z0-9_])");
+
+    /// <summary>
+    /// Renames VB6 identifiers that are C# keywords (<c>fixed</c> → <c>fixed_</c>), consistently in declarations and uses.
+    /// Applied to de-stringed, de-commented code (string literals are tokens and stay untouched).
+    /// </summary>
+    public static string EscapeKeywords(string line) => string.IsNullOrEmpty(line) ? line : CsOnlyKeywords.Replace(line, "$1_");
 
     // ---------------------------------------------------------------- lexical helpers
 
@@ -1604,7 +1660,7 @@ public static class ModConvertStatements
         var i = SSpace(ind);
         Match m;
         if (t == "Stop") return i + "System.Diagnostics.Debugger.Break();";
-        if (t == "End") return i + "End();";
+        if (t == "End") return i + "Environment.Exit(0); // VB6 End";
         if (LMatch(t, "Attribute ")) return i + "// " + t;
         if ((m = Regex.Match(t, "^Error (.+)$")).Success) return i + "Err().Raise(" + ConvertValue(m.Groups[1].Value) + ");";
         if ((m = Regex.Match(t, "^(Date|Time)\\$? = (.+)$")).Success)

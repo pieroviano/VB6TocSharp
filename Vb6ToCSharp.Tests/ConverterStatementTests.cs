@@ -307,7 +307,7 @@ public partial class ConverterTests
     [InlineData("RSet s = t", "s = RSet(t, Len(s));")]
     [InlineData("Let n = 2", "n = 2;")]
     [InlineData("Stop", "System.Diagnostics.Debugger.Break();")]
-    [InlineData("End", "End();")]
+    [InlineData("End", "Environment.Exit(0);")]
     [InlineData("Date = d", "DateAndTime.Today = d;")]
     [InlineData("n = 2 ^ 3", "n = Conversions.ToInteger(Pow(2, 3));")] // a Double assigned to a Long rounds as in VB6
     [InlineData("n = n + 2 ^ 3 * 4", "n = Conversions.ToInteger(n + Pow(2, 3) * 4);")]
