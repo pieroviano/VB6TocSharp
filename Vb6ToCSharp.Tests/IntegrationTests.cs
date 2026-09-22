@@ -141,4 +141,50 @@ public class IntegrationTests
         Assert.True(ui.Join(60000), "the form did not respond");
         if (uiError != null) throw new Xunit.Sdk.XunitException("the converted form failed: " + uiError);
     }
+
+    [Fact]
+    public void Group_ConvertsWithTheConsole_AndTheSolutionBuilds()
+    {
+        var root = RepoRoot();
+        var vbg = Path.Combine(root, "VB6Group", "Group.vbg");
+        var output = Path.Combine(root, "ConvertedGroup");
+        Assert.True(File.Exists(vbg), vbg);
+        Empty(output);
+
+        var console = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Vb6ToCSharp.Console.exe");
+        var ini = Path.Combine(TestUtil.TempDir(), "VB6toCS.INI");
+        var convert = Run(console, $"all --ini \"{ini}\" --vbp \"{vbg}\" --out \"{output}\" --ui winforms --quiet", output, 300000);
+        Assert.True(convert.Code == 0, "conversion failed (" + convert.Code + "):\n" + convert.Output);
+        var solution = Path.Combine(output, "Group.sln");
+        Assert.True(File.Exists(solution), "no solution generated:\n" + convert.Output);
+
+        // the solution builds: the App references the ActiveX DLL's project
+        var feed = Path.Combine(root, "Packages");
+        var props = $"-restore -nologo -v:m -p:Configuration=Debug \"-p:RestoreSources={feed}\" \"-p:RestorePackagesPath={Path.Combine(output, ".packages")}\"";
+        var msbuild = FindMsBuild();
+        var build = msbuild != null
+            ? Run(msbuild, $"\"{solution}\" {props}", output, 600000)
+            : Run("dotnet", $"msbuild \"{solution}\" {props}", output, 600000);
+        Assert.True(build.Code == 0, "the converted solution does not build (" + build.Code + "):\n"
+                                     + string.Join("\n", build.Output.Split('\n').Where(l => l.Contains(" error ")).Distinct().Take(50)));
+
+        // run it: loaded from bytes (the files stay deletable); Lib.dll is resolved from the App's output folder
+        var bin = Path.Combine(output, "App", "bin", "Debug", "net48");
+        System.Reflection.Assembly? lib = null;
+        ResolveEventHandler resolve = (_, e) => new System.Reflection.AssemblyName(e.Name).Name == "Lib"
+            ? lib ??= System.Reflection.Assembly.Load(File.ReadAllBytes(Path.Combine(bin, "Lib.dll")))
+            : null;
+        AppDomain.CurrentDomain.AssemblyResolve += resolve;
+        try
+        {
+            var app = System.Reflection.Assembly.Load(File.ReadAllBytes(Path.Combine(bin, "App.exe")));
+            object? Call(string procedure) => app.GetType("modApp", true)!.GetMethod(procedure)!.Invoke(null, null);
+            Assert.Equal(21.566, (double)Call("RunGroup")!, 3); // the DLL's class and interface, used from the EXE
+            Assert.Equal("App+Lib", Call("Owners")); // same-named modules: each project calls its own
+        }
+        finally
+        {
+            AppDomain.CurrentDomain.AssemblyResolve -= resolve;
+        }
+    }
 }

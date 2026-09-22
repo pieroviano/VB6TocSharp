@@ -88,6 +88,25 @@ public static class ModConfig
         LoadSettings(true);
     }
 
+    /// <summary>Whether this run overrides the INI's assembly name (a group ignores it: each project keeps its .vbp name).</summary>
+    public static bool AssemblyNameOverridden => oAssemblyName != null;
+
+    /// <summary>
+    /// Points the settings at one project of a group until disposed (project file, output folder and assembly name);
+    /// the previous overrides are restored afterwards.
+    /// </summary>
+    public static IDisposable ProjectScope(string vbpFile, string outputFolder, string assemblyName)
+    {
+        var saved = (oVbpFile, oOutputFolder, oAssemblyName, oUiTarget);
+        OverrideSettings(vbpFile, outputFolder, assemblyName, oUiTarget);
+        return new Restore(() => OverrideSettings(saved.oVbpFile, saved.oOutputFolder, saved.oAssemblyName, saved.oUiTarget));
+    }
+
+    private sealed class Restore(Action restore) : IDisposable
+    {
+        public void Dispose() => restore();
+    }
+
     /// <summary>Writes the settings to the INI file (null leaves a key unchanged) and reloads them.</summary>
     public static void SaveSettings(string vbpFile, string outputFolder, string assemblyName, UiTarget? uiTarget = null)
     {
@@ -119,13 +138,20 @@ public static class ModConfig
         }
     }
 
-    /// <summary>Checks the settings a conversion needs; returns the problem, or "" when valid.</summary>
-    public static string ValidateSettings()
+    /// <summary>
+    /// Checks the settings a conversion needs; returns the problem, or "" when valid. A project group (.vbg) is valid only
+    /// when <paramref name="allowGroup"/> is set: a group converts as a whole, never file by file.
+    /// </summary>
+    public static string ValidateSettings(bool allowGroup = false)
     {
         LoadSettings();
         if (!FileExists(VbpFile)) // Dir("") matches any file: an unset project passed
         {
             return "Project file not found.  Perhaps do config first?";
+        }
+        if (!allowGroup && ModProjectGroup.IsGroupFile(VbpFile))
+        {
+            return "A project group (.vbg) can only be converted as a whole.";
         }
         if (!System.IO.Directory.Exists(OutputFolder())) // Dir("folder\", vbDirectory) lists the folder: "" when it is empty
         {

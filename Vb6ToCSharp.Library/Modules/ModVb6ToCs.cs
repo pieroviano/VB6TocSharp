@@ -55,6 +55,7 @@ public static class ModVb6ToCs
         {
             return convertDataType;
         }
+        s = ModProjectGroup.StripProjectQualifier(s); // Lib.CFoo: a class of this project or of a referenced one
         if (s != null && s.Length > 2 && s.EndsWith("()"))
         { // array return / parameter type: Long() -> int[]
             return ConvertDataType(s.Substring(0, s.Length - 2)) + "[]";
@@ -137,7 +138,7 @@ public static class ModVb6ToCs
 
                 break;
             default:
-                if (IsInStr(VbpClasses(classNames: true), s) || ModConvertStatements.IsUdt(s))
+                if (IsInStr(VbpClasses(classNames: true), s) || ModConvertClasses.IsProjectClass(s) || ModConvertStatements.IsUdt(s))
                 {
                     convertDataType = s;
                 }
@@ -478,7 +479,7 @@ public static class ModVb6ToCs
                 break;
             case "New":
                 complete = true;
-                s = "new " + r + "()";
+                s = "new " + ModProjectGroup.StripProjectQualifier(r) + "()";
                 break;
             case "vbAlignLeft":
                 s = "AlignConstants.vbAlignLeft";
@@ -544,7 +545,7 @@ public static class ModVb6ToCs
                 s = "VBCloseFile(" + Replace(r, "#", "") + ")";
                 break;
             case "New":
-                s = "new " + r + "()";
+                s = "new " + ModProjectGroup.StripProjectQualifier(r) + "()";
                 break;
             case "RaiseEvent":
                 w = RegExNMatch(r, patToken);

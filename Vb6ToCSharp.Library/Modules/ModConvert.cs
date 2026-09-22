@@ -38,7 +38,20 @@ public static class ModConvert
     private static string currSub = "";
 
 
+    /// <summary>Converts a project (.vbp), or every project of a group (.vbg) into a solution.</summary>
     public static void ConvertProject(string vbpFile)
+    {
+        if (ModProjectGroup.IsGroupFile(vbpFile))
+        {
+            Notify("Complete: " + ModProjectGroup.ConvertGroup(vbpFile));
+            return;
+        }
+        ConvertSingleProject(vbpFile);
+        Notify("Complete.");
+    }
+
+    /// <summary>Scan, project and support files, every file of the .vbp, migration report.</summary>
+    internal static void ConvertSingleProject(string vbpFile)
     {
         Prg(0, 1, "Preparing...");
         ModConvertStatements.ResetProjectCaches(); // sources may have changed since the last run
@@ -47,7 +60,6 @@ public static class ModConvert
         CreateProjectSupportFiles();
         ConvertFileList(FilePath(vbpFile), VbpModules(vbpFile) + vbCrLf + VbpClasses(vbpFile) + vbCrLf + VbpForms(vbpFile) + vbCrLf + VbpUserControls(vbpFile));
         ModMigrationReport.Write(); // what is left to review, per category and file
-        Notify("Complete.");
     }
 
     public static bool ConvertFileList(string path, string list, string sep = vbCrLf)
@@ -209,7 +221,7 @@ public static class ModConvert
         var isUserControl = file.IsUserControl || file.Root?.Type == "VB.PropertyPage";
         var baseType = isUserControl ? (winForms ? "System.Windows.Forms.UserControl" : "System.Windows.Controls.UserControl") : winForms ? "System.Windows.Forms.Form" : "Window";
         var n = vbCrLf;
-        var x = "public partial class " + fName + " : " + baseType + " {" + n;
+        var x = ModProjectGroup.TypeModifier(ModProjectGroup.IsExposed(file)) + " partial class " + fName + " : " + baseType + " {" + n;
         if (!isUserControl)
         {
             var alive = winForms ? "_instance == null || _instance.IsDisposed" : "_instance == null";
@@ -281,7 +293,7 @@ public static class ModConvert
         var x = "";
         x = x + ppHeader + UsingEverything(fName) + vbCrLf;
         x = x + vbCrLf;
-        x = x + "public static class " + fName + " {" + vbCrLf;
+        x = x + ModProjectGroup.TypeModifier(false) + " static class " + fName + " {" + vbCrLf; // a standard module is never seen by other projects
         x = x + NlTrim(globals + vbCrLf + vbCrLf + functions);
         x = x + vbCrLf + "}";
 

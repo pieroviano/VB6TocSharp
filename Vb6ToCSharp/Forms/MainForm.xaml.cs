@@ -32,7 +32,7 @@ public partial class MainForm : Window
 
     private void cmdAll_Click(object sender, RoutedEventArgs e)
     {
-        if (!ConfigValid())
+        if (!ConfigValid(allowGroup: true)) // a project group (.vbg) converts as a whole
         {
             return;
 
@@ -112,9 +112,9 @@ public partial class MainForm : Window
         IsWorking(true);
     }
 
-    private bool ConfigValid()
+    private bool ConfigValid(bool allowGroup = false)
     {
-        var error = ModConfig.ValidateSettings();
+        var error = ModConfig.ValidateSettings(allowGroup);
         if (error != "")
         {
             MsgBox(error, vbExclamation, "Configuration");

@@ -72,6 +72,8 @@ public sealed class WpfEmitter
             "xmlns:usercontrols=" + Xml("clr-namespace:" + assembly + ".UserControls"),
             "xmlns:vb6=\"clr-namespace:Vb6ToCSharp.UpgradeHelpers.Wpf;assembly=Vb6ToCSharp.UpgradeHelpers\"",
         };
+        // the generated partial class must match the code-behind's accessibility (a form of an ActiveX project is internal)
+        if (Modules.ModProjectGroup.TypeModifier(Modules.ModProjectGroup.IsExposed(file)) == "internal") a.Insert(1, "x:ClassModifier=\"internal\"");
         if (hosted)
         {
             a.Add("xmlns:wfi=\"clr-namespace:System.Windows.Forms.Integration;assembly=WindowsFormsIntegration\"");

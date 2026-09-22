@@ -97,6 +97,7 @@ public static class ModRefScan
         RefList(killRef: true);
         WriteFile(RefList(), outRes);
         outRes = "";
+        funcs = null; // re-read from the new list (a second project in the same run kept the first one's)
         return scanRefs;
     }
 

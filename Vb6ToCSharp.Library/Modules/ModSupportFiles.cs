@@ -26,7 +26,7 @@ public static class ModSupportFiles
     public static bool CreateProjectSupportFiles()
     {
         var vbp = VbpInfo.Load(VbpFile);
-        var ok = WriteOut("Program.cs", ProgramFile(vbp), "");
+        var ok = vbp.IsLibrary || WriteOut("Program.cs", ProgramFile(vbp), ""); // a class library has no entry point
         ok = WriteOut("Properties\\AssemblyInfo.cs", AssemblyInfoFile(), "Properties") && ok;
         return ok;
     }
@@ -42,7 +42,7 @@ public static class ModSupportFiles
     {
         var n = vbCrLf;
         var wpf = Ui == UiTarget.Wpf;
-        var library = Regex.IsMatch(vbp.Type ?? "", "^(OleDll|Control)$", RegexOptions.IgnoreCase); // ActiveX DLL / OCX
+        var library = vbp.IsLibrary; // ActiveX DLL / OCX
         var symbols = string.Concat(ModConvertStatements.ProjectSymbols(vbp.CondComp).ConvertAll(c => ";" + c)); // VB6 CondComp that are true
         var runtime = typeof(ModSupportFiles).Assembly.GetName().Version;
         var s = new StringBuilder();
@@ -65,6 +65,13 @@ public static class ModSupportFiles
         s.Append("    <!-- the runtime of converted code (VB6 arrays, UDTs, fixed-length strings, controls), like VB Migration Partner's library -->" + n);
         s.Append("    <PackageReference Include=\"Net4x.Vb6ToCSharp.UpgradeHelpers\" Version=\"" + runtime.Major + "." + runtime.Minor + ".*\" />" + n);
         s.Append("  </ItemGroup>" + n);
+        var projects = ModProjectGroup.CSharpProjectReferences(vbp); // VB6 references to other projects of the group
+        if (projects.Count > 0)
+        {
+            s.Append("  <ItemGroup>" + n);
+            foreach (var p in projects) s.Append("    <ProjectReference Include=\"" + p + "\" />" + n);
+            s.Append("  </ItemGroup>" + n);
+        }
         if (UsesAdo(vbp))
         {
             s.Append("  <ItemGroup>" + n);

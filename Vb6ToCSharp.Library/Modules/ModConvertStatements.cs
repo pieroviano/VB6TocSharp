@@ -164,6 +164,7 @@ public static class ModConvertStatements
         globalsProject = null;
         ModConvertClasses.ResetCaches();
         ModConvertPragmas.ResetCaches();
+        ModProjectGroup.ResetCaches();
     }
 
     /// <summary>Registers a user-defined type declared in the file being converted.</summary>

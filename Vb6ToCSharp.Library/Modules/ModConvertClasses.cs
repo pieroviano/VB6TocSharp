@@ -42,12 +42,15 @@ public static class ModConvertClasses
         /// <summary>Public / Friend Subs and Functions: "obj.Name" without parentheses calls them.</summary>
         public readonly HashSet<string> Methods = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         public string Source = "";
+        /// <summary>Attribute VB_Exposed = True: other projects see the class (public in an ActiveX project).</summary>
+        public bool Exposed;
 
         public static ClassModel Scan(string name, string source)
         {
             var m = new ClassModel { Name = name, Source = source ?? "" };
             var src = m.Source;
-            foreach (Match x in Regex.Matches(src, "(?m)^\\s*Implements\\s+(" + Id + "(?:\\." + Id + ")?)")) m.Implements.Add(x.Groups[1].Value);
+            m.Implements.AddRange(ImplementsOf(src));
+            m.Exposed = ModProjectGroup.IsExposed(src);
             m.HasInitialize = Regex.IsMatch(src, "(?m)^\\s*(?:Private |Public )?Sub\\s+Class_Initialize\\s*\\(");
             m.HasTerminate = Regex.IsMatch(src, "(?m)^\\s*(?:Private |Public )?Sub\\s+Class_Terminate\\s*\\(");
             m.Predeclared = Regex.IsMatch(src, "(?m)^\\s*Attribute\\s+VB_PredeclaredId\\s*=\\s*True");
@@ -105,12 +108,50 @@ public static class ModConvertClasses
             foreach (var f in Split(VbpClasses(VbpFile) + vbCrLf + VbpForms(VbpFile) + vbCrLf + VbpUserControls(VbpFile), vbCrLf))
             {
                 if (Trim(f) == "" || !System.IO.File.Exists(folder + f)) continue;
-                foreach (Match x in Regex.Matches(System.IO.File.ReadAllText(folder + f), "(?m)^\\s*Implements\\s+(" + Id + ")")) implemented.Add(x.Groups[1].Value);
+                foreach (var i in ImplementsOf(System.IO.File.ReadAllText(folder + f))) implemented.Add(i);
+            }
+            var project = ModConvert.ProjectInfo();
+            // the exposed classes of the projects this one references are known as well (New, default members, For Each...)
+            foreach (var r in ModProjectGroup.ReferencedProjects(project))
+            {
+                foreach (var src in SourcesOf(r, VbpClasses(r.Path)))
+                {
+                    var model = ClassModel.Scan(ModuleName(src), src);
+                    if (model.Exposed && !classes.ContainsKey(model.Name)) classes[model.Name] = model;
+                }
+            }
+            // a class another group project implements is an interface, even when no class of this project implements it
+            foreach (var r in ModProjectGroup.ReferencingProjects(project))
+            {
+                foreach (var src in SourcesOf(r, VbpClasses(r.Path) + vbCrLf + VbpForms(r.Path) + vbCrLf + VbpUserControls(r.Path)))
+                {
+                    foreach (var i in ImplementsOf(src)) implemented.Add(i);
+                }
             }
         }
         catch (Exception)
         {
             // no project: only the converted file is known
+        }
+    }
+
+    /// <summary>Interfaces a VB6 source implements; <c>Implements Lib.IShape</c> gives <c>IShape</c> when Lib is one of our VB6 projects.</summary>
+    private static IEnumerable<string> ImplementsOf(string source)
+    {
+        foreach (Match x in Regex.Matches(source ?? "", "(?m)^\\s*Implements\\s+(" + Id + "(?:\\." + Id + ")?)"))
+        {
+            yield return ModProjectGroup.StripProjectQualifier(x.Groups[1].Value);
+        }
+    }
+
+    /// <summary>Sources of files (a .vbp list) of another project.</summary>
+    private static IEnumerable<string> SourcesOf(FormConversion.VbpInfo project, string files)
+    {
+        foreach (var f in Split(files, vbCrLf))
+        {
+            if (Trim(f) == "") continue;
+            var path = System.IO.Path.Combine(project.Folder, Trim(f));
+            if (System.IO.File.Exists(path)) yield return System.IO.File.ReadAllText(path);
         }
     }
 
@@ -125,37 +166,29 @@ public static class ModConvertClasses
         foreach (var i in model.Implements) implemented.Add(i);
     }
 
-    public static bool IsProjectClass(string name)
+    /// <summary>The class model of <paramref name="name"/> (a <c>Lib.CFoo</c> project qualifier is ignored), or null.</summary>
+    private static ClassModel Find(string name)
     {
         EnsureRegistry();
-        return name != null && classes.ContainsKey(name);
+        if (name == null) return null;
+        return classes.TryGetValue(name, out var c) || classes.TryGetValue(ModProjectGroup.StripProjectQualifier(name), out c) ? c : null;
     }
+
+    public static bool IsProjectClass(string name) => Find(name) != null;
 
     /// <summary>A project class with Class_Terminate (it is IDisposable).</summary>
-    public static bool HasTerminate(string name)
-    {
-        EnsureRegistry();
-        return name != null && classes.TryGetValue(name, out var c) && c.HasTerminate;
-    }
+    public static bool HasTerminate(string name) => Find(name)?.HasTerminate == true;
 
     /// <summary>A Sub / Function of the project class (or interface) <paramref name="typeName"/>.</summary>
-    public static bool IsMethod(string typeName, string member)
-    {
-        EnsureRegistry();
-        return typeName != null && classes.TryGetValue(typeName, out var c) && c.Methods.Contains(member);
-    }
+    public static bool IsMethod(string typeName, string member) => Find(typeName)?.Methods.Contains(member) == true;
 
-    public static bool IsPredeclared(string name)
-    {
-        EnsureRegistry();
-        return name != null && classes.TryGetValue(name, out var c) && c.Predeclared;
-    }
+    public static bool IsPredeclared(string name) => Find(name)?.Predeclared == true;
 
     /// <summary>A class used with Implements somewhere in the project.</summary>
     public static bool IsInterface(string name)
     {
         EnsureRegistry();
-        return implemented.Contains(name);
+        return name != null && (implemented.Contains(name) || implemented.Contains(ModProjectGroup.StripProjectQualifier(name)));
     }
 
     /// <summary>obj(i) indexes: VB Collection, or a class whose default member takes parameters.</summary>
@@ -163,7 +196,8 @@ public static class ModConvertClasses
     {
         EnsureRegistry();
         if (typeName == "Collection") return true;
-        return typeName != null && classes.TryGetValue(typeName, out var c) && c.DefaultMember != null && c.DefaultParams != "";
+        var c = Find(typeName);
+        return c != null && c.DefaultMember != null && c.DefaultParams != "";
     }
 
     /// <summary>A Property Let / Set with parameters in the project: "obj.Name(i) = v" calls set_Name(i, v).</summary>
@@ -197,7 +231,7 @@ public static class ModConvertClasses
         if (model.EnumSource != null) bases.Add("System.Collections.IEnumerable");
         // with parameters the default member is an indexer, which already makes the type's DefaultMember (C# forbids both)
         var attr = model.DefaultMember != null && model.DefaultParams == "" ? "[System.Reflection.DefaultMember(\"" + model.DefaultMember + "\")]" + vbCrLf : "";
-        return attr + "public class " + model.Name + (bases.Count > 0 ? " : " + string.Join(", ", bases) : "") + " {";
+        return attr + ModProjectGroup.TypeModifier(model.Exposed) + " class " + model.Name + (bases.Count > 0 ? " : " + string.Join(", ", bases) : "") + " {";
     }
 
     /// <summary>Members VB6 provides implicitly: constructor, Dispose / finalizer, default instance, indexer, enumerator.</summary>
@@ -312,7 +346,7 @@ public static class ModConvertClasses
         {
             members.Add("  " + ConvertDataType(p.Value[0] == "" ? "Variant" : p.Value[0]) + " " + p.Key + " { " + p.Value[1] + p.Value[2] + "}");
         }
-        return ReString("public interface " + model.Name + " {" + vbCrLf + string.Join(vbCrLf, members) + vbCrLf + "}", true);
+        return ReString(ModProjectGroup.TypeModifier(model.Exposed) + " interface " + model.Name + " {" + vbCrLf + string.Join(vbCrLf, members) + vbCrLf + "}", true);
     }
 
     /// <summary>

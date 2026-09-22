@@ -27,5 +27,21 @@
     <File Path="VB6/modMain.bas" />
     <File Path="VB6/Showcase.vbp" />
   </Folder>
+  <Folder Name="/VB6Group/">
+    <File Path="VB6Group/Group.vbg" />
+  </Folder>
+  <Folder Name="/VB6Group/App/">
+    <File Path="VB6Group/App/App.vbp" />
+    <File Path="VB6Group/App/CSquare.cls" />
+    <File Path="VB6Group/App/modApp.bas" />
+    <File Path="VB6Group/App/modCommon.bas" />
+  </Folder>
+  <Folder Name="/VB6Group/Lib/">
+    <File Path="VB6Group/Lib/CCircle.cls" />
+    <File Path="VB6Group/Lib/CHelper.cls" />
+    <File Path="VB6Group/Lib/IShape.cls" />
+    <File Path="VB6Group/Lib/Lib.vbp" />
+    <File Path="VB6Group/Lib/modCommon.bas" />
+  </Folder>
   <Project Path="Vb6ToCSharp.Console/Vb6ToCSharp.Console.csproj" />
 </Solution>

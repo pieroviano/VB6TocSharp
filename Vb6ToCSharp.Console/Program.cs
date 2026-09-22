@@ -13,7 +13,8 @@ internal static class Program
     private const string Usage = @"Usage: Vb6ToCSharp.Console <command> [arguments] [options]
 
 Commands:
-  all                  Scan, generate project/support files and convert the whole project
+  all                  Scan, generate project/support files and convert the whole project;
+                       for a project group (.vbg): every project, plus a solution (.sln)
   forms                Convert the project's forms
   modules              Convert the project's modules
   classes              Convert the project's classes
@@ -28,9 +29,9 @@ Commands:
 
 Options:
   --ini <file>         Settings file (default: VB6toCS.INI next to the exe)
-  --vbp <file>         Project file         (overrides the INI for this run)
+  --vbp <file>         Project (.vbp) or project group (.vbg) (overrides the INI for this run)
   --out <folder>       Output folder        (overrides the INI for this run)
-  --assembly <name>    Assembly name        (overrides the INI for this run)
+  --assembly <name>    Assembly name        (overrides the INI for this run; a group keeps the .vbp names)
   --ui <wpf|winforms>  UI of converted forms (overrides the INI for this run; default WPF)
   --quiet              No progress output";
 
@@ -105,7 +106,7 @@ Options:
         switch (command)
         {
             case "all":
-                if (!ConfigValid()) return ExitFailed;
+                if (!ConfigValid(allowGroup: true)) return ExitFailed;
                 ModConvert.ConvertProject(ModConfig.VbpFile);
                 return ExitOk;
             case "forms":
@@ -179,9 +180,9 @@ Options:
         return ExitOk;
     }
 
-    private static bool ConfigValid()
+    private static bool ConfigValid(bool allowGroup = false)
     {
-        var error = ModConfig.ValidateSettings();
+        var error = ModConfig.ValidateSettings(allowGroup);
         if (error == "") return true;
         Console.Error.WriteLine(error);
         return false;
