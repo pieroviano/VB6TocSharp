@@ -16,6 +16,14 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Reference Include="Microsoft.VisualBasic" />
+    <Reference Include="PresentationCore" />
+    <Reference Include="PresentationFramework" />
+    <Reference Include="System.Xaml" />
+    <Reference Include="WindowsBase" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\converted\Vb6ToCSharp.csproj" />
   </ItemGroup>
 

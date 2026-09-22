@@ -35,23 +35,6 @@ static class ModTextFiles
     //:
     //:::SEE ALSO
     //:    - modXML, modCSV, modPath
-    private static dynamic mFso = null;
-
-
-    static dynamic Fso
-    {
-        get
-        {
-            if (mFso == null)
-            {
-                mFso = CreateObject("Scripting.FileSystemObject");
-            }
-            var fso = mFso;
-
-            return fso;
-        }
-    }
-
 
     public static bool DeleteFileIfExists(string sFIle, bool bNoAttributeClearing = false)
     {
@@ -89,13 +72,9 @@ static class ModTextFiles
             //:  String - The string contents of the file.
             //:::SEE ALSO
             //:  ReadFile, WriteFile, ReadEntireFileAndDelete
-            // TODO (not supported): On Error Resume Next
-            Fso.OpenTextFile(tFileName, 1).ReadAll;
-
-        if (FileLen(tFileName) / 10 != Len(readEntireFile) / 10)
-        {
-            MsgBox("ReadEntireFile was short: " + FileLen(tFileName) + " vs " + Len(readEntireFile));
-        }
+            // VB relied on On Error Resume Next: missing/empty/unreadable files yield "".
+            // The FSO reader threw on empty files, never closed the file, and the length check raised a MsgBox.
+            ReadAllTextOrEmpty(tFileName);
 
         //  Dim intFile As Long
         //  intFile = FreeFile
@@ -104,6 +83,18 @@ static class ModTextFiles
         //  ReadEntireFile = Input$(LOF(intFile), #intFile)  '  LOF returns Length of File
         //  Close #intFile
         return readEntireFile;
+    }
+
+    private static string ReadAllTextOrEmpty(string tFileName)
+    {
+        try
+        {
+            return System.IO.File.ReadAllText(tFileName, System.Text.Encoding.Default); // ANSI, as FSO/VB6
+        }
+        catch (Exception)
+        {
+            return "";
+        }
     }
 
     public static string ReadEntireFileAndDelete(string tFileName)
@@ -187,9 +178,14 @@ static class ModTextFiles
         {
             readFile = Join(cacheFileLoad, vbCrLf);
         }
+        else if (startline > cacheFileLoad.Length)
+        {
+            readFile = ""; // beyond the end of the file
+        }
         else
         {
-            readFile = Join(SubArr(cacheFileLoad, startline - 1, numLines), vbCrLf);
+            // NumLines = 0 means "rest of file" (it returned nothing for StartLine > 1)
+            readFile = Join(SubArr(cacheFileLoad, startline - 1, numLines > 0 ? numLines : cacheFileLoad.Length), vbCrLf);
             //    ReadFile = LineByNumber(CacheFileLoad, Startline, NumLines)
         }
 
@@ -284,7 +280,7 @@ static class ModTextFiles
         return countLines;
     }
 
-    public static string LineByNumber(string source, int startline, int numLinesUnused = 0, string nl = vbCrLf)
+    public static string LineByNumber(string source, int startline, int numLines = 0, string nl = vbCrLf)
     {
         string lineByNumber = "";
         //::::LineByNumber
@@ -334,19 +330,24 @@ static class ModTextFiles
             a = a + Len(nl);
         }
 
-        var b = a;
-        if (Left(Mid(source, a), Len(nl)) != nl)
+        // NumLines = 0 returns the remainder (it returned ""); count lines from a, including empty ones
+        if (numLines <= 0)
         {
-            for (I = 1; I <= numLinesUnused; I++)
-            {
-                b = InStr(b + 1, source, nl);
-                if (b == 0)
-                {
-                    lineByNumber = Mid(source, a);
-                    return lineByNumber;
+            return Mid(source, a);
+        }
 
-                }
+        var b = 0;
+        var from = a;
+        for (I = 1; I <= numLines; I++)
+        {
+            b = InStr(from, source, nl);
+            if (b == 0)
+            {
+                lineByNumber = Mid(source, a);
+                return lineByNumber;
+
             }
+            from = b + Len(nl);
         }
 
         lineByNumber = Mid(source, a, b - a);
@@ -448,27 +449,24 @@ static class ModTextFiles
         //:::SEE ALSO
         //:  ReadEntireFile, WriteFile, CountLines
 
-        var fNo =
-            // TODO (not supported): On Error Resume Next
-            FreeFile(); ;
-        if (overWrite)
+        // the VBOpenFile/VBWriteFile stubs wrote nothing (and OverWrite deleted the file): write for real.
+        // VB: Print # appends a new line unless PreventNL or Str already ends with one; errors ignored (On Error Resume Next).
+        var text = preventNl || Right(str, 2) == vbCrLf ? str : str + vbCrLf;
+        try
         {
-            System.IO.File.Delete(file);
-            VBOpenFile(fNo, file); ;
+            if (overWrite)
+            {
+                System.IO.File.WriteAllText(file, text, System.Text.Encoding.Default);
+            }
+            else
+            {
+                System.IO.File.AppendAllText(file, text, System.Text.Encoding.Default);
+            }
         }
-        else
+        catch (Exception e)
         {
-            VBOpenFile(fNo, file); ;
+            Console.WriteLine(e);
         }
-        if (preventNl || Right(str, 2) == vbCrLf)
-        {
-            VBWriteFile(fNo, str); ;
-        }
-        else
-        {
-            VBWriteFile(fNo, str); ;
-        }
-        VBCloseFile(fNo);
         var writeFile = true;
         return writeFile;
     }

@@ -49,7 +49,9 @@ static class ModRegEx
 
         RegEx.Pattern = find;
         RegEx.Global = true;
-        int regExNPos = RegEx.Execute(src).Item(n).FirstIndex + 1;
+        // VB relied on On Error Resume Next: no n-th match yields 0
+        var matches = RegEx.Execute(src);
+        int regExNPos = n >= 0 && n < matches.Count ? matches.Item(n).FirstIndex + 1 : 0;
         return regExNPos;
     }
 
@@ -59,7 +61,9 @@ static class ModRegEx
 
         RegEx.Pattern = find;
         RegEx.Global = true;
-        string regExNMatch = RegEx.Execute(src).Item(n).Value;
+        // VB relied on On Error Resume Next: no n-th match yields ""
+        var matches = RegEx.Execute(src);
+        string regExNMatch = n >= 0 && n < matches.Count ? matches.Item(n).Value : "";
         return regExNMatch;
     }
 
@@ -77,7 +81,7 @@ static class ModRegEx
     {
         // TODO (not supported): On Error Resume Next
 
-        var oRe = RegEx;
+        var oRe = CreateObject("vbscript.regexp"); // own instance: IgnoreCase must not leak into the shared one
         oRe.Pattern = "^(.*)(" + szPattern + ")(.*)$";
         oRe.IgnoreCase = true;
         oRe.Global = true;
@@ -106,9 +110,7 @@ static class ModRegEx
     public static int RegExSplitCount(string szStr, string szPattern)
     {
         // TODO (not supported): On Error Resume Next
-        List<dynamic> T = new List<dynamic> { }; // TODO - Specified Minimum Array Boundary Not Supported:   Dim T() As Variant
-
-        T = RegExSplit(szStr, szPattern);
+        object[] T = RegExSplit(szStr, szPattern); // was List<dynamic>, which an object[] cannot be assigned to
         var regExSplitCount = UBound(T) - LBound(T) + 1;
         return regExSplitCount;
     }

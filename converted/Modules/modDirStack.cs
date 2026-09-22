@@ -8,7 +8,7 @@ namespace Vb6ToCSharp.Modules;
 static class ModDirStack
 {
     // Option Explicit
-    private static Collection dirStack = new Collection();
+    private static Collection dirStack = null; // PushDir creates it with its "n" counter (an empty one made PushDir throw)
 
 
     public static string PushDir(string newDir, bool doSet = true)

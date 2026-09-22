@@ -198,7 +198,8 @@ namespace Vb6ToCSharp
                 return A;
             }
 
-            return IsDate(A.ToString()) ? DateTime.MinValue : DateTime.Parse(A.ToString());
+            // was inverted: returned MinValue for valid dates and parsed invalid ones
+            return IsDate(A.ToString()) ? DateTime.Parse(A.ToString()) : DateTime.MinValue;
         }
 
         public static double CDbl(object A)
@@ -396,7 +397,8 @@ namespace Vb6ToCSharp
 
         public static bool DoEvents(Window Frm = null)
         {
-            Frm.Dispatcher.Invoke(delegate { }, DispatcherPriority.ContextIdle);
+            // Frm is optional: pump the current thread's dispatcher when no window is given
+            (Frm?.Dispatcher ?? Dispatcher.CurrentDispatcher).Invoke(delegate { }, DispatcherPriority.ContextIdle);
             return true;
         }
 
@@ -679,7 +681,8 @@ namespace Vb6ToCSharp
 
         public static int LBound(object A)
         {
-            return A != null && A is IList ? ((IList)A).Count == 0 ? -1 : 0 : 0;
+            // lower bound is always 0 (was -1 for empty lists, making LBound..UBound loops run once)
+            return 0;
         }
 
         public static void Line(this Printer P, float x1, float y1, float x2, float y2, int style = 0, bool box = false)
@@ -1290,34 +1293,44 @@ namespace Vb6ToCSharp
 
             if (s.Equals("false", StringComparison.OrdinalIgnoreCase))
             {
-                return 1;
+                return 0;
             }
 
+            // like VB Val: leading blanks ignored, one decimal point, culture-invariant
+            s = s.TrimStart();
             if (s.StartsWith("-"))
             {
                 f = "-";
                 s = s.Substring(1);
             }
 
+            var digits = false;
+            var dot = false;
             for (var i = 0; i < s.Length; i++)
             {
-                var c = s.Substring(i, 1)[0];
-                if ((c >= '0' && c <= '9') || c == '.')
+                var c = s[i];
+                if (c >= '0' && c <= '9')
                 {
-                    f += c.ToString();
+                    digits = true;
                 }
-                else
+                else if (c != '.' || dot)
                 {
                     break;
                 }
+                else
+                {
+                    dot = true;
+                }
+
+                f += c.ToString();
             }
 
-            if (f == "")
+            if (!digits)
             {
                 return 0;
             }
 
-            return double.Parse(f);
+            return double.Parse(f, CultureInfo.InvariantCulture);
         }
 
         public static float ValF(string A)
@@ -1386,28 +1399,14 @@ namespace Vb6ToCSharp
 
         public static int controlIndex(string name)
         {
-            try
-            {
-                return ValI(Strings.Mid(name, name.LastIndexOf('_') + 1));
-            }
-            catch
-            {
-            }
-
-            return -1;
+            // was Mid(name, pos + 1): 1-based Mid then started at the '_' and always yielded 0
+            var i = name?.LastIndexOf('_') ?? -1;
+            return i < 0 ? -1 : ValI(name.Substring(i + 1));
         }
 
         public static int controlIndex(this Control c)
         {
-            try
-            {
-                return ValI(Strings.Mid(c.Name, c.Name.LastIndexOf('_') + 1));
-            }
-            catch
-            {
-            }
-
-            return -1;
+            return controlIndex(c.Name);
         }
 
         public static int controlUBound(this Window frm, string name)
@@ -2312,7 +2311,7 @@ namespace Vb6ToCSharp
             public void startTimerSeconds(int seconds)
             {
                 Enabled = false;
-                Interval = seconds;
+                IntervalSeconds = seconds; // was Interval (milliseconds)
                 Enabled = true;
             }
 

@@ -55,7 +55,10 @@ static class ModUtils
 
     public static string FileBaseName(string fn)
     {
-        var fileBaseName = Left(TFileName(fn), InStrRev(TFileName(fn), ".") - 1);
+        // a name without an extension (or a dot only in the folder part) used to throw
+        var name = TFileName(fn);
+        var dot = InStrRev(name, ".");
+        var fileBaseName = dot == 0 ? name : Left(name, dot - 1);
         return fileBaseName;
     }
 
@@ -67,7 +70,9 @@ static class ModUtils
 
     public static string ChgExt(string fn, string newExt)
     {
-        var chgExt = Left(fn, InStrRev(fn, ".") - 1) + newExt;
+        // only a dot in the file-name part starts an extension; otherwise the extension is appended
+        var dot = InStrRev(fn, ".");
+        var chgExt = (dot > InStrRev(fn, "\\") ? Left(fn, dot - 1) : fn) + newExt;
         return chgExt;
     }
 
@@ -193,12 +198,13 @@ static class ModUtils
             return fileExt;
 
         }
-        if (InStr(fn, ".") == 0)
+        var name = TFileName(fn); // a dot in the folder part is not an extension
+        if (InStr(name, ".") == 0)
         {
             return fileExt;
 
         }
-        fileExt = Mid(fn, InStrRev(fn, "."));
+        fileExt = Mid(name, InStrRev(name, "."));
         fileExt = IIf(vLCase, LCase(fileExt), fileExt);
         return fileExt;
     }
@@ -333,7 +339,7 @@ static class ModUtils
             {
                 m = 0;
             }
-        } while (!(true));
+        } while (true); // VB "Loop While True" (was mistranslated as while (!(true)))
         var nextByPCt = n - m;
         return nextByPCt;
     }
@@ -505,7 +511,8 @@ static class ModUtils
 
     public static string ReplaceToken(string src, string origToken, string newToken)
     {
-        var replaceToken = RegExReplace(src, "([^a-zA-Z_0-9])(" + origToken + ")([^a-zA-Z_0-9])", "$1" + newToken + "$3");
+        // lookahead so the trailing delimiter is not consumed (adjacent tokens were skipped); also match at the string edges
+        var replaceToken = RegExReplace(src, "(^|[^a-zA-Z_0-9])(" + origToken + ")(?=[^a-zA-Z_0-9]|$)", "$1" + newToken);
         return replaceToken;
     }
 
@@ -687,7 +694,7 @@ static class ModUtils
                 return codeSectionLoc;
 
             }
-        } while (!(Mid(s, n, 10) == "Attribute "));
+        } while (Mid(s, n, 10) == "Attribute "); // VB "Loop While" (was mistranslated as Loop Until)
 
         codeSectionLoc = n;
         return codeSectionLoc;
@@ -705,21 +712,18 @@ static class ModUtils
                 return codeSectionGlobalEndLoc;
 
             }
-        } while (!(Mid(s, codeSectionGlobalEndLoc - 8, 8) == "Declare "));
-        if (codeSectionGlobalEndLoc >= 8)
+        } while (codeSectionGlobalEndLoc > 8 && Mid(s, codeSectionGlobalEndLoc - 8, 8) == "Declare "); // VB "Loop While" (was mistranslated as Loop Until)
+        if (codeSectionGlobalEndLoc > 7 && Mid(s, codeSectionGlobalEndLoc - 7, 7) == "Friend ")
         {
-            if (Mid(s, codeSectionGlobalEndLoc - 7, 7) == "Friend ")
-            {
-                codeSectionGlobalEndLoc = codeSectionGlobalEndLoc - 7;
-            }
-            if (Mid(s, codeSectionGlobalEndLoc - 7, 7) == "Public ")
-            {
-                codeSectionGlobalEndLoc = codeSectionGlobalEndLoc - 7;
-            }
-            if (Mid(s, codeSectionGlobalEndLoc - 8, 8) == "Private ")
-            {
-                codeSectionGlobalEndLoc = codeSectionGlobalEndLoc - 8;
-            }
+            codeSectionGlobalEndLoc = codeSectionGlobalEndLoc - 7;
+        }
+        if (codeSectionGlobalEndLoc > 7 && Mid(s, codeSectionGlobalEndLoc - 7, 7) == "Public ")
+        {
+            codeSectionGlobalEndLoc = codeSectionGlobalEndLoc - 7;
+        }
+        if (codeSectionGlobalEndLoc > 8 && Mid(s, codeSectionGlobalEndLoc - 8, 8) == "Private ")
+        {
+            codeSectionGlobalEndLoc = codeSectionGlobalEndLoc - 8;
         }
         codeSectionGlobalEndLoc = codeSectionGlobalEndLoc - 1;
         return codeSectionGlobalEndLoc;
@@ -730,7 +734,22 @@ static class ModUtils
         bool isOperator = false;
         switch (Trim(s))
         {
+            // the translation had kept only "+" of the VB case list
             case "+":
+            case "-":
+            case "/":
+            case "*":
+            case "&":
+            case "<>":
+            case "<":
+            case ">":
+            case "<=":
+            case ">=":
+            case "=":
+            case "Mod":
+            case "And":
+            case "Or":
+            case "Xor":
                 isOperator = true;
                 break;
             default:
@@ -747,11 +766,15 @@ static class ModUtils
 
     public static string CVal(ref Collection coll, string key, string def = "")
     {
-        var cVal =
-            // TODO (not supported):   On Error Resume Next
-            def;
-        cVal = coll.Item(LCase(key));
-        return cVal;
+        // VB relied on On Error Resume Next: a missing key yields the default
+        try
+        {
+            return coll.Item(LCase(key));
+        }
+        catch (ArgumentException)
+        {
+            return def;
+        }
     }
 
     public static string CValP(ref Collection coll, string key, string def = "")
@@ -834,17 +857,30 @@ static class ModUtils
         string stack = "";
         if (val == "##REM##")
         {
-            stack = NextBy(src, ",");
+            // entries are quoted: find the closing quote (skipping doubled ones), since values may contain commas
+            if (Left(src, 1) == "\"")
+            {
+                var I = 2;
+                while (I <= Len(src) && !(Mid(src, I, 1) == "\"" && Mid(src, I + 1, 1) != "\""))
+                {
+                    I = I + (Mid(src, I, 1) == "\"" ? 2 : 1);
+                }
+                stack = Left(src, I);
+            }
+            else
+            {
+                stack = NextBy(src, ",");
+            }
             if (!peek)
             {
                 src = Mid(src, Len(stack) + 2);
             }
-            stack = Replace(stack, "\"\"", "\"");
             if (Left(stack, 1) == "\"")
             {
                 stack = Mid(stack, 2);
                 stack = Left(stack, Len(stack) - 1);
             }
+            stack = Replace(stack, "\"\"", "\"");
         }
         else
         {

@@ -381,16 +381,7 @@ static class ModQuickLint
 
     private static string ReadEntireFile(string tFileName)
     {
-        // TODO (not supported): On Error Resume Next
-
-        var mFso = CreateObject("Scripting.FileSystemObject");
-        string readEntireFile = mFso.OpenTextFile(tFileName, 1).ReadAll;
-
-        if (FileLen(tFileName) / 10 != Len(readEntireFile) / 10)
-        {
-            MsgBox("ReadEntireFile was short: " + FileLen(tFileName) + " vs " + Len(readEntireFile));
-        }
-        return readEntireFile;
+        return ModTextFiles.ReadEntireFile(tFileName); // the local copy threw on missing/empty files and raised a MsgBox
     }
 
     public static string CleanLine(string line)
@@ -406,7 +397,7 @@ static class ModQuickLint
             }
 
             var y = InStr(x + 1, line, q);
-            while (Mid(line, y + 1, 1) == q)
+            while (y > 0 && Mid(line, y + 1, 1) == q) // y == 0 (unterminated) restarted the scan forever
             {
                 y = InStr(y + 2, line, q);
             }
@@ -442,7 +433,7 @@ static class ModQuickLint
         }
         if (InStr(Join(ErrorTypes(), ","), typ) == 0)
         {
-            errors = errors + errorPrefix + "[" + tyError + "] Line " + Right(Space(5) + lineN, 5) + ": Unknown error type in linter (add to ErrorTypes): " + typ;
+            errors = errors + errorPrefix + "[" + tyError + "] Line " + Right(Space(5) + lineN, 5) + ": Unknown error type in linter (add to ErrorTypes): " + typ + vbCrLf; // was glued to the next entry
         }
         errors = errors + errorPrefix + "[" + Right(Space(5) + typ, 5) + "] Line " + Right(Space(5) + lineN, 5) + ": " + error;
         errorCount = errorCount + 1;
