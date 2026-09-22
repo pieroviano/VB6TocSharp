@@ -1,7 +1,6 @@
 using System;
 using System.Diagnostics;
 using Microsoft.VisualBasic;
-using Vb6ToCSharp.Forms;
 using static Microsoft.VisualBasic.Constants;
 using static Microsoft.VisualBasic.FileSystem;
 using static Microsoft.VisualBasic.Information;
@@ -757,8 +756,8 @@ public static class ModUtils
         return isOperator;
     }
 
-    /// <summary>Progress sink (the main window by default); hosts and tests can replace it.</summary>
-    public static Action<int, int, string> Progress = (val, max, cap) => MainForm.Instance.Prg(val, max, cap);
+    /// <summary>Progress sink (no-op by default); hosts (the WPF main window, the console) and tests replace it.</summary>
+    public static Action<int, int, string> Progress = (val, max, cap) => { };
 
     public static void Prg(int val = -1, int max = -1, string cap = "#")
     {

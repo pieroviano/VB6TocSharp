@@ -24,11 +24,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\converted\Vb6ToCSharp.csproj" />
+    <ProjectReference Include="..\Vb6ToCSharp.Library\Vb6ToCSharp.Library.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="..\converted\VB6toCS.WinCDS.sample.ini" Link="VB6toCS.WinCDS.sample.ini" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\Vb6ToCSharp.Library\VB6toCS.WinCDS.sample.ini" Link="VB6toCS.WinCDS.sample.ini" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

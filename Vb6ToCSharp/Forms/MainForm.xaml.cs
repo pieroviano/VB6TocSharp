@@ -110,23 +110,10 @@ public partial class MainForm : Window
 
     private bool ConfigValid()
     {
-        ModConfig.LoadSettings();
-
-        if (!ModUtils.FileExists(ModConfig.VbpFile)) // Dir("") matches any file: an unset project passed
+        var error = ModConfig.ValidateSettings();
+        if (error != "")
         {
-            MsgBox("Project file not found.  Perhaps do config first?", vbExclamation, "File Not Found");
-            return false;
-
-        }
-        if (Dir(ModConfig.OutputFolder(), vbDirectory) == "")
-        {
-            MsgBox("Ouptut Folder not found.  Perhaps do config first?", vbExclamation, "Directory Not Found");
-            return false;
-
-        }
-        if (ModConfig.AssemblyName() == "")
-        {
-            MsgBox("Assembly name not set.  Perhaps do config first?", vbExclamation, "Setting Not Found");
+            MsgBox(error, vbExclamation, "Configuration");
             return false;
 
         }

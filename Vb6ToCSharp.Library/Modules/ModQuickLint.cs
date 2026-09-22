@@ -58,6 +58,20 @@ public static class ModQuickLint
         return errorTypes;
     }
 
+    /// <summary>Lints <paramref name="file"/> (a bare name is taken from the project's folder), or the configured project when empty.</summary>
+    public static string LintFileOrProject(string file = "")
+    {
+        if (file == "")
+        {
+            return Lint(ModConfig.VbpFile);
+        }
+        if (InStr(file, "\\") == 0)
+        {
+            file = ModConfig.VbpPath + file;
+        }
+        return Lint(file);
+    }
+
     public static string Lint(string fileName = "", bool alertUnused = true)
     {
         if (fileName == "")

@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
+    <PropertyGroup>
+        <PackageOutputPath>$(SolutionDir)Packages/</PackageOutputPath>
+        <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+        <Version>$(VersionPrefix).$(VersionSuffix)</Version>
+        <OutputType>Library</OutputType>
+        <TargetFramework>net48</TargetFramework>
+        <RootNamespace>Vb6ToCSharp</RootNamespace>
+        <DontConvert>False</DontConvert>
+        <Copyright>Copyright 2021</Copyright>
+        <!-- VbExtension is the WPF runtime shim for converted code: it needs the WPF assemblies -->
+        <UseWPF>true</UseWPF>
+        <LangVersion>latest</LangVersion>
+        <PackageId>Net4x.$(MSBuildProjectName)</PackageId>
+    </PropertyGroup>
+    <ItemGroup>
+        <Reference Include="Microsoft.VisualBasic" />
+        <Reference Include="Microsoft.VisualBasic.Compatibility" />
+        <Reference Include="Microsoft.VisualBasic.Compatibility.Data" />
+        <Reference Include="Microsoft.CSharp" />
+        <Reference Include="System.Data.DataSetExtensions" />
+        <Reference Include="System.Net.Http" />
+        <Reference Include="System.Xaml" />
+        <Reference Include="WindowsBase" />
+        <Reference Include="PresentationCore" />
+        <Reference Include="PresentationFramework" />
+    </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="Net4x.NuGetUtility" Version="$(NuGetUtilityVersion)" PrivateAssets="All" />
+        <PackageReference Include="VisualBasic.PowerPacks.Vs" Version="1.0.0" />
+    </ItemGroup>
+    <ItemGroup>
+        <COMReference Include="ADODB">
+            <Guid>{B691E011-1797-432E-907A-4D8C69339129}</Guid>
+            <VersionMajor>6</VersionMajor>
+            <VersionMinor>1</VersionMinor>
+            <Lcid>0</Lcid>
+            <WrapperTool>tlbimp</WrapperTool>
+            <Isolated>False</Isolated>
+            <EmbedInteropTypes>True</EmbedInteropTypes>
+        </COMReference>
+    </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="Net4x.NuGetUtility" Version="$(NuGetUtilityVersion)" PrivateAssets="All" />
+    </ItemGroup>
+    <ItemGroup>
+        <InternalsVisibleTo Include="Vb6ToCSharp.Tests" />
+    </ItemGroup>
+    <ItemGroup>
+        <None Include="VB6toCS.WinCDS.sample.ini" />
+    </ItemGroup>
+    <PropertyGroup>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+    </PropertyGroup>
+    <ItemGroup>
+        <Content Include="$(SolutionDir)README.md" Link="README.md" Pack="true" PackagePath="\README.md" Condition="Exists('$(SolutionDir)README.md')" />
+        <Content Include="$(SolutionDir)License.txt" Link="License.txt" Pack="true" PackagePath="\License.txt" Condition="Exists('$(SolutionDir)License.txt')" />
+    </ItemGroup>
+</Project>

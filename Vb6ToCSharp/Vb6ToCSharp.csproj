@@ -16,35 +16,17 @@
     </PropertyGroup>
     <ItemGroup>
         <Reference Include="Microsoft.VisualBasic" />
-        <Reference Include="Microsoft.VisualBasic.Compatibility" />
-        <Reference Include="Microsoft.VisualBasic.Compatibility.Data" />
         <Reference Include="Microsoft.CSharp" />
-        <Reference Include="System.Data.DataSetExtensions" />
-        <Reference Include="System.Net.Http" />
         <Reference Include="System.Xaml" />
         <Reference Include="WindowsBase" />
         <Reference Include="PresentationCore" />
         <Reference Include="PresentationFramework" />
     </ItemGroup>
     <ItemGroup>
-        <PackageReference Include="VisualBasic.PowerPacks.Vs" Version="1.0.0" />
-    </ItemGroup>
-    <ItemGroup>
-        <COMReference Include="ADODB">
-            <Guid>{B691E011-1797-432E-907A-4D8C69339129}</Guid>
-            <VersionMajor>6</VersionMajor>
-            <VersionMinor>1</VersionMinor>
-            <Lcid>0</Lcid>
-            <WrapperTool>tlbimp</WrapperTool>
-            <Isolated>False</Isolated>
-            <EmbedInteropTypes>True</EmbedInteropTypes>
-        </COMReference>
+        <ProjectReference Include="..\Vb6ToCSharp.Library\Vb6ToCSharp.Library.csproj" />
     </ItemGroup>
     <ItemGroup>
         <PackageReference Include="Net4x.NuGetUtility" Version="$(NuGetUtilityVersion)" PrivateAssets="All" />
-    </ItemGroup>
-    <ItemGroup>
-        <InternalsVisibleTo Include="Vb6ToCSharp.Tests" />
     </ItemGroup>
     <PropertyGroup>
         <PackageReadmeFile>README.md</PackageReadmeFile>

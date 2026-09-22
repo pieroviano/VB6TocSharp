@@ -28,23 +28,8 @@ public partial class LinterForm : Window
 
     private void cmdLint_Click(object sender, RoutedEventArgs e)
     {
-        var results = "";
-
-
         fraConfig.IsEnabled = false;
-        if (txtFile.Text == "")
-        {
-            results = ModQuickLint.Lint();
-        }
-        else
-        {
-            var file = txtFile.Text;
-            if (InStr(file, "\\") == 0)
-            {
-                file = Left(txtVBPFile.Text, InStrRev(txtVBPFile.Text, "\\")) + file;
-            }
-            results = ModQuickLint.Lint(file);
-        }
+        var results = ModQuickLint.LintFileOrProject(txtFile.Text);
         fraConfig.IsEnabled = true;
 
         txtResults.Text = IIf(results == "", "Done.", results);

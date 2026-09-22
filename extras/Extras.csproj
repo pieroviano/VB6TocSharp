@@ -3,6 +3,9 @@
 	<PropertyGroup>
 		<TargetFramework>net48</TargetFramework>
 		<UseWindowsForms>true</UseWindowsForms>
+		<PackageId>Net4x.$(MSBuildProjectName)</PackageId>
+		<PackageOutputPath>$(SolutionDir)Packages\</PackageOutputPath>
+		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -19,6 +22,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<PackageReference Include="Net4x.NuGetUtility" Version="$(NuGetUtilityVersion)" PrivateAssets="All" />
 		<PackageReference Include="VisualBasic.PowerPacks.Vs" Version="1.0.0" />
 	</ItemGroup>
 </Project>

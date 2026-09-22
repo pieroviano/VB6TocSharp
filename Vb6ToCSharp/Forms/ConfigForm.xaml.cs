@@ -30,10 +30,7 @@ public partial class ConfigForm : Window
 
     private void cmdOK_Click(object sender, RoutedEventArgs e)
     {
-        ModIni.IniWrite(iniSectionSettings, iniKeyVbpFile, txtVBPFile.Text, IniFile());
-        ModIni.IniWrite(iniSectionSettings, iniKeyOutputFolder, txtOutput.Text, IniFile());
-        ModIni.IniWrite(iniSectionSettings, iniKeyAssemblyName, txtAssemblyName.Text, IniFile());
-        ModConfig.LoadSettings(true);
+        ModConfig.SaveSettings(txtVBPFile.Text, txtOutput.Text, txtAssemblyName.Text);
         Unload();
     }
 

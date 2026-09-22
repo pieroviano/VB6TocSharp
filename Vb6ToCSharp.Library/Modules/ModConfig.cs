@@ -22,6 +22,7 @@ public static class ModConfig
     private static string mOutputFolder = "";
     private static string mAssemblyName = "";
     private static bool loaded = false;
+    private static string oVbpFile, oOutputFolder, oAssemblyName; // in-memory overrides of the INI values (null = use INI)
     public static bool hush = false;
     public const string iniSectionSettings = "Settings";
     public const string iniKeyVbpFile = "VBPFile";
@@ -61,10 +62,50 @@ public static class ModConfig
     }
 
 
+    /// <summary>Settings file to use instead of VB6toCS.INI next to the exe (null = default).</summary>
+    public static string IniFilePath { get; set; }
+
     public static string IniFile()
     {
-        var iniFile = AppDomain.CurrentDomain.BaseDirectory + "\\VB6toCS.INI";
+        var iniFile = IniFilePath ?? AppDomain.CurrentDomain.BaseDirectory + "\\VB6toCS.INI";
         return iniFile;
+    }
+
+    /// <summary>Overrides the INI settings for this process only (null keeps the INI value); reloads settings.</summary>
+    public static void OverrideSettings(string vbpFile = null, string outputFolder = null, string assemblyName = null)
+    {
+        oVbpFile = vbpFile;
+        oOutputFolder = outputFolder;
+        oAssemblyName = assemblyName;
+        LoadSettings(true);
+    }
+
+    /// <summary>Writes the settings to the INI file (null leaves a key unchanged) and reloads them.</summary>
+    public static void SaveSettings(string vbpFile, string outputFolder, string assemblyName)
+    {
+        if (vbpFile != null) ModIni.IniWrite(iniSectionSettings, iniKeyVbpFile, vbpFile, IniFile());
+        if (outputFolder != null) ModIni.IniWrite(iniSectionSettings, iniKeyOutputFolder, outputFolder, IniFile());
+        if (assemblyName != null) ModIni.IniWrite(iniSectionSettings, iniKeyAssemblyName, assemblyName, IniFile());
+        LoadSettings(true);
+    }
+
+    /// <summary>Checks the settings a conversion needs; returns the problem, or "" when valid.</summary>
+    public static string ValidateSettings()
+    {
+        LoadSettings();
+        if (!FileExists(VbpFile)) // Dir("") matches any file: an unset project passed
+        {
+            return "Project file not found.  Perhaps do config first?";
+        }
+        if (Dir(OutputFolder(), vbDirectory) == "")
+        {
+            return "Output folder not found.  Perhaps do config first?";
+        }
+        if (AssemblyName() == "")
+        {
+            return "Assembly name not set.  Perhaps do config first?";
+        }
+        return "";
     }
 
     public static void LoadSettings(bool force = false)
@@ -79,6 +120,9 @@ public static class ModConfig
         mVbpFile = ModIni.IniRead(iniSectionSettings, iniKeyVbpFile, IniFile());
         mOutputFolder = ModIni.IniRead(iniSectionSettings, iniKeyOutputFolder, IniFile());
         mAssemblyName = ModIni.IniRead(iniSectionSettings, iniKeyAssemblyName, IniFile());
+        mVbpFile = oVbpFile ?? mVbpFile;
+        mOutputFolder = oOutputFolder ?? mOutputFolder;
+        mAssemblyName = oAssemblyName ?? mAssemblyName;
     }
 
     public static string OutputFolder(string f = "")
