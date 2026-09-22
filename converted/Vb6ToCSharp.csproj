@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
+    <PropertyGroup>
+        <PackageOutputPath>$(SolutionDir)Packages/</PackageOutputPath>
+        <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
+        <Version>$(VersionPrefix).$(VersionSuffix)</Version>
+        <ProjectGuid>{92F75129-0EC1-47BA-85A7-E47F9EB140FD}</ProjectGuid>
+        <OutputType>WinExe</OutputType>
+        <RootNamespace>VB2CS</RootNamespace>
+        <AssemblyName>VB2CS</AssemblyName>
+        <TargetFramework>net48</TargetFramework>
+        <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
+        <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+        <DontConvert>False</DontConvert>
+        <AssemblyTitle>VB2CS</AssemblyTitle>
+        <Product>VB2CS</Product>
+        <Copyright>Copyright 2021</Copyright>
+        <UseWPF>true</UseWPF>
+    </PropertyGroup>
+    <ItemGroup>
+        <Reference Include="Microsoft.VisualBasic" />
+        <Reference Include="Microsoft.VisualBasic.Compatibility" />
+        <Reference Include="Microsoft.VisualBasic.Compatibility.Data" />
+        <Reference Include="Microsoft.CSharp" />
+        <Reference Include="System.Data.DataSetExtensions" />
+        <Reference Include="System.Net.Http" />
+        <Reference Include="System.Xaml" />
+        <Reference Include="WindowsBase" />
+        <Reference Include="PresentationCore" />
+        <Reference Include="PresentationFramework" />
+    </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="VisualBasic.PowerPacks.Vs" Version="1.0.0" />
+    </ItemGroup>
+    <ItemGroup>
+        <COMReference Include="ADODB">
+            <Guid>{B691E011-1797-432E-907A-4D8C69339129}</Guid>
+            <VersionMajor>6</VersionMajor>
+            <VersionMinor>1</VersionMinor>
+            <Lcid>0</Lcid>
+            <WrapperTool>tlbimp</WrapperTool>
+            <Isolated>False</Isolated>
+            <EmbedInteropTypes>True</EmbedInteropTypes>
+        </COMReference>
+    </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="Net4x.NuGetUtility" Version="$(NuGetUtilityVersion)" PrivateAssets="All" />
+    </ItemGroup>
+    <ItemGroup>
+        <Compile Remove="Modules\modLinter.cs" />
+    </ItemGroup>
+    <PropertyGroup>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+    </PropertyGroup>
+    <ItemGroup>
+        <Content Include="README.md" Link="README.md" Pack="true" PackagePath="\README.md" />
+        <Content Include="$(SolutionDir)License.txt" Link="License.txt" Pack="true" PackagePath="\License.txt" Condition="Exists('$(SolutionDir)License.txt')" />
+    </ItemGroup>
+</Project>

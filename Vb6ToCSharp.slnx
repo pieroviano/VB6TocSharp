@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path=".gitignore" />
+    <File Path="Directory.Build.Props" />
+    <File Path="Directory.Nuget.Props" />
+    <File Path="NuGet.Config" />
+    <File Path="README.md" />
+  </Folder>
+  <Project Path="converted/Vb6ToCSharp.csproj" Id="92f75129-0ec1-47ba-85a7-e47f9eb140fd" />
+</Solution>
