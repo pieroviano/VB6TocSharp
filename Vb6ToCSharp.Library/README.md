@@ -75,7 +75,7 @@ INI sections that tailor the conversion to a project:
 | `[FormRenames]` | `frmOld.frm=frmNew` | Renames a form listed in the `.vbp` |
 | `[PostCodeLine]` | `n=replace\|find\|repl`, `n=ifcontains\|trigger\|find\|repl`, `n=regex\|pattern\|repl`, `n=blankif\|trigger` | Rewrites every converted line, in order |
 
-`VB6toCS.WinCDS.sample.ini` is an example.
+`Vb6ToCSharp.sample.ini` is an example.
 
 ## Limits
 

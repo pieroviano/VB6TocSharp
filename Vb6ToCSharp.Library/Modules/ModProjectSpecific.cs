@@ -43,7 +43,7 @@ public static class ModProjectSpecific
         s = Replace(s, "VbMsgBoxResult", "MsgBoxResult");
 
         // Project-specific rules from the INI [PostCodeLine] section (the original author's WinCDS rules used
-        // to be hard-coded here; see VB6toCS.WinCDS.sample.ini)
+        // to be hard-coded here; see Vb6ToCSharp.sample.ini)
         foreach (var rule in IniSection(iniSectionPostCodeLine))
         {
             s = ApplyPostCodeLineRule(s, rule.Value);

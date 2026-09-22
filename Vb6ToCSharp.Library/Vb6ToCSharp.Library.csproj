@@ -47,7 +47,7 @@
         <InternalsVisibleTo Include="Vb6ToCSharp.Tests" />
     </ItemGroup>
     <ItemGroup>
-        <None Include="VB6toCS.WinCDS.sample.ini" />
+        <None Include="Vb6ToCSharp.sample.ini" />
     </ItemGroup>
     <PropertyGroup>
         <PackageReadmeFile>README.md</PackageReadmeFile>

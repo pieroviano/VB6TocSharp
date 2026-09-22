@@ -33,7 +33,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="..\Vb6ToCSharp.Library\VB6toCS.WinCDS.sample.ini" Link="VB6toCS.WinCDS.sample.ini" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\Vb6ToCSharp.Library\Vb6ToCSharp.sample.ini" Link="Vb6ToCSharp.sample.ini" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

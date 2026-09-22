@@ -90,7 +90,7 @@ public class ConfigTests : IClassFixture<ConverterFixture>
     [Fact]
     public void WinCdsSample_IsValidConfig()
     {
-        var sample = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "VB6toCS.WinCDS.sample.ini");
+        var sample = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Vb6ToCSharp.sample.ini");
         var keys = ModIni.IniSectionKeys(sample, ModConfig.iniSectionPostCodeLine).Where(k => !k.StartsWith(";")).ToArray();
         Assert.Equal(17, keys.Length);
         foreach (var k in keys)

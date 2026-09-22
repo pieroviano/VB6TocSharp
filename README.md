@@ -53,7 +53,7 @@ When no output folder is set, the output goes to `converted\` under the `.vbp` f
 | Same INI, optional sections | `[DataTypes]`, `[Controls]`, `[WinFormsControls]`, `[FormRenames]`, `[PostCodeLine]`; see the [library README](Vb6ToCSharp.Library/README.md#project-specific-rules) |
 | `'##` pragmas in the sources or `VBMigrationPartner.pragmas` | Per file / per project conversion options; see the [library README](Vb6ToCSharp.Library/README.md#pragmas) |
 
-[VB6toCS.WinCDS.sample.ini](Vb6ToCSharp.Library/VB6toCS.WinCDS.sample.ini) is an example.
+[Vb6ToCSharp.sample.ini](Vb6ToCSharp.Library/Vb6ToCSharp.sample.ini) is an example.
 
 ## Integration test
 
