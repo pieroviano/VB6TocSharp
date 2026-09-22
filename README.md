@@ -58,7 +58,7 @@ When no output folder is set, the output goes to `converted\` under the `.vbp` f
 ## Integration test
 
 `IntegrationTests` (trait `Category=Integration`) uses the console to convert `VB6\Showcase.vbp` into `Converted\` (ignored
-by git). It then builds the result and runs the converted program.
+by git). It then builds the result and runs the converted code (`modMain.RunAll`), checking results that depend on VB6 semantics.
 
 ## Limits
 
