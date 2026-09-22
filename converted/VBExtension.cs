@@ -480,7 +480,7 @@ namespace Vb6ToCSharp
                 {
                     grid.ScrollIntoView(grid.Items[index]);
                 }
-                catch (Exception e)
+                catch
                 {
                 }
 
@@ -726,26 +726,32 @@ namespace Vb6ToCSharp
 
         public static Size MeasureString(this Label el, string candidate)
         {
+#pragma warning disable CS0618 // Type or member is obsolete
             var formattedText = new FormattedText(SanitizeNls(candidate, "\n"), CultureInfo.CurrentCulture,
                 FlowDirection.LeftToRight,
                 new Typeface(el.FontFamily, el.FontStyle, el.FontWeight, el.FontStretch),
                 el.FontSize, Brushes.Black, new NumberSubstitution(), TextFormattingMode.Display);
+#pragma warning restore CS0618 // Type or member is obsolete
             return new Size(formattedText.Width, formattedText.Height);
         }
 
         public static Size MeasureString(this TextBox el, string candidate)
         {
+#pragma warning disable CS0618 // Type or member is obsolete
             var formattedText = new FormattedText(candidate, CultureInfo.CurrentCulture, FlowDirection.LeftToRight,
                 new Typeface(el.FontFamily, el.FontStyle, el.FontWeight, el.FontStretch),
                 el.FontSize, Brushes.Black, new NumberSubstitution(), TextFormattingMode.Display);
+#pragma warning restore CS0618 // Type or member is obsolete
             return new Size(formattedText.Width, formattedText.Height);
         }
 
         public static Size MeasureString(this Window el, string candidate)
         {
+#pragma warning disable CS0618 // Type or member is obsolete
             var formattedText = new FormattedText(candidate, CultureInfo.CurrentCulture, FlowDirection.LeftToRight,
                 new Typeface(el.FontFamily, el.FontStyle, el.FontWeight, el.FontStretch),
                 el.FontSize, Brushes.Black, new NumberSubstitution(), TextFormattingMode.Display);
+#pragma warning restore CS0618 // Type or member is obsolete
             return new Size(formattedText.Width, formattedText.Height);
         }
 
@@ -821,7 +827,7 @@ namespace Vb6ToCSharp
             {
                 return new BitmapImage(new Uri(s));
             }
-            catch (Exception e)
+            catch
             {
                 if (!placeholder)
                 {
@@ -843,7 +849,6 @@ namespace Vb6ToCSharp
         public static void PaintPicture(this Image P, Image I, dynamic x1 = null, dynamic y1 = null, dynamic w1 = null,
             dynamic h1 = null, dynamic x2 = null, dynamic y2 = null, dynamic w2 = null, dynamic h2 = null)
         {
-            System.Drawing.Image I2 = null;
         }
 
         public static void PrintNNL(this Printer p, params string[] s)
@@ -1385,7 +1390,7 @@ namespace Vb6ToCSharp
             {
                 return ValI(Strings.Mid(name, name.LastIndexOf('_') + 1));
             }
-            catch (Exception e)
+            catch
             {
             }
 
@@ -1398,7 +1403,7 @@ namespace Vb6ToCSharp
             {
                 return ValI(Strings.Mid(c.Name, c.Name.LastIndexOf('_') + 1));
             }
-            catch (Exception e)
+            catch
             {
             }
 
@@ -1719,7 +1724,7 @@ namespace Vb6ToCSharp
             {
                 return ((ComboboxItem)c.Items[I]).Value;
             }
-            catch (Exception e)
+            catch
             {
                 return 0;
             }
@@ -1731,7 +1736,7 @@ namespace Vb6ToCSharp
             {
                 return ((ComboboxItem)c.Items[I]).Value;
             }
-            catch (Exception e)
+            catch
             {
                 return 0;
             }
@@ -2342,7 +2347,9 @@ namespace Vb6ToCSharp
                 mExecute = vExecute;
             }
 
+#pragma warning disable CS0067
             public event EventHandler CanExecuteChanged;
+#pragma warning restore CS0067
 
             public bool CanExecute(object parameter)
             {

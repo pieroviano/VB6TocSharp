@@ -157,7 +157,7 @@ namespace Vb6ToCSharp.Forms
             txtSrc.IsEnabled = done;
             cmdScan.IsEnabled = done;
             cmdSupport.IsEnabled = done;
-            MousePointer = IIf(done, vbDefault, vbHourglass);
+            MousePointer = IIf(done, VbDefault, VbHourglass);
         }
 
         public string Prg(int val = -1, int max = -1, string cap = "#")
@@ -186,7 +186,7 @@ namespace Vb6ToCSharp.Forms
                 return;
 
             }
-            FrmLinter.Instance.Show(vbModal);
+            FrmLinter.Instance.Show(VbModal);
         }
 
         private void cmdScan_Click(object sender, RoutedEventArgs e) { cmdScan_Click(); }

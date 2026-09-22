@@ -102,7 +102,6 @@ static class ModProjectFiles
                 }
                 vbpForms = vbpForms + IIf(vbpForms == "", "", vbCrLf) + T;
             }
-            NextItem:;
         }
         return vbpForms;
     }
@@ -129,7 +128,6 @@ static class ModProjectFiles
                 }
                 vbpClasses = vbpClasses + IIf(vbpClasses == "", "", vbCrLf) + T;
             }
-            NextItem:;
         }
         if (classNames)
         {
@@ -160,7 +158,6 @@ static class ModProjectFiles
                 }
                 vbpUserControls = vbpUserControls + IIf(vbpUserControls == "", "", vbCrLf) + T;
             }
-            NextItem:;
         }
         return vbpUserControls;
     }

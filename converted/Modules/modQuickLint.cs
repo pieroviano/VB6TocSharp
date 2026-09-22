@@ -369,7 +369,6 @@ static class ModQuickLint
                 {
                     TestCodeLine(ref errors, ref errorCount, lineN, st);
                 }
-                NextStatement:;
             }
             NextLine:;
         }
@@ -377,11 +376,6 @@ static class ModQuickLint
         TestModuleOptions(ref errors, ref errorCount, options);
 
         var quickLintContents = errors;
-        return quickLintContents;
-
-        LintError:;
-        RecordError(ref errors, ref errorCount, tyError, 0, "Linter Error [" + Err().Number + "]: " + Err().Description);
-        quickLintContents = errors;
         return quickLintContents;
     }
 
@@ -515,8 +509,6 @@ static class ModQuickLint
 
     public static void TestLintControl(string l)
     {
-        dynamic ll = null;
-
         if (InStr(l, lintKey) == 0)
         {
             return;
@@ -604,7 +596,6 @@ static class ModQuickLint
         foreach (var iterLl in Split(l, ", "))
         {
             dynamic ll = iterLl;
-            string argName = "";
             string argType = "";
             string argDefault = "";
 

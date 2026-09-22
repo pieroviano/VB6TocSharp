@@ -19,8 +19,6 @@ static class ModConvertUtils
 
     public static string DeComment(string str, bool discard = false)
     {
-        string c = "";
-
         var deComment = str;
         var a = InStr(str, "'");
         if (a == 0)

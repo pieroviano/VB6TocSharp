@@ -100,8 +100,6 @@ static class ModConvert
             default:
                 MsgBox("UNKNOWN VB TYPE: " + someFile);
                 return convertFile;
-
-                break;
         }
         formName = "";
         convertFile = true;
@@ -216,8 +214,6 @@ static class ModConvert
     public static bool ConvertClass(string clsFile)
     {
         bool convertClass = false;
-
-        string cName = "";
 
         if (!FileExists(clsFile))
         {
@@ -367,7 +363,6 @@ static class ModConvert
         int T = 0;
         int e = 0;
         string k = "";
-        int x = 0;
 
         string pre = "";
 
@@ -465,7 +460,6 @@ static class ModConvert
         bool asPrivate = false;
 
         string pType = "";
-        bool pWithEvents = false;
 
         bool isArr = false;
         int aMax = 0;
@@ -789,9 +783,6 @@ static class ModConvert
     {
         string tArgs = "";
 
-        int I = 0;
-        int j = 0;
-
         if (TLeft(s, 7) == "Public ")
         {
             s = Mid(Trim(s), 8);
@@ -799,7 +790,6 @@ static class ModConvert
         if (TLeft(s, 8) == "Private ")
         {
             s = Mid(Trim(s), 9);
-            var isPrivate = true;
         }
         if (TLeft(s, 6) == "Event ")
         {
@@ -850,7 +840,6 @@ static class ModConvert
         if (TLeft(s, 8) == "Private ")
         {
             s = TMid(s, 9);
-            var isPrivate = true;
         }
         if (TLeft(s, 5) == "Enum ")
         {
@@ -1051,7 +1040,6 @@ static class ModConvert
         const string retToken = "#RET#";
 
         string retType = "";
-        string T = "";
 
 
         var s = ss;
@@ -1353,7 +1341,6 @@ static class ModConvert
             }
         }
 
-        DoReplacements:;
         if (IsInStr(convertElement, ":="))
         {
             var ts = SplitWord(convertElement, 1, ":=");
@@ -1566,16 +1553,11 @@ static class ModConvert
     {
         string[] s = new string[0];
 
-        int inCase = 0;
-
-        string returnVariable = "";
-
 
         var res = "";
         var building = "";
         str = Replace(str, vbLf, "");
         s = Split(str, vbCr);
-        var ind = 0;
         var n = 0;
         //  Prg 0, UBound(S) - LBound(S) + 1, "Globals..."
         InitDeString();
@@ -1894,8 +1876,6 @@ static class ModConvert
                 //                          If IsInStr(Str, "StoreStockToolTipText") Then Stop
                 convertSub = ModConvert.ConvertSub(oStr, asModule, vbTriState.vbFalse);
                 return convertSub;
-
-                break;
             case vbTriState.vbTrue:
                 SubBegin();
                 break;
@@ -1934,8 +1914,6 @@ static class ModConvert
             var pq = "^(Public |Private )(Property )(Get |Let |Set )" + patToken + "[ ]*\\(";
             if (RegExNMatch(l, pp) != "")
             {
-                int nK = 0;
-
                 //      CurrSub = nextBy(L, "(", 1)
                 //      If (LMatch(CurrSub, "Public ")) Then CurrSub = Mid(CurrSub, 8)
                 //      If (LMatch(CurrSub, "Private ")) Then CurrSub = Mid(CurrSub, 9)
@@ -2085,8 +2063,6 @@ static class ModConvert
                 }
                 else
                 {
-                    dynamic tt = null;
-
                     //          O = O & sSpace(Ind) & "case " & ConvertValue(T) & ":"
                     o = o + Space(ind);
                     foreach (var iterLl in Split(T, ","))

@@ -46,9 +46,6 @@ static class ModRegEx
     public static int RegExNPos(string src, string find, int n = 0)
     {
         // TODO (not supported): On Error Resume Next
-        dynamic regM = null;
-        string tempStr = "";
-        string tempStr2 = "";
 
         RegEx.Pattern = find;
         RegEx.Global = true;
@@ -59,9 +56,6 @@ static class ModRegEx
     public static string RegExNMatch(string src, string find, int n = 0)
     {
         // TODO (not supported): On Error Resume Next
-        dynamic regM = null;
-        string tempStr = "";
-        string tempStr2 = "";
 
         RegEx.Pattern = find;
         RegEx.Global = true;
@@ -72,9 +66,6 @@ static class ModRegEx
     public static string RegExReplace(string src, string find, string repl)
     {
         // TODO (not supported): On Error Resume Next
-        dynamic regM = null;
-        string tempStr = "";
-        string tempStr2 = "";
 
         RegEx.Pattern = find;
         RegEx.Global = true;

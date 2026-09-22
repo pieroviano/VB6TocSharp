@@ -15,9 +15,7 @@ namespace Vb6ToCSharp.Modules;
 
 static class ModConvertForm
 {
-    // Option Explicit
-    private static string eventStubs = "";
-
+    public static string eventStubs = "";
 
     public static string Frm2Xml(string f)
     {
@@ -62,7 +60,6 @@ static class ModConvertForm
     public static string FormControls(string src, string f, bool asLocal = true)
     {
         string[] sp = new string[0];
-        int I = 0;
 
         string r = "";
 

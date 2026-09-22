@@ -159,10 +159,6 @@ static class ModTextFiles
         //:  String - The string contents of the file.
         //:::SEE ALSO
         //:  ReadEntireFile, WriteFile, CountLines, TailFile, HeadFile
-        int fNum = 0;
-        string line = "";
-        int lineNum = 0;
-        int count = 0;
 
 
         if (tFileName == "" || !FileExists(tFileName))
@@ -217,7 +213,6 @@ static class ModTextFiles
         //'  WasEOF = True
         //Done:
         //  Close #FNum
-        return readFile;
     }
 
     public static int CountFileLines(string sourceFile, bool ignoreBlank = false, string ignorePrefix = "")

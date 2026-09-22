@@ -22,8 +22,6 @@ static class ModRefScan
     private static string outRes = "";
     private static string cFuncRefName = "";
     private static string cFuncRefValue = "";
-    private static string cEnuRefName = "";
-    private static string cEnumRefValue = "";
     private static Collection funcs = null;
     private static Collection localFuncs = null;
 
@@ -461,7 +459,6 @@ static class ModRefScan
     public static string FuncRefArgDefault(string fName, int n)
     {
         string funcRefArgDefault = "";
-        string aTyp = "";
 
         if (!FuncRefArgOptional(fName, n))
         {

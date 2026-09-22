@@ -91,13 +91,6 @@ static class ModConfig
             MkDir(outputFolder);
         }
         return outputFolder;
-
-        CantMakeOutputFolder:;
-        if (!hush)
-        {
-            MsgBox("Failed creating folder.  Perhaps create it yourself?" + vbCrLf + outputFolder);
-        }
-        return outputFolder;
     }
 
     public static string AssemblyName()

@@ -17,7 +17,6 @@ static class ModUsingEverything
 
     public static string UsingEverything(string packageName = "")
     {
-        string list = "";
         string name = "";
 
         dynamic l = null;

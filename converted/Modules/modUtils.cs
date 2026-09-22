@@ -146,10 +146,6 @@ static class ModUtils
         Debugger.Break(); //division by zero error
         var isIde = false;
         return isIde;
-
-        IDEInUse:;
-        isIde = true;
-        return isIde;
     }
 
     public static bool IsIn(string s, params dynamic[] kUnused)
@@ -350,7 +346,6 @@ static class ModUtils
         string r = "";
 
         var n = 0;
-        var f = "";
         do
         {
             m = m + 1;
@@ -676,7 +671,6 @@ static class ModUtils
     {
         int codeSectionLoc = 0;
         const string token = "Attribute VB_Name";
-        int k = 0;
 
 
         var n = InStr(s, token);

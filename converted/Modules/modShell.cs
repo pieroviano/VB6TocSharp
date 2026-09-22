@@ -108,12 +108,6 @@ static class ModShell
         errStr = ReadEntireFileAndDelete(b);
         DeleteFileIfExists(c);
         return runCmdToOutput;
-
-
-        RunError:;
-        runCmdToOutput = "";
-        errStr = "ShellOut.RunCmdToOutput: Command Execution Error - [" + Err().Number + "] " + Err().Description;
-        return runCmdToOutput;
     }
 
     /*
@@ -142,13 +136,6 @@ static class ModShell
         lastProcessId = nameOfProc.dwProcessId;
         rc = WaitForSingleObject(nameOfProc.hProcess, infinite);
         CloseHandle(ref nameOfProc.hProcess);
-
-        ErrorRoutineResume:;
-        return;
-
-        ErrorRoutineErr:;
-        MsgBox("AppShell.Form1.ShellAndWait: " + Err());
-        // TODO (not supported):   Resume Next
     }
 
     public static string TempFile(string useFolder = "", string usePrefix = "tmp_", string extension = ".tmp", bool testWrite = true)
@@ -185,31 +172,6 @@ static class ModShell
             // TODO (not supported): On Error GoTo TestClearFailed
             System.IO.File.Delete(tempFile);
         }
-        return tempFile;
-
-
-        TestWriteFailed:;
-        MsgBox("Failed to write temp file " + tempFile + "." + vbCrLf + Err().Description, vbCritical);
-        return tempFile;
-
-        TestReadFailed:;
-        MsgBox("Failed to read temp file " + tempFile + "." + vbCrLf + Err().Description, vbCritical);
-        return tempFile;
-
-        TestClearFailed:;
-        if (Err().Number == 53)
-        {
-            Err().Clear();
-            // TODO (not supported):     Resume Next
-        }
-
-        //BFH20160627
-        // Jerry wanted this commented out.  Absolutely horrible idea.
-        //  If IsDevelopment Then
-        MsgBox("Failed to clear temp file " + tempFile + "." + vbCrLf + Err().Description, vbCritical);
-        //  End If
-        return tempFile;
-
         return tempFile;
     }
 

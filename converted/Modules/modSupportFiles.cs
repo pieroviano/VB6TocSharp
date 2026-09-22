@@ -422,7 +422,6 @@ static class ModSupportFiles
     public static string ResourcesResxFile()
     {
         var r = "";
-        var m = "";
         var n = vbCrLf;
 
 
@@ -551,7 +550,6 @@ static class ModSupportFiles
     public static string ResourcesDesignerCsFile()
     {
         var r = "";
-        var m = "";
         var n = vbCrLf;
 
         r = r + n + "//------------------------------------------------------------------------------";

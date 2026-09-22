@@ -64,7 +64,6 @@ static class ModDirStack
         //:Returns directory popped.
         //:::SEE ALSO
         //: PopDir, PeekDir
-        string v = "";
 
 
         // TODO (not supported): On Error Resume Next
@@ -110,7 +109,6 @@ static class ModDirStack
         //:Returns top stack item (without removing it from stack).
         //:::SEE ALSO
         //: PopDir, PeekDir
-        string v = "";
 
 
         // TODO (not supported): On Error Resume Next

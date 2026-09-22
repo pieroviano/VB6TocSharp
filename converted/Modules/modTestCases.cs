@@ -36,7 +36,6 @@ static class ModTestCases
         // not (w/w/o)
         // if (w/w/o)
         // fcall (w/w/o)
-        bool nb = false;
 
 
         var b = HasGit();

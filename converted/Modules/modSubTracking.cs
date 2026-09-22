@@ -61,8 +61,6 @@ static class ModSubTracking
 
             vars = nVars;
         }
-
-        lockout = lockout; // as in VB6 source (no-op)
     }
 
     private static int SubParamIndex(string p)
