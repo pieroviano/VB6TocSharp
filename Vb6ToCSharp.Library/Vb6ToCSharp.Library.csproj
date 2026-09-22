@@ -53,7 +53,8 @@
         <PackageReadmeFile>README.md</PackageReadmeFile>
     </PropertyGroup>
     <ItemGroup>
-        <None Remove="$(SolutionDir)README.md" /> <!-- Net4x.NuGetUtility packs the solution README: this package has its own -->
+        <None Remove="$(SolutionDir)README.md" />
+        <!-- Net4x.NuGetUtility packs the solution README: this package has its own -->
         <None Update="README.md" Pack="true" PackagePath="\" />
         <Content Include="$(SolutionDir)License.txt" Link="License.txt" Pack="true" PackagePath="\License.txt" Condition="Exists('$(SolutionDir)License.txt')" />
     </ItemGroup>
