@@ -8,6 +8,7 @@
     <File Path=".gitignore" />
     <File Path="Directory.Build.Props" />
     <File Path="Directory.Nuget.Props" />
+    <File Path="LICENSE.txt" />
     <File Path="NuGet.Config" />
   </Folder>
   <Folder Name="/Tests/">
