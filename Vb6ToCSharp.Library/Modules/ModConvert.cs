@@ -310,25 +310,53 @@ public static class ModConvert
 
         }
 
-        var code = Mid(s, CodeSectionLoc(s));
-
-        var j = CodeSectionGlobalEndLoc(code);
-        var ppHeader = ModConvertStatements.BeginFile(s, ProjectInfo().CondComp); // #Const -> #define
-        var globals = ConvertGlobals(Left(code, j - 1));
-        var functions = ConvertCodeSegment(Mid(code, j));
-
-        var x = "";
-        x = x + ppHeader + UsingEverything(fName) + vbCrLf;
-        x = x + vbCrLf;
-        x = x + "public class " + fName + " {" + vbCrLf;
-        x = x + globals + vbCrLf + vbCrLf + functions;
-        x = x + vbCrLf + "}";
-
-        x = DeWs(x);
+        var x = UsingEverything(fName) + vbCrLf + vbCrLf + ConvertClassSource(s, ProjectInfo().CondComp);
+        var header = ModConvertStatements.FileHeader;
+        x = DeWs(header + x);
 
         f = fName + ".cs";
         convertClass = WriteOut(f, x, clsFile); // was never set: always False
         return convertClass;
+    }
+
+    /// <summary>
+    /// A class module (.cls) as C#: the class (constructor from Class_Initialize, IDisposable from Class_Terminate, Implements,
+    /// default member, NewEnum, default instance) or, for a VB6 "interface class" with empty procedures, an interface.
+    /// </summary>
+    public static string ConvertClassSource(string s, System.Collections.Generic.IDictionary<string, string> projectConstants = null)
+    {
+        var fName = ModuleName(s);
+        currentModule = fName;
+        ModConvertStatements.FileHeader = ModConvertStatements.BeginFile(s, projectConstants); // #Const -> #define
+        var model = ModConvertClasses.ClassModel.Scan(fName, s);
+        ModConvertClasses.Register(model);
+        if (ModConvertClasses.IsInterface(fName))
+        {
+            var iface = ModConvertClasses.InterfaceDeclaration(model);
+            if (iface != null)
+            {
+                return iface;
+            }
+        }
+        ModConvertClasses.Current = model;
+        try
+        {
+            var code = Mid(s, CodeSectionLoc(s));
+            var j = CodeSectionGlobalEndLoc(code);
+            var globals = ConvertGlobals(Left(code, j - 1));
+            var functions = ConvertCodeSegment(Mid(code, j));
+
+            var x = "";
+            x = x + ModConvertClasses.ClassDeclaration(model) + vbCrLf;
+            x = x + ModConvertClasses.ClassMembers(model);
+            x = x + globals + vbCrLf + vbCrLf + functions;
+            x = x + vbCrLf + "}";
+            return x;
+        }
+        finally
+        {
+            ModConvertClasses.Current = null;
+        }
     }
 
     public static string GetMultiLineSpace(string prv, string nxt)
@@ -649,10 +677,11 @@ public static class ModConvert
             {
                 continue;
             }
+            var withEvents = false;
             if (LMatch(l, "WithEvents "))
-            {
+            { // a property that (un)subscribes the module's handlers when the object changes
                 l = Trim(TMid(l, 12));
-                res = res + "// TODO: WithEvents not supported on " + RegExNMatch(l, patToken) + vbCrLf;
+                withEvents = true;
             }
             var pName = RegExNMatch(l, patToken);
             l = Trim(TMid(l, Len(pName) + 1));
@@ -717,6 +746,10 @@ public static class ModConvert
             else if (!isArr && fixedLen != "")
             { // a local: assignments are padded / truncated (see ConvertCodeLine)
                 res = res + SSpace(ind) + "string " + pName + " = new string(' ', " + fixedLen + ");" + vbCrLf;
+            }
+            else if (!isArr && withEvents && isGlobal)
+            {
+                res = before + ModConvertClasses.WithEventsProperty(mods, cType, pType, pName, ind);
             }
             else if (!isArr && asNew && isGlobal && ModConvertStatements.AutoNew)
             { // VB6 auto-instancing: created on first use, and again after Set x = Nothing
@@ -1457,6 +1490,14 @@ public static class ModConvert
             SubParamDecl(returnVariable, retType, "False", false, true); // VB6 passed False to the String asArray parameter
         }
 
+        var iface = ModConvertClasses.ImplementedInterface(asName);
+        if (iface != null)
+        { // Implements: IFoo_Bar is the explicit implementation of IFoo.Bar
+            res = System.Text.RegularExpressions.Regex.Replace(res, "^(public |private |internal )*(static )?", "");
+            var member = Mid(asName, Len(iface) + 2);
+            var at = InStr(res, " " + asName + "(");
+            res = Left(res, at) + iface + "." + member + Mid(res, at + Len(asName) + 1);
+        }
         res = EventAdapters.Build(asName, res) + res; // .NET-signature adapter forwarding to the VB6-signature handler
         var convertPrototype = Trim(res);
         return convertPrototype;
@@ -1619,6 +1660,15 @@ public static class ModConvert
             return convertElement;
 
         }
+        if (IsInStr(s, ".") && ModConvertClasses.IsPredeclared(SplitWord(Trim(s), 1, ".")) && ModConvertClasses.Current?.Name != SplitWord(Trim(s), 1, "."))
+        { // a VB_PredeclaredId class used by name: its default instance
+            s = Replace(Trim(s), SplitWord(Trim(s), 1, "."), SplitWord(Trim(s), 1, ".") + ".instance", 1, 1);
+        }
+        if (System.Text.RegularExpressions.Regex.IsMatch(Trim(s), "^[a-zA-Z_][a-zA-Z_0-9]*\\.(\\[_NewEnum\\]|_NewEnum)$"))
+        { // the enumerator of a collection (NewEnum)
+            convertElement = "((System.Collections.IEnumerable)" + SplitWord(Trim(s), 1, ".") + ").GetEnumerator()";
+            return convertElement;
+        }
 
 
         var firstToken = RegExNMatch(s, patTokenDot, 0);
@@ -1710,6 +1760,10 @@ public static class ModConvert
         //Debug.Print "ConvertFunctionCall: " & fCall
         var tb = "";
         var name = RegExNMatch(fCall, "^[a-zA-Z0-9_.]*");
+        if (name == "")
+        { // not a call (e.g. a cast expression)
+            return fCall;
+        }
         tb = tb + (ModConvertStatements.ConversionFunction(name) ?? name);
 
         var ts = Mid(fCall, Len(name) + 2);
@@ -1722,8 +1776,8 @@ public static class ModConvert
             tb = tb + ConvertValue(ts);
             tb = tb + "].Value";
         }
-        else if (vP.asArray != "")
-        {
+        else if (vP.asArray != "" || ModConvertClasses.HasIndexedDefault(vP.asType))
+        { // an array element, or the default member of a Collection / class: obj(i) -> obj[i]
             tb = tb + "[";
             tb = tb + ConvertValue(ts);
             tb = tb + "]";
@@ -1763,7 +1817,7 @@ public static class ModConvert
                     tb = tb + ConvertValue(tv);
                 }
             }
-            tb = tb + ")";
+            tb = tb + ModConvertStatements.CompareArgument(name, n) + ")";
         }
         var convertFunctionCall = tb;
         return convertFunctionCall;
@@ -1853,8 +1907,8 @@ public static class ModConvert
                     case "^" when pass == 0:
                         folded = "Pow(" + parts[i] + ", " + parts[i + 1] + ")";
                         break;
-                    case "Like" when pass == 1:
-                        folded = "IsLike(" + parts[i] + ", " + parts[i + 1] + ")";
+                    case "Like" when pass == 1: // Option Compare decides the case sensitivity
+                        folded = "LikeOperator.LikeString(" + parts[i] + ", " + parts[i + 1] + ", CompareMethod." + (ModConvertStatements.OptionCompareText ? "Text" : "Binary") + ")";
                         break;
                     case "Is" when pass == 1 && TLMatch(raws[i], "TypeOf "):
                         folded = parts[i] + " is " + ConvertDataType(raws[i + 1]);
@@ -1884,6 +1938,8 @@ public static class ModConvert
                 parts[i] = ModConvertStatements.AsDouble(raws[i], parts[i]);
             }
         }
+
+        ModConvertStatements.FoldStringComparisons(raws, parts, ops);
 
         o = parts.Count > 0 ? parts[0] : "";
         for (var i = 0; i < ops.Count; i++)
@@ -1982,7 +2038,7 @@ public static class ModConvert
             }
             else if (LMatch(l, "Implements "))
             {
-                o = "// TODO: VB6 " + l + " (add the interface to the class and map its Iface_Member procedures)";
+                o = ModConvertClasses.Current != null ? "// VB6 " + l + " (explicit interface implementation)" : "// TODO: VB6 " + l + " (only class modules implement interfaces)";
             }
             else if (RegExTest(l, "^(Public |Private |)Declare "))
             {
@@ -2156,7 +2212,8 @@ public static class ModConvert
                 a = Replace(a, tAWord, tAWord + ".instance", 1, 1);
             }
 
-            convertCodeLine = ConvertValue(convertCodeLine) + " = ";
+            var lhs = ConvertValue(convertCodeLine);
+            convertCodeLine = lhs + " = ";
 
             var rhs = Trim(Mid(s, T + 1));
             b = ConvertValue(rhs);
@@ -2167,6 +2224,11 @@ public static class ModConvert
                 b = target.fixedLen != "" && !IsInStr(a, "(") ? "FixedLen(" + b + ", " + target.fixedLen + ")" : ModConvertStatements.ImplicitConversion(target.asType, rhs, b);
             }
             convertCodeLine = convertCodeLine + b;
+            var setter = System.Text.RegularExpressions.Regex.Match(lhs, "^(.*?)([a-zA-Z_][a-zA-Z_0-9]*)\\((.*)\\)$");
+            if (setter.Success && ModConvertClasses.IsParameterizedSetter(setter.Groups[2].Value) && SubParam(setter.Groups[2].Value).asArray == "")
+            { // a property with parameters: obj.Name(i) = v -> obj.set_Name(i, v)
+                convertCodeLine = setter.Groups[1].Value + "set_" + setter.Groups[2].Value + "(" + setter.Groups[3].Value + ", " + b + ")";
+            }
         }
         else
         {

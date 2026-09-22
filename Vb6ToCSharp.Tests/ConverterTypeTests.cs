@@ -15,15 +15,18 @@ public partial class ConverterTests
         "using static System.Math;\r\nusing Vb6ToCSharp.UpgradeHelpers;\r\nusing static Vb6ToCSharp.UpgradeHelpers.VbRuntime;\r\n";
 
     /// <summary>The generated members compile (types and conversions, not only syntax) against the VB runtime and the helpers.</summary>
-    private static void AssertCompiles(string members)
+    private static void AssertCompiles(string members) => AssertCompilesTop("public static class M {\r\n" + members + "\r\n}");
+
+    /// <summary>Top-level declarations (classes, interfaces) compile against the VB runtime and the helpers.</summary>
+    private static void AssertCompilesTop(string code)
     {
-        var tree = CSharpSyntaxTree.ParseText(CompileUsings + "public static class M {\r\n" + members + "\r\n}");
+        var tree = CSharpSyntaxTree.ParseText(CompileUsings + code);
         var refs = new[] { typeof(object), typeof(Microsoft.VisualBasic.Strings), typeof(Vb6ToCSharp.UpgradeHelpers.VbRuntime), typeof(System.Linq.Enumerable) }
             .Select(t => MetadataReference.CreateFromFile(t.Assembly.Location))
             .Concat(new[] { MetadataReference.CreateFromFile(typeof(object).Assembly.Location.Replace("mscorlib.dll", "System.dll")) });
         var comp = CSharpCompilation.Create("check", new[] { tree }, refs, new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
         var errors = comp.GetDiagnostics().Where(d => d.Severity == DiagnosticSeverity.Error).ToList();
-        Assert.True(errors.Count == 0, string.Join("\n", errors) + "\n" + members);
+        Assert.True(errors.Count == 0, string.Join("\n", errors) + "\n" + code);
     }
 
     /// <summary>Globals + procedures of one module, with its per-file options.</summary>

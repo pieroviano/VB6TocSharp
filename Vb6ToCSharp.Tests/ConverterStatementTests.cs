@@ -311,7 +311,7 @@ public partial class ConverterTests
     [InlineData("Date = d", "DateAndTime.Today = d;")]
     [InlineData("n = 2 ^ 3", "n = Conversions.ToInteger(Pow(2, 3));")] // a Double assigned to a Long rounds as in VB6
     [InlineData("n = n + 2 ^ 3 * 4", "n = Conversions.ToInteger(n + Pow(2, 3) * 4);")]
-    [InlineData("b = s Like \"a*\"", "b = IsLike(s, ")]
+    [InlineData("b = s Like \"a*\"", "b = LikeOperator.LikeString(s, ")]
     [InlineData("b = TypeOf o Is Collection", "b = o is Collection;")]
     [InlineData("n = n And &HFF", "n = n & 0xFF;")]
     [InlineData("n = n Or 4", "n = n | 4;")]

@@ -38,6 +38,8 @@ public static class ModSubTracking
         public string origArgName = "";
         public string funcArgs = "";
         public string origProto = "";
+        public string getArgs = ""; // VB6 parameters of Property Get
+        public string letArgs = ""; // VB6 parameters of Property Let / Set (the last one is the value)
     }
     private static bool lockout = false;
     private static List<Variable> vars = new List<Variable> { }; 
@@ -345,8 +347,9 @@ public static class ModSubTracking
             case "get":
                 props[x].getter = ConvertSub(s, false, vbTriState.vbFalse);
                 props[x].asType = ConvertDataType(pType);
-                props[x].asFunc = asFunc;
+                props[x].asFunc = props[x].asFunc || asFunc;
                 props[x].funcArgs = pArgs;
+                props[x].getArgs = pArgs;
                 break;
             case "set":
             case "let":
@@ -364,68 +367,119 @@ public static class ModSubTracking
                 {
                     props[x].funcArgs = pArgs;
                 }
+                props[x].letArgs = pArgs;
                 break;
         }
     }
 
     public static string ReadOutProperties(bool asModule = false)
     {
-        // TODO (not supported): On Error Resume Next
-
         var T = "";
 
         var r = "";
-        var m = "";
         var n = vbCrLf;
         for (var I = 0; I < props.Count; I++)
         {
-            if (props[I].name != "" && !(props[I].getter == "" && props[I].setter == ""))
+            var p = props[I];
+            if (p.name == "" || p.getter == "" && p.setter == "")
             {
-                if (props[I].asPublic)
-                {
-                    r = r + "public ";
-                }
-                if (asModule)
-                {
-                    r = r + "static ";
-                }
-
-                //          If .Getter = "" Then R = R & "writeonly "
-                //          If .Setter = "" Then R = R & "readonly "
-                if (props[I].asFunc)
-                {
-                    r = r + " // TODO: Arguments not allowed on properties: " + props[I].funcArgs + vbCrLf;
-                    r = r + " //       " + props[I].origProto + vbCrLf;
-                }
-                r = r + m + props[I].asType + " " + props[I].name;
-                r = r + " {";
-
-                if (props[I].getter != "")
-                {
-                    r = r + n + "  get {";
-                    r = r + n + "    " + props[I].asType + " " + props[I].name + " = " + (props[I].asType == "string" ? "\"\"" : "default(" + props[I].asType + ")") + ";"; // VB6 returns the default when never assigned
-                    T = props[I].getter;
-                    T = Replace(T, ExitPropertyMark, "return " + props[I].name + ";");
-                    r = r + n + "    " + T;
-                    r = r + n + "  return " + props[I].name + ";";
-                    r = r + n + "  }";
-                }
-                if (props[I].setter != "")
-                {
-                    r = r + n + "  set {";
-                    T = props[I].setter;
-                    T = ReplaceToken(T, "value", "valueOrig");
-                    T = ReplaceToken(T, props[I].origArgName, "value"); // whole identifiers only
-                    T = Replace(T, ExitPropertyMark, "return;");
-                    r = r + n + "    " + T;
-                    r = r + n + "  }";
-                }
-                r = r + n + "}";
-                r = r + n;
+                continue;
             }
+            var initial = p.asType == "string" ? "\"\"" : "default(" + p.asType + ")"; // VB6 returns the default when never assigned
+            // Implements: IFoo_Name is the explicit implementation of IFoo.Name (no access modifier)
+            var iface = ModConvertClasses.ImplementedInterface(p.name);
+            var mods = iface != null ? "" : (p.asPublic ? "public " : "") + (asModule ? "static " : "");
+            var declName = iface != null ? iface + "." + Mid(p.name, Len(iface) + 2) : p.name;
+            if (p.asFunc)
+            { // a property with parameters: a getter method Name(args) and a setter method set_Name(args, value), as callers use them
+                if (p.getter != "")
+                {
+                    var args = PropertyParameters(p.getArgs, false, out _);
+                    r = r + mods + p.asType + " " + declName + "(" + args + ") {";
+                    r = r + n + "  " + p.asType + " " + p.name + " = " + initial + ";";
+                    r = r + n + "  " + Replace(p.getter, ExitPropertyMark, "return " + p.name + ";");
+                    r = r + n + "  return " + p.name + ";";
+                    r = r + n + "}" + n;
+                }
+                if (p.setter != "")
+                {
+                    var args = PropertyParameters(p.letArgs, true, out var valueName);
+                    T = ReplaceToken(p.setter, "value", "valueOrig");
+                    T = ReplaceToken(T, valueName, "value");
+                    T = Replace(T, ExitPropertyMark, "return;");
+                    r = r + mods + "void set_" + (iface != null ? Mid(p.name, Len(iface) + 2) : p.name) + "(" + args + (args == "" ? "" : ", ") + p.asType + " value) {";
+                    r = r + n + "  " + T;
+                    r = r + n + "}" + n;
+                }
+                continue;
+            }
+            r = r + mods + p.asType + " " + declName;
+            r = r + " {";
+
+            if (p.getter != "")
+            {
+                r = r + n + "  get {";
+                r = r + n + "    " + p.asType + " " + p.name + " = " + initial + ";";
+                T = p.getter;
+                T = Replace(T, ExitPropertyMark, "return " + p.name + ";");
+                r = r + n + "    " + T;
+                r = r + n + "  return " + p.name + ";";
+                r = r + n + "  }";
+            }
+            if (p.setter != "")
+            {
+                r = r + n + "  set {";
+                T = p.setter;
+                T = ReplaceToken(T, "value", "valueOrig");
+                T = ReplaceToken(T, p.origArgName, "value"); // whole identifiers only
+                T = Replace(T, ExitPropertyMark, "return;");
+                r = r + n + "    " + T;
+                r = r + n + "  }";
+            }
+            r = r + n + "}";
+            r = r + n;
         }
 
         var readOutProperties = r;
         return readOutProperties;
+    }
+
+    /// <summary>
+    /// C# parameters of a property with arguments (passed by value: callers pass expressions); for Let / Set the last VB6
+    /// parameter is the assigned value and is left out (its name is returned).
+    /// </summary>
+    private static string PropertyParameters(string vbArgs, bool dropValue, out string valueName)
+    {
+        valueName = "";
+        var list = ModConvertStatements.SplitTopLevel(vbArgs ?? "");
+        list.RemoveAll(a => Trim(a) == "");
+        if (dropValue && list.Count > 0)
+        {
+            var last = Trim(list[list.Count - 1]);
+            foreach (var kw in new[] { "ByVal ", "ByRef ", "Optional " })
+            {
+                if (LMatch(last, kw))
+                {
+                    last = Trim(Mid(last, Len(kw) + 1));
+                }
+            }
+            valueName = SplitWord(last, 1);
+            list.RemoveAt(list.Count - 1);
+        }
+        var r = new List<string>();
+        foreach (var a in list)
+        {
+            var c = ConvertParameter(a, true);
+            if (LMatch(c, "ref "))
+            {
+                c = Mid(c, 5);
+            }
+            if (LMatch(c, "out "))
+            {
+                c = Mid(c, 5);
+            }
+            r.Add(c);
+        }
+        return string.Join(", ", r);
     }
 }

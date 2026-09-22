@@ -93,6 +93,7 @@ public static class ModVb6ToCs
                 convertDataType = "float";
                 break;
             case "Any":
+            case "IUnknown": // NewEnum returns an enumerator
                 convertDataType = "object";
                 break;
             case "Boolean":

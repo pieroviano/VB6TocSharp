@@ -33,6 +33,9 @@ public static class ModConvertStatements
     /// <summary>VB6 source of the file being converted (for declarations that depend on its procedures, e.g. WithEvents handlers).</summary>
     public static string FileSource = "";
 
+    /// <summary>#define / #undef lines that open the C# file being converted (from BeginFile).</summary>
+    public static string FileHeader = "";
+
     /// <summary>Option Base of the file: the default lower bound of arrays.</summary>
     public static int OptionBase;
 
@@ -288,6 +291,51 @@ public static class ModConvertStatements
         return ops.Exists(o => o == "\\" || o == "Mod") && rank <= 2 ? "Long" : NumericRank[rank];
     }
 
+    private static bool IsLogical(string op) => op == "And" || op == "Or" || op == "Xor" || op == "Eqv" || op == "Imp";
+
+    /// <summary>
+    /// String comparisons (an operand typed String, the whole side of the comparison): under Option Compare Text all of them
+    /// ignore case (TextCompare); relational ones, which C# does not define on strings, compare ordinally otherwise.
+    /// </summary>
+    public static void FoldStringComparisons(List<string> raws, List<string> parts, List<string> ops)
+    {
+        for (var k = 0; k < ops.Count; k++)
+        {
+            var op = ops[k];
+            if (!(op == "=" || op == "<>" || op == "<" || op == ">" || op == "<=" || op == ">=")) continue;
+            if (!(k == 0 || IsLogical(ops[k - 1])) || !(k + 1 == ops.Count || IsLogical(ops[k + 1]))) continue;
+            if (OperandType(raws[k]) != "String" && OperandType(raws[k + 1]) != "String") continue;
+            var cs = op == "=" ? "==" : op == "<>" ? "!=" : op;
+            string folded;
+            if (OptionCompareText) folded = "TextCompare(" + parts[k] + ", " + parts[k + 1] + ") " + cs + " 0";
+            else if (op == "=" || op == "<>") continue; // C# string equality is VB6 Binary compare
+            else folded = "string.CompareOrdinal(" + parts[k] + ", " + parts[k + 1] + ") " + cs + " 0";
+            parts[k] = folded;
+            raws[k] = "True";
+            parts.RemoveAt(k + 1);
+            raws.RemoveAt(k + 1);
+            ops.RemoveAt(k);
+            k--;
+        }
+    }
+
+    /// <summary>Option Compare Text: the compare argument the VB6 string functions default to, appended after <paramref name="argCount"/> arguments.</summary>
+    public static string CompareArgument(string function, int argCount)
+    {
+        if (!OptionCompareText) return "";
+        const string text = "CompareMethod.Text";
+        switch (function)
+        {
+            case "InStr": return argCount == 2 || argCount == 3 ? ", " + text : ""; // InStr(s1, s2, compare) and InStr(start, s1, s2, compare)
+            case "InStrRev": return argCount == 2 ? ", -1, " + text : argCount == 3 ? ", " + text : "";
+            case "StrComp": return argCount == 2 ? ", " + text : "";
+            case "Replace": return argCount == 3 ? ", 1, -1, " + text : argCount == 4 ? ", -1, " + text : argCount == 5 ? ", " + text : "";
+            case "Split": return argCount == 1 ? ", \" \", -1, " + text : argCount == 2 ? ", -1, " + text : argCount == 3 ? ", " + text : "";
+            case "Filter": return argCount == 2 ? ", true, " + text : argCount == 3 ? ", " + text : "";
+            default: return "";
+        }
+    }
+
     /// <summary>C# cannot mix decimal with float / double: in such an expression Currency operands become double (VB6 gives a Double).</summary>
     public static void PromoteCurrency(List<string> raws, List<string> parts)
     {
@@ -530,6 +578,7 @@ public static class ModConvertStatements
     public static string BeginFile(string vbSource, IDictionary<string, string> projectConstants = null)
     {
         ResetFileOptions();
+        ModConvertClasses.Current = null;
         OptionExplicit = string.IsNullOrEmpty(vbSource) || Regex.IsMatch(vbSource, "(?mi)^Option Explicit");
         FileSource = vbSource ?? "";
         ppConsts = ProjectConstantValues(projectConstants);
