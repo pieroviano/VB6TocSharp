@@ -176,7 +176,7 @@ static class ModTextFiles
 
         if (startline == 1 && numLines == 0)
         {
-            readFile = Join(cacheFileLoad, vbCrLf);
+            readFile = Join(cacheFileLoad, vbCrLf) ?? ""; // .NET Join returns null for an empty array (VB6: "")
         }
         else if (startline > cacheFileLoad.Length)
         {
@@ -185,7 +185,7 @@ static class ModTextFiles
         else
         {
             // NumLines = 0 means "rest of file" (it returned nothing for StartLine > 1)
-            readFile = Join(SubArr(cacheFileLoad, startline - 1, numLines > 0 ? numLines : cacheFileLoad.Length), vbCrLf);
+            readFile = Join(SubArr(cacheFileLoad, startline - 1, numLines > 0 ? numLines : cacheFileLoad.Length), vbCrLf) ?? "";
             //    ReadFile = LineByNumber(CacheFileLoad, Startline, NumLines)
         }
 
@@ -420,11 +420,11 @@ static class ModTextFiles
 
         if (VbFileCountLines(tFileName, ref T, ref c, ref b, ref m))
         {
-            MsgBox("File Line Stat: " + vbCrLf + " Totl: " + T + vbCrLf + "Code: " + c + vbCrLf + "Blnk: " + b + vbCrLf + "Cmnt: " + m, vbMsgBoxRtlReading);
+            Notify("File Line Stat: " + vbCrLf + " Totl: " + T + vbCrLf + "Code: " + c + vbCrLf + "Blnk: " + b + vbCrLf + "Cmnt: " + m);
         }
         else
         {
-            MsgBox("File Not Found: " + tFileName);
+            Notify("File Not Found: " + tFileName);
         }
     }
 
@@ -445,13 +445,14 @@ static class ModTextFiles
         //:- [OverWrite] - Default is to append.  Set to TRUE to delete file before write (overwrite contents).
         //:- [PreventNL] - By default, the end of the string is checked for a new line.  Use this to write to a file without a new-line.
         //:::RETURN
-        //:  Boolean - Returns True.
+        //:  Boolean - True if the file was written, False on failure.
         //:::SEE ALSO
         //:  ReadEntireFile, WriteFile, CountLines
 
         // the VBOpenFile/VBWriteFile stubs wrote nothing (and OverWrite deleted the file): write for real.
-        // VB: Print # appends a new line unless PreventNL or Str already ends with one; errors ignored (On Error Resume Next).
+        // VB: Print # appends a new line unless PreventNL or Str already ends with one.
         var text = preventNl || Right(str, 2) == vbCrLf ? str : str + vbCrLf;
+        bool writeFile;
         try
         {
             if (overWrite)
@@ -462,12 +463,13 @@ static class ModTextFiles
             {
                 System.IO.File.AppendAllText(file, text, System.Text.Encoding.Default);
             }
+            writeFile = true;
         }
         catch (Exception e)
         {
             Console.WriteLine(e);
+            writeFile = false; // VB always returned True (On Error Resume Next), hiding failed writes
         }
-        var writeFile = true;
         return writeFile;
     }
 }

@@ -143,15 +143,13 @@ static class ModUtils
 
     public static bool IsIde()
     {
-        //IsIDE = False
-        //Exit Function
-
-        // works on a very simple princicple... debug statements don't get compiled...
-        // TODO (not supported):   On Error GoTo IDEInUse
-        Debugger.Break(); //division by zero error
-        var isIde = false;
-        return isIde;
+        // VB6 detected the IDE via a Debug-only error; the translation called Debugger.Break(), which
+        // outside a debugger raises the JIT-debugger prompt or kills the process.
+        return Debugger.IsAttached;
     }
+
+    /// <summary>User-facing notification (message box by default); hosts and tests can replace it.</summary>
+    public static Action<string> Notify = s => Interaction.MsgBox(s);
 
     public static bool IsIn(string s, params dynamic[] kUnused)
     {
@@ -759,9 +757,12 @@ static class ModUtils
         return isOperator;
     }
 
+    /// <summary>Progress sink (the main window by default); hosts and tests can replace it.</summary>
+    public static Action<int, int, string> Progress = (val, max, cap) => Frm.Instance.Prg(val, max, cap);
+
     public static void Prg(int val = -1, int max = -1, string cap = "#")
     {
-        Frm.Instance.Prg(val, max, cap);
+        Progress(val, max, cap);
     }
 
     public static string CVal(ref Collection coll, string key, string def = "")

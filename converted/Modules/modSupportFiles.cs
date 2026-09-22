@@ -2,6 +2,7 @@
 using static Microsoft.VisualBasic.Constants;
 using static Microsoft.VisualBasic.FileSystem;
 using static Microsoft.VisualBasic.Strings;
+using static Vb6ToCSharp.VbExtension;
 using static Vb6ToCSharp.Modules.ModConfig;
 using static Vb6ToCSharp.Modules.ModProjectFiles;
 using static Vb6ToCSharp.Modules.ModTextFiles;
@@ -51,7 +52,7 @@ static class ModSupportFiles
         s = s + "Properties\\";
         if (Dir(s, vbDirectory) == "")
         {
-            MkDir(s);
+            System.IO.Directory.CreateDirectory(s);
         }
 
 

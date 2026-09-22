@@ -88,7 +88,7 @@ static class ModConfig
         if (Dir(outputFolder, vbDirectory) == "")
         {
             // TODO (not supported): On Error GoTo CantMakeOutputFolder
-            MkDir(outputFolder);
+            System.IO.Directory.CreateDirectory(outputFolder); // MkDir creates one level only (Modules\ etc. under a new folder threw)
         }
         return outputFolder;
     }

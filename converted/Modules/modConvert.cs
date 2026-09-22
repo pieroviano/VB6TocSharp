@@ -42,12 +42,12 @@ static class ModConvert
         CreateProjectFile(vbpFile);
         CreateProjectSupportFiles();
         ConvertFileList(FilePath(vbpFile), VbpModules(vbpFile) + vbCrLf + VbpClasses(vbpFile) + vbCrLf + VbpForms(vbpFile)); //& vbCrLf & VBPUserControls(vbpFile)
-        MsgBox("Complete.");
+        Notify("Complete.");
     }
 
     public static bool ConvertFileList(string path, string list, string sep = vbCrLf)
     {
-        bool convertFileList = false;
+        bool convertFileList = true;
         int n = 0;
 
         var v = StrCnt(list, sep) + 1;
@@ -66,7 +66,7 @@ static class ModConvert
                 goto NextItem;
             }
 
-            ConvertFile(path + l);
+            convertFileList = ConvertFile(path + l) & convertFileList; // was never set: always False
 
             NextItem:;
             Prg(n);
@@ -98,11 +98,10 @@ static class ModConvert
                 //      Case ".ctl": ConvertModule  someFile
                 break;
             default:
-                MsgBox("UNKNOWN VB TYPE: " + someFile);
+                Notify("UNKNOWN VB TYPE: " + someFile);
                 return convertFile;
         }
-        formName = "";
-        convertFile = true;
+        formName = ""; // the result used to be forced to True, hiding failed conversions
         return convertFile;
     }
 
@@ -112,7 +111,7 @@ static class ModConvert
 
         if (!FileExists(frmFile))
         {
-            MsgBox("File not found in ConvertForm: " + frmFile);
+            Notify("File not found in ConvertForm: " + frmFile);
             return convertForm;
 
         }
@@ -134,7 +133,7 @@ static class ModConvert
 
         var x = ConvertFormUi(preamble, code);
         f = fName + ".xaml";
-        WriteOut(f, x, frmFile);
+        convertForm = WriteOut(f, x, frmFile);
         if (uiOnly)
         {
             return convertForm;
@@ -166,7 +165,7 @@ static class ModConvert
         x = DeWs(x);
 
         f = fName + ".xaml.cs";
-        WriteOut(f, x, frmFile);
+        convertForm = WriteOut(f, x, frmFile); // was never set: always False
         return convertForm;
     }
 
@@ -176,7 +175,7 @@ static class ModConvert
 
         if (!FileExists(basFile))
         {
-            MsgBox("File not found in ConvertModule: " + basFile);
+            Notify("File not found in ConvertModule: " + basFile);
             return convertModule;
 
         }
@@ -207,7 +206,7 @@ static class ModConvert
 
         x = DeWs(x);
 
-        WriteOut(f, x, basFile);
+        convertModule = WriteOut(f, x, basFile); // was never set: always False
         return convertModule;
     }
 
@@ -217,7 +216,7 @@ static class ModConvert
 
         if (!FileExists(clsFile))
         {
-            MsgBox("File not found in ConvertModule: " + clsFile);
+            Notify("File not found in ConvertModule: " + clsFile);
             return convertClass;
 
         }
@@ -248,7 +247,7 @@ static class ModConvert
         x = DeWs(x);
 
         f = fName + ".cs";
-        WriteOut(f, x, clsFile);
+        convertClass = WriteOut(f, x, clsFile); // was never set: always False
         return convertClass;
     }
 
@@ -2101,11 +2100,36 @@ static class ModConvert
             {
                 l = TMid(l, 5);
                 var forKey = SplitWord(l, 1, "=");
-                l = SplitWord(l, 2, "=");
+                l = SplitWord(l, 2, "=", true, true);
                 var forStr = SplitWord(l, 1, " To ");
                 var forEnd = SplitWord(l, 2, " To ");
-                // VB For ... To is inclusive of the end value (was "<")
-                o = o + SSpace(ind) + "for(" + ConvertElement(forKey) + "=" + ConvertElement(forStr) + "; " + ConvertElement(forKey) + "<=" + ConvertElement(forEnd) + "; " + ConvertElement(forKey) + "++) {";
+                var forStep = SplitWord(forEnd, 2, " Step ");
+                if (forStep != "")
+                {
+                    forEnd = SplitWord(forEnd, 1, " Step "); // "Step" used to end up inside the end expression
+                }
+                var fk = ConvertElement(forKey);
+                var fe = ConvertElement(forEnd);
+                string forCond;
+                string forIncr;
+                // VB For ... To is inclusive of the end value (was "<"); a negative Step counts down
+                if (forStep == "")
+                {
+                    forCond = fk + "<=" + fe;
+                    forIncr = fk + "++";
+                }
+                else if (Microsoft.VisualBasic.Information.IsNumeric(forStep))
+                {
+                    forCond = fk + (Val(forStep) < 0 ? ">=" : "<=") + fe;
+                    forIncr = fk + " += " + ConvertValue(forStep);
+                }
+                else
+                {
+                    var fs = ConvertValue(forStep);
+                    forCond = "(" + fs + " >= 0 ? " + fk + " <= " + fe + " : " + fk + " >= " + fe + ")";
+                    forIncr = fk + " += " + fs;
+                }
+                o = o + SSpace(ind) + "for(" + fk + "=" + ConvertElement(forStr) + "; " + forCond + "; " + forIncr + ") {";
                 ind = ind + spIndent;
             }
             else if (TLeft(l, 11) == "Loop While ")

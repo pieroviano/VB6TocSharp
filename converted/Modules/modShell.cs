@@ -1,4 +1,6 @@
 using System;
+using System.Diagnostics;
+using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Threading;
 using static Microsoft.VisualBasic.Constants;
@@ -63,9 +65,6 @@ static class ModShell
         public int dwThreadId = 0;
     }
     [DllImport("kernel32.dll")] private static extern void Sleep(int dwMilliseconds);
-    [DllImport("kernel32.dll")] private static extern int CreateProcessA(int lpApplicationName, string lpCommandLine, int lpProcessAttributes, int lpThreadAttributes, int bInheritHandles, int dwCreationFlags, int lpEnvironment, int lpCurrentDirectory, ref Startupinfo lpStartupInfo, ref ProcessInformation lpProcessInformation);
-    [DllImport("kernel32.dll")] private static extern int WaitForSingleObject(int hHandle, int dwMilliseconds);
-    [DllImport("kernel32.dll")] private static extern bool CloseHandle(ref int hObject);
     [DllImport("user32.dll")] private static extern int GetDesktopWindow();
     [DllImport("shell32.dll", EntryPoint = "ShellExecuteA")] private static extern int ShellExecute(int hwnd, string lpOperation, string lpFile, string lpParameters, string lpDirectory, int nShowCmd);
 
@@ -75,26 +74,41 @@ static class ModShell
         // TODO (not supported): On Error GoTo RunError
         string c = "";
 
-        var a = TempFile();
-        var b = TempFile();
         if (!asAdmin)
         {
-            ShellAndWait("cmd /c " + cmd + " 1> " + a + " 2> " + b, EnSw.EnSwHide);
+            // capture the output directly (was: temp-file redirection through a broken CreateProcess P/Invoke)
+            using (var p = Process.Start(new ProcessStartInfo("cmd.exe", "/c " + cmd)
+                   {
+                       UseShellExecute = false,
+                       CreateNoWindow = true,
+                       RedirectStandardOutput = true,
+                       RedirectStandardError = true,
+                       WorkingDirectory = System.IO.Directory.GetCurrentDirectory()
+                   }))
+            {
+                lastProcessId = p.Id;
+                var errTask = p.StandardError.ReadToEndAsync();
+                var output = p.StandardOutput.ReadToEnd();
+                p.WaitForExit();
+                errStr = errTask.Result;
+                return output;
+            }
         }
-        else
-        {
-            c = TempFile("", "tmp_", ".bat");
-            WriteFile(c, cmd + " 1> " + a + " 2> " + b, true);
-            RunFileAsAdmin(c);
-        }
+
+        // "runas" cannot redirect: the elevated batch writes to temp files that are polled below
+        var a = TempFile();
+        var b = TempFile();
+        c = TempFile("", "tmp_", ".bat");
+        WriteFile(c, cmd + " 1> " + Quote(a) + " 2> " + Quote(b), true);
+        RunFileAsAdmin(c);
 
         var iter = 0;
         const int maxIter = 10;
         while (true)
         {
-            var tLen = FileLen(a);
+            var tLen = FileExists(a) ? FileLen(a) : -1;
             Sleep(800);
-            if (iter > maxIter || FileLen(a) == tLen)
+            if (iter > maxIter || (FileExists(a) ? FileLen(a) : -1) == tLen)
             {
                 break;
             }
@@ -116,26 +130,42 @@ static class ModShell
 */
     public static void ShellAndWait(string appToRun, EnSw sw = EnSw.EnSwNormal)
     {
-        ProcessInformation nameOfProc = null;
-
-        Startupinfo nameStart = null;
-
-        int rc = 0;
-
-
-        // TODO (not supported): On Error GoTo ErrorRoutineErr
-        nameStart.cb = Len(nameStart);
-        if (sw == EnSw.EnSwHide)
+        // the CreateProcessA P/Invoke passed null (class) structs with 32-bit handles and always threw
+        SplitCommandLine(appToRun, out var exe, out var args);
+        var psi = new ProcessStartInfo(exe, args)
         {
-            rc = CreateProcessA(0, appToRun, 0, 0, CInt(sw), createNoWindow, 0, 0, ref nameStart, ref nameOfProc);
+            UseShellExecute = false,
+            CreateNoWindow = sw == EnSw.EnSwHide,
+            WindowStyle = sw == EnSw.EnSwHide ? ProcessWindowStyle.Hidden
+                : sw == EnSw.EnSwMaximize ? ProcessWindowStyle.Maximized
+                : sw == EnSw.EnSwMinimize ? ProcessWindowStyle.Minimized
+                : ProcessWindowStyle.Normal
+        };
+        using (var p = Process.Start(psi))
+        {
+            lastProcessId = p.Id;
+            p.WaitForExit();
+        }
+    }
+
+    // "exe" args  |  exe args  (CreateProcess command-line convention)
+    internal static void SplitCommandLine(string commandLine, out string exe, out string args)
+    {
+        commandLine = Trim(commandLine);
+        int end;
+        if (Left(commandLine, 1) == "\"")
+        {
+            end = InStr(2, commandLine, "\"");
+            end = end == 0 ? Len(commandLine) : end;
+            exe = Mid(commandLine, 2, Math.Max(0, end - 2));
         }
         else
         {
-            rc = CreateProcessA(0, appToRun, 0, 0, CInt(sw), normalPriorityClass, 0, 0, ref nameStart, ref nameOfProc);
+            end = InStr(commandLine, " ");
+            end = end == 0 ? Len(commandLine) : end - 1;
+            exe = Left(commandLine, end);
         }
-        lastProcessId = nameOfProc.dwProcessId;
-        rc = WaitForSingleObject(nameOfProc.hProcess, infinite);
-        CloseHandle(ref nameOfProc.hProcess);
+        args = Trim(Mid(commandLine, end + 1));
     }
 
     public static string TempFile(string useFolder = "", string usePrefix = "tmp_", string extension = ".tmp", bool testWrite = true)
@@ -146,13 +176,13 @@ static class ModShell
         }
         if (useFolder == "")
         {
-            useFolder = AppDomain.CurrentDomain.BaseDirectory + dirsep;
+            useFolder = AppDomain.CurrentDomain.BaseDirectory; // already ends with a separator
         }
         if (Right(useFolder, 1) != dirsep)
         {
             useFolder = useFolder + dirsep;
         }
-        var fn = Replace(usePrefix + CDbl(DateTime.Now) +"_" + Thread.CurrentThread.ManagedThreadId + "_" + Random(999999), ".", "_");
+        var fn = Replace(usePrefix + CDbl(DateTime.Now).ToString(CultureInfo.InvariantCulture) + "_" + Thread.CurrentThread.ManagedThreadId + "_" + Random(999999), ".", "_");
         while (FileExists(useFolder + fn + ".tmp"))
         {
             fn = fn + Chr(Random(25) + Asc("a"));
@@ -164,10 +194,10 @@ static class ModShell
             // TODO (not supported): On Error GoTo TestWriteFailed
             WriteFile(tempFile, "TEST", true, true);
             // TODO (not supported): On Error GoTo TestReadFailed
-            var res = ReadFile(tempFile);
+            var res = ReadEntireFile(tempFile); // ReadFile caches by name+timestamp and can return stale text
             if (res != "TEST")
             {
-                MsgBox("Test write to temp file " + tempFile + " failed." + vbCrLf + "Result (Len=" + Len(res) + "):" + vbCrLf + res, vbCritical);
+                Notify("Test write to temp file " + tempFile + " failed." + vbCrLf + "Result (Len=" + Len(res) + "):" + vbCrLf + res);
             }
             // TODO (not supported): On Error GoTo TestClearFailed
             System.IO.File.Delete(tempFile);

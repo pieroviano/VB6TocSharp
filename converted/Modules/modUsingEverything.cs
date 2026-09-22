@@ -1,5 +1,6 @@
 using static Microsoft.VisualBasic.Constants;
 using static Microsoft.VisualBasic.Strings;
+using static Vb6ToCSharp.VbExtension;
 using static Vb6ToCSharp.Modules.ModConfig;
 using static Vb6ToCSharp.Modules.ModProjectFiles;
 using static Vb6ToCSharp.Modules.ModTextFiles;

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
 using Vb6ToCSharp.Modules;
@@ -18,7 +19,26 @@ public sealed class ConverterFixture : IDisposable
     {
         iniBackup = File.Exists(ini) ? File.ReadAllText(ini) : null;
         var vbp = Path.Combine(Dir, "prj.vbp");
-        File.WriteAllText(vbp, "Type=Exe\r\nModule=modA; modA.bas\r\n");
+        File.WriteAllText(vbp, "Type=Exe\r\nForm=frmA.frm\r\nModule=modA; modA.bas\r\n");
+        File.WriteAllText(Path.Combine(Dir, "frmA.frm"),
+            "VERSION 5.00\r\n" +
+            "Begin VB.Form frmA \r\n" +
+            "   Caption         =   \"Hello\"\r\n" +
+            "   ClientHeight    =   3000\r\n" +
+            "   ClientWidth     =   4000\r\n" +
+            "   Begin VB.CommandButton cmdOK \r\n" +
+            "      Caption         =   \"OK\"\r\n" +
+            "      Height          =   495\r\n" +
+            "      Left            =   120\r\n" +
+            "      TabIndex        =   0\r\n" +
+            "      Top             =   120\r\n" +
+            "      Width           =   1215\r\n" +
+            "   End\r\n" +
+            "End\r\n" +
+            "Attribute VB_Name = \"frmA\"\r\n" +
+            "Attribute VB_GlobalNameSpace = False\r\n" +
+            "Option Explicit\r\n\r\n" +
+            "Private Sub cmdOK_Click()\r\n  Unload Me\r\nEnd Sub\r\n");
         File.WriteAllText(Path.Combine(Dir, "modA.bas"),
             "Attribute VB_Name = \"modA\"\r\nOption Explicit\r\n\r\n" +
             "Public Function Twice(ByVal X As Long) As Long\r\n  Twice = X * 2\r\nEnd Function\r\n\r\n" +
@@ -41,8 +61,11 @@ public sealed class ConverterFixture : IDisposable
 
 public class ConverterTests : IClassFixture<ConverterFixture>
 {
-    public ConverterTests(ConverterFixture _)
+    private readonly ConverterFixture fixture;
+
+    public ConverterTests(ConverterFixture fixture)
     {
+        this.fixture = fixture;
         ModConvertUtils.ReComment("");
         ModConvertUtils.InitDeString();
     }
@@ -135,5 +158,122 @@ public class ConverterTests : IClassFixture<ConverterFixture>
         var cs = TestUtil.WithTimeout(() => ModConvert.ConvertCodeSegment(vb, true), 20000);
         Assert.Contains("First(", cs);
         Assert.Contains("Second(", cs);
+    }
+
+    [Fact]
+    public void ConvertSub_ForNegativeStep_CountsDown()
+    {
+        var cs = Flat(Convert(Sub("  Dim i As Long", "  For i = 10 To 1 Step -1", "    Debug.Print i", "  Next")));
+        Assert.Matches(@"for\(i ?= ?10; i ?>= ?1; i \+= ?-1\)", cs);
+        Assert.DoesNotContain("Step", cs);
+    }
+
+    [Fact]
+    public void ConvertSub_ForPositiveStep()
+    {
+        var cs = Flat(Convert(Sub("  Dim i As Long", "  For i = 0 To 10 Step 2", "    Debug.Print i", "  Next")));
+        Assert.Matches(@"for\(i ?= ?0; i ?<= ?10; i \+= ?2\)", cs);
+    }
+
+    [Fact]
+    public void ConvertSub_ForVariableStep_ChecksSignAtRuntime()
+    {
+        var cs = Flat(Convert(Sub("  Dim i As Long", "  Dim n As Long", "  Dim s As Long", "  For i = 1 To n Step s", "    Debug.Print i", "  Next")));
+        Assert.Contains("(s >= 0 ? i <= n : i >= n)", cs);
+        Assert.Contains("i += s", cs);
+    }
+
+    private static string Out(ConverterFixture f, string rel) => Path.Combine(f.Dir, "out", rel);
+
+    private static List<string> CaptureNotify(Action a)
+    {
+        var got = new List<string>();
+        var oldNotify = ModUtils.Notify;
+        var oldProgress = ModUtils.Progress;
+        ModUtils.Notify = got.Add;
+        ModUtils.Progress = (_, _, _) => { };
+        try { a(); }
+        finally
+        {
+            ModUtils.Notify = oldNotify;
+            ModUtils.Progress = oldProgress;
+        }
+        return got;
+    }
+
+    private void CleanOut()
+    {
+        var o = Path.Combine(fixture.Dir, "out");
+        if (Directory.Exists(o)) Directory.Delete(o, true);
+    }
+
+    [Fact]
+    public void ConvertFile_Module_WritesConvertedClass()
+    {
+        CleanOut();
+        var ok = false;
+        var notes = CaptureNotify(() => ok = TestUtil.WithTimeout(() => ModConvert.ConvertFile(Path.Combine(fixture.Dir, "modA.bas")), 30000));
+        Assert.True(ok);
+        Assert.Empty(notes);
+        var cs = File.ReadAllText(Out(fixture, @"Modules\modA.cs"));
+        Assert.Contains("static class modA", cs);
+        Assert.Contains("Twice(", cs);
+        Assert.Contains("Add2(", cs);
+    }
+
+    [Fact]
+    public void ConvertFile_AlreadyConverted_ReturnsFalse()
+    {
+        CleanOut();
+        var f = Path.Combine(fixture.Dir, "modA.bas");
+        CaptureNotify(() => Assert.True(TestUtil.WithTimeout(() => ModConvert.ConvertFile(f), 30000)));
+        File.WriteAllText(Out(fixture, @"Modules\modA.cs"), "// ### CONVERTED\r\n");
+        CaptureNotify(() => Assert.False(TestUtil.WithTimeout(() => ModConvert.ConvertFile(f), 30000)));
+    }
+
+    [Fact]
+    public void ConvertFile_Form_WritesXamlAndCodeBehind()
+    {
+        CleanOut();
+        var ok = false;
+        CaptureNotify(() => ok = TestUtil.WithTimeout(() => ModConvert.ConvertFile(Path.Combine(fixture.Dir, "frmA.frm")), 30000));
+        Assert.True(ok);
+        var xaml = File.ReadAllText(Out(fixture, @"Forms\frmA.xaml"));
+        Assert.Contains("<Window", xaml);
+        Assert.Contains("Hello", xaml);
+        Assert.Contains("cmdOK", xaml);
+        var cs = File.ReadAllText(Out(fixture, @"Forms\frmA.xaml.cs"));
+        Assert.Contains("partial class frmA", cs);
+        Assert.Contains("cmdOK_Click", cs);
+    }
+
+    [Fact]
+    public void ConvertFile_UnknownType_NotifiesAndFails()
+    {
+        var ok = true;
+        var notes = CaptureNotify(() => ok = ModConvert.ConvertFile(Path.Combine(fixture.Dir, "x.txt")));
+        Assert.False(ok);
+        Assert.Single(notes);
+        Assert.Contains("UNKNOWN VB TYPE", notes[0]);
+    }
+
+    [Fact]
+    public void ConvertModule_MissingFile_NotifiesAndFails()
+    {
+        var ok = true;
+        var notes = CaptureNotify(() => ok = ModConvert.ConvertModule(Path.Combine(fixture.Dir, "nope.bas")));
+        Assert.False(ok);
+        Assert.Contains("File not found", Assert.Single(notes));
+    }
+
+    [Fact]
+    public void ConvertProject_ConvertsEverythingHeadless()
+    {
+        CleanOut();
+        var notes = CaptureNotify(() => TestUtil.WithTimeout(() => { ModConvert.ConvertProject(ModConfig.VbpFile); return 0; }, 60000));
+        Assert.Equal(new[] { "Complete." }, notes);
+        Assert.True(File.Exists(Out(fixture, @"Modules\modA.cs")));
+        Assert.True(File.Exists(Out(fixture, @"Forms\frmA.xaml")));
+        Assert.True(File.Exists(Out(fixture, @"Forms\frmA.xaml.cs")));
     }
 }

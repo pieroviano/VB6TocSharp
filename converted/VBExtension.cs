@@ -204,6 +204,11 @@ namespace Vb6ToCSharp
 
         public static double CDbl(object A)
         {
+            if (A is DateTime d)
+            {
+                return d.ToOADate(); // VB6 CDbl(Date) is the OLE date; IConvertible throws for DateTime
+            }
+
             return A is IConvertible ? ((IConvertible)A).ToDouble(null) : 0;
         }
 
@@ -920,6 +925,29 @@ namespace Vb6ToCSharp
         //public static string Mid(string S, int F, int L) { return Mid(S, (int)F, (int)L); }
         //public static string Left(string S, int F) { return Left(S, (int)F); }
         //public static string Right(string S, int F) { return Right(S, (int)F); }
+        // VB6 string semantics. Microsoft.VisualBasic.Strings differs on empty input: Replace("") returns null
+        // (VB6: "") and Split("") returns {""} (VB6: an empty array). These exact-arity overloads win overload
+        // resolution over the Strings ones (which need optional parameters) wherever both are imported.
+        public static string Replace(string Expression, string Find, string Replacement)
+        {
+            return Strings.Replace(Expression, Find, Replacement) ?? "";
+        }
+
+        public static string Replace(string Expression, string Find, string Replacement, int Start)
+        {
+            return Strings.Replace(Expression, Find, Replacement, Start) ?? "";
+        }
+
+        public static string Replace(string Expression, string Find, string Replacement, int Start, int Count)
+        {
+            return Strings.Replace(Expression, Find, Replacement, Start, Count) ?? "";
+        }
+
+        public static string[] Split(string Expression, string Delimiter)
+        {
+            return string.IsNullOrEmpty(Expression) ? new string[0] : Strings.Split(Expression, Delimiter);
+        }
+
         public static decimal RndD()
         {
             return (decimal)VBMath.Rnd();

@@ -168,6 +168,10 @@ static class ModConvertForm
                 k = k + j - 1;
                 r = r + SSpace(I * spIndent) + StartControl(l, props, LMatch(m, "End"), codeSection, out tag) + vbCrLf;
                 I = I + 1;
+                while (stck.Count <= I)
+                {
+                    stck.Add(""); // VB had Stck(0 To 100); the translation allocated a single slot
+                }
                 stck[I] = tag;
             }
             else if (l == "End")
