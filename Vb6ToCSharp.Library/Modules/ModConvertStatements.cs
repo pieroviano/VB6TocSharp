@@ -1,0 +1,701 @@
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Text;
+using System.Text.RegularExpressions;
+using static Microsoft.VisualBasic.Constants;
+using static Microsoft.VisualBasic.Strings;
+using static Vb6ToCSharp.Modules.ModConfig;
+using static Vb6ToCSharp.Modules.ModConvert;
+using static Vb6ToCSharp.Modules.ModSubTracking;
+using static Vb6ToCSharp.Modules.ModUtils;
+using static Vb6ToCSharp.Modules.ModVb6ToCs;
+
+
+namespace Vb6ToCSharp.Modules;
+
+/// <summary>
+/// VB6 statements and lexical forms that have no direct C# counterpart: error handling, file I/O, the Mid/LSet/RSet
+/// statements, computed GoTo, ReDim/Erase, Select Case labels, conditional compilation, type suffixes, literals.
+/// Input lines are already de-commented and de-stringed (string literals are tokens).
+/// </summary>
+public static class ModConvertStatements
+{
+    /// <summary>Catch variable of the generated handlers (not a valid VB6 identifier, so it never clashes).</summary>
+    public const string CatchVar = "vbErr_";
+    public const string SetProjectError = "Microsoft.VisualBasic.CompilerServices.ProjectData.SetProjectError";
+
+    private const string Id = "[A-Za-z_][A-Za-z0-9_]*";
+
+    // ---------------------------------------------------------------- lexical helpers
+
+    /// <summary>Splits on <paramref name="sep"/> outside parentheses (strings are tokens, so they never contain it).</summary>
+    public static List<string> SplitTopLevel(string s, char sep = ',')
+    {
+        var r = new List<string>();
+        var depth = 0;
+        var b = new StringBuilder();
+        foreach (var c in s ?? "")
+        {
+            if (c == '(') depth++;
+            else if (c == ')') depth--;
+            if (c == sep && depth == 0)
+            {
+                r.Add(b.ToString().Trim());
+                b.Clear();
+                continue;
+            }
+            b.Append(c);
+        }
+        r.Add(b.ToString().Trim());
+        return r;
+    }
+
+    /// <summary>Index of the ')' closing the '(' at <paramref name="open"/> (0-based), or -1.</summary>
+    public static int MatchParen(string s, int open)
+    {
+        var depth = 0;
+        for (var i = open; i < s.Length; i++)
+        {
+            if (s[i] == '(') depth++;
+            else if (s[i] == ')' && --depth == 0) return i;
+        }
+        return -1;
+    }
+
+    /// <summary>VB6 type of a type-declaration character (<c>$ % &amp; ! # @</c>), or "".</summary>
+    public static string SuffixType(char c)
+    {
+        switch (c)
+        {
+            case '$': return "String";
+            case '%': return "Integer";
+            case '&': return "Long";
+            case '!': return "Single";
+            case '#': return "Double";
+            case '@': return "Currency";
+            default: return "";
+        }
+    }
+
+    /// <summary>Removes a trailing type character from an identifier; returns the implied VB6 type ("" if none).</summary>
+    public static string StripSuffix(ref string name)
+    {
+        name = Trim(name);
+        if (name.Length < 2) return "";
+        var t = SuffixType(name[name.Length - 1]);
+        if (t != "" && Regex.IsMatch(name.Substring(0, name.Length - 1), "^" + Id + "$")) name = name.Substring(0, name.Length - 1);
+        else t = "";
+        return t;
+    }
+
+    /// <summary>Removes type characters from identifiers and numeric literals in an expression / statement.</summary>
+    public static string StripTypeSuffixes(string s)
+    {
+        if (string.IsNullOrEmpty(s)) return s;
+        // date literals (#10:30 PM#) are not suffixed names
+        var dates = new List<string>();
+        s = Regex.Replace(s, DateLiteralPattern, m =>
+        {
+            dates.Add(m.Value);
+            return "" + (dates.Count - 1) + "";
+        });
+        // identifier suffix: not followed by an identifier char (keeps RS!Field bang access), not "&H" literals
+        s = Regex.Replace(s, "(?<![A-Za-z0-9_&])(" + Id + ")[$%&!#@](?![A-Za-z0-9_(]|H[0-9A-Fa-f])", "$1");
+        s = Regex.Replace(s, "(?<![A-Za-z0-9_&])(" + Id + ")\\$(?=\\()", "$1"); // Left$( … )
+        // numeric literal suffix (1#, 2&, 3!, 4@, 5%)
+        s = Regex.Replace(s, "(?<![A-Za-z_0-9#/:&.])([0-9]+(\\.[0-9]+)?)[%&!@#](?![A-Za-z0-9_#/])", "$1");
+        return Regex.Replace(s, "([0-9]+)", m => dates[int.Parse(m.Groups[1].Value, CultureInfo.InvariantCulture)]);
+    }
+
+    /// <summary>VB6 date/time literal: #m/d/yyyy#, #h:mm[:ss] [AM|PM]#, or both.</summary>
+    public const string DateLiteralPattern = "#([0-9]{1,4}[/-][0-9]{1,2}[/-][0-9]{1,4}( +[0-9]{1,2}:[0-9]{2}(:[0-9]{2})?( ?[AaPp][Mm])?)?|[0-9]{1,2}:[0-9]{2}(:[0-9]{2})?( ?[AaPp][Mm])?)#";
+
+    /// <summary>VB6 &amp;H / &amp;O literal to C#, honouring VB typing (&amp;HFFFF is Integer -1, &amp;HFFFF&amp; is 65535).</summary>
+    public static string ConvertRadixLiteral(string s)
+    {
+        var m = Regex.Match(Trim(s), "^&([HhOo])([0-9A-Fa-f]+)([&%]?)$");
+        if (!m.Success) return null;
+        var hex = char.ToUpperInvariant(m.Groups[1].Value[0]) == 'H';
+        long v;
+        try { v = Convert.ToInt64(m.Groups[2].Value, hex ? 16 : 8); }
+        catch (Exception) { return null; }
+        var asLong = m.Groups[3].Value == "&" || v > 0xFFFF;
+        if (asLong && v > 0x7FFFFFFF && v <= 0xFFFFFFFF) v -= 0x100000000;
+        else if (!asLong && v > 0x7FFF) v -= 0x10000;
+        if (v < 0) return v.ToString(CultureInfo.InvariantCulture);
+        return hex ? "0x" + v.ToString("X", CultureInfo.InvariantCulture) : v.ToString(CultureInfo.InvariantCulture);
+    }
+
+    /// <summary>VB6 date/time literals (#m/d/yyyy#, #h:mm:ss AM#, both) to an invariant-culture parse.</summary>
+    public static string ConvertDateLiterals(string s)
+    {
+        return Regex.Replace(s, DateLiteralPattern, m => "DateTime.Parse(\"" + m.Groups[1].Value + "\", System.Globalization.CultureInfo.InvariantCulture)");
+    }
+
+    /// <summary>Regex matching VB6 time literals (they contain ':' and must survive statement splitting).</summary>
+    public const string TimeLiteralPattern = "#[0-9/ -]*[0-9]{1,2}:[0-9]{2}(:[0-9]{2})?( ?[AaPp][Mm])?#";
+
+    /// <summary>C# label for a VB6 label or line number (C# labels cannot start with a digit).</summary>
+    public static string LabelName(string s)
+    {
+        s = Trim(s);
+        return Regex.IsMatch(s, "^[0-9]+$") ? "L" + s : s;
+    }
+
+    // ---------------------------------------------------------------- conditional compilation
+
+    public static bool IsDirective(string t) => Regex.IsMatch(Trim(t), "^#(If|ElseIf|Else|End If|Const)\\b", RegexOptions.IgnoreCase);
+
+    /// <summary>#If/#ElseIf/#Else/#End If/#Const to the C# preprocessor.</summary>
+    public static string ConvertDirective(string t)
+    {
+        t = Trim(t);
+        Match m;
+        if ((m = Regex.Match(t, "^#If (.*) Then$", RegexOptions.IgnoreCase)).Success) return "#if " + PreprocessorCondition(m.Groups[1].Value);
+        if ((m = Regex.Match(t, "^#ElseIf (.*) Then$", RegexOptions.IgnoreCase)).Success) return "#elif " + PreprocessorCondition(m.Groups[1].Value);
+        if (Regex.IsMatch(t, "^#Else$", RegexOptions.IgnoreCase)) return "#else";
+        if (Regex.IsMatch(t, "^#End If$", RegexOptions.IgnoreCase)) return "#endif";
+        // C# symbols can only be #define'd at the top of a file (or in <DefineConstants>)
+        return "// TODO: VB6 " + t + " (define the symbol in the project's DefineConstants)";
+    }
+
+    private static string PreprocessorCondition(string c)
+    {
+        var s = " " + Trim(c) + " ";
+        s = Regex.Replace(s, " (" + Id + ") *(=|<>) *(True|-1|1|False|0) ", m =>
+        {
+            var truthy = m.Groups[3].Value == "True" || m.Groups[3].Value == "-1" || m.Groups[3].Value == "1";
+            return (truthy == (m.Groups[2].Value == "=")) ? " " + m.Groups[1].Value + " " : " !" + m.Groups[1].Value + " ";
+        });
+        s = Regex.Replace(s, "\\bAnd\\b", "&&");
+        s = Regex.Replace(s, "\\bOr\\b", "||");
+        s = Regex.Replace(s, "\\bNot\\s+", "!");
+        s = Regex.Replace(s, "\\bWin32\\b", "true"); // VB6 is always Win32
+        s = Regex.Replace(s, "\\b(Win16|Win64|Mac|VBA6|VBA7)\\b", "false");
+        s = Trim(s);
+        if (!Regex.IsMatch(s, "^[A-Za-z0-9_!&|() ]+$")) return "false // TODO: VB6 condition not convertible: " + Trim(c);
+        return s;
+    }
+
+    // ---------------------------------------------------------------- error handling
+
+    /// <summary>Error-handling state of the procedure being converted (VB6 On Error is procedure-scoped).</summary>
+    public sealed class ErrorScope
+    {
+        public enum Modes { None, ResumeNext, GoTo }
+        public Modes Mode = Modes.None;
+        public string Handler = "";
+        public bool TryOpen;
+        public int TryInd;
+        public string TryHandler = "";
+
+        public string OpenTry(ref int ind)
+        {
+            TryOpen = true;
+            TryInd = ind;
+            TryHandler = Handler;
+            ind = ind + spIndent;
+            return SSpace(TryInd) + "try {" + vbCrLf;
+        }
+
+        public string CloseTry(ref int ind)
+        {
+            if (!TryOpen) return "";
+            TryOpen = false;
+            ind = TryInd;
+            var i = SSpace(ind + spIndent);
+            return SSpace(ind) + "} catch (Exception " + CatchVar + ") {" + vbCrLf
+                + i + SetProjectError + "(" + CatchVar + ");" + vbCrLf
+                + i + "goto " + TryHandler + ";" + vbCrLf
+                + SSpace(ind) + "}" + vbCrLf;
+        }
+
+        /// <summary>Closes the protected block if it is open at the current nesting level (a nested one closes at its block end).</summary>
+        public string CloseTryHere(ref int ind) => TryOpen && ind == TryInd + spIndent ? CloseTry(ref ind) : "";
+    }
+
+    /// <summary>Wraps a statement so a failure sets Err and execution continues (On Error Resume Next).</summary>
+    public static string WrapResumeNext(string stmt, int ind)
+    {
+        var i = SSpace(ind);
+        return i + "try {" + vbCrLf
+            + SSpace(ind + spIndent) + Trim(stmt) + vbCrLf
+            + i + "} catch (Exception " + CatchVar + ") { " + SetProjectError + "(" + CatchVar + "); }";
+    }
+
+    /// <summary>On Error ... statement: updates <paramref name="scope"/>, returns the code to emit.</summary>
+    public static string ConvertOnError(string t, ErrorScope scope, ref int ind)
+    {
+        var target = Trim(Regex.Replace(Trim(t), "^On (Local )?Error ", ""));
+        var o = "";
+        if (target == "GoTo -1")
+        {
+            return SSpace(ind) + "Err().Clear(); // On Error GoTo -1";
+        }
+        // leaving the current mode: a protected block open at this level ends here
+        o = o + scope.CloseTryHere(ref ind);
+        if (target == "Resume Next")
+        {
+            scope.Mode = ErrorScope.Modes.ResumeNext;
+            scope.Handler = "";
+        }
+        else if (target == "GoTo 0")
+        {
+            scope.Mode = ErrorScope.Modes.None;
+            scope.Handler = "";
+        }
+        else if (LMatch(target, "GoTo "))
+        {
+            scope.Mode = ErrorScope.Modes.GoTo;
+            scope.Handler = LabelName(Mid(target, 6));
+        }
+        else
+        {
+            return o + SSpace(ind) + "// TODO: VB6 On Error not converted: " + Trim(t);
+        }
+        return o + SSpace(ind) + "Err().Clear(); // On Error " + target;
+    }
+
+    /// <summary>Resume / Resume Next / Resume label.</summary>
+    public static string ConvertResume(string t, int ind)
+    {
+        var target = Trim(Mid(Trim(t), 7));
+        var i = SSpace(ind);
+        if (target == "" || target == "0")
+        {
+            return i + "Err().Clear(); // TODO: VB6 Resume (retry the failing statement) has no C# equivalent";
+        }
+        if (target == "Next")
+        {
+            return i + "Err().Clear(); // TODO: VB6 Resume Next (continue after the failing statement) has no C# equivalent";
+        }
+        return i + "Err().Clear();" + vbCrLf + i + "goto " + LabelName(target) + ";";
+    }
+
+    // ---------------------------------------------------------------- jumps
+
+    /// <summary>On expr GoTo a, b, ... / On expr GoSub ...</summary>
+    public static string ConvertOnGoTo(string t, int ind)
+    {
+        var m = Regex.Match(Trim(t), "^On (.+) (GoTo|GoSub) (.+)$");
+        if (!m.Success) return null;
+        if (m.Groups[2].Value == "GoSub") return SSpace(ind) + "// TODO: VB6 GoSub not supported: " + Trim(t);
+        var r = SSpace(ind) + "switch (CInt(" + ConvertValue(m.Groups[1].Value) + ")) {";
+        var n = 0;
+        foreach (var lbl in SplitTopLevel(m.Groups[3].Value))
+        {
+            n++;
+            if (lbl != "") r = r + " case " + n + ": goto " + LabelName(lbl) + ";";
+        }
+        return r + " }";
+    }
+
+    // ---------------------------------------------------------------- Select Case
+
+    private static bool IsLiteral(string s)
+    {
+        s = Trim(s);
+        return Regex.IsMatch(s, "^-?[0-9]+(\\.[0-9]+)?$") || LMatch(s, ModConvertUtils.deStringTokenBase) && Regex.IsMatch(s, "^" + Id + "$")
+            || Regex.IsMatch(s, "^-?&[HhOo][0-9A-Fa-f]+&?$");
+    }
+
+    /// <summary>Case list to C# labels: constants become <c>case x:</c>; Is / To / non-constant items a guarded pattern.</summary>
+    public static string ConvertCaseLabels(string list)
+    {
+        var items = SplitTopLevel(list);
+        var simple = true;
+        foreach (var it in items)
+        {
+            if (!IsLiteral(it)) simple = false;
+        }
+        if (simple)
+        {
+            var r = "";
+            foreach (var it in items) r = r + "case " + ConvertValue(it) + ": ";
+            return Trim(r);
+        }
+        const string v = "vbCase_";
+        var conds = new List<string>();
+        foreach (var it in items)
+        {
+            Match m;
+            if ((m = Regex.Match(it, "^Is *(<>|<=|>=|=|<|>) *(.+)$")).Success)
+            {
+                var op = m.Groups[1].Value == "=" ? "==" : m.Groups[1].Value == "<>" ? "!=" : m.Groups[1].Value;
+                conds.Add(v + " " + op + " " + ConvertValue(m.Groups[2].Value));
+            }
+            else if ((m = Regex.Match(it, "^(.+) To (.+)$")).Success)
+            {
+                conds.Add("(" + v + " >= " + ConvertValue(m.Groups[1].Value) + " && " + v + " <= " + ConvertValue(m.Groups[2].Value) + ")");
+            }
+            else
+            {
+                conds.Add(v + " == " + ConvertValue(it));
+            }
+        }
+        return "case var " + v + " when " + string.Join(" || ", conds) + ":";
+    }
+
+    // ---------------------------------------------------------------- arrays
+
+    /// <summary>Element count of one VB6 dimension ("ub" or "lb To ub"): VB arrays include the upper bound.</summary>
+    public static string DimCount(string dim, out string lower)
+    {
+        lower = "";
+        var m = Regex.Match(Trim(dim), "^(.+) To (.+)$");
+        var ub = Trim(dim);
+        if (m.Success)
+        {
+            lower = Trim(m.Groups[1].Value);
+            ub = Trim(m.Groups[2].Value);
+        }
+        if (Regex.IsMatch(ub, "^-?[0-9]+$")) return (long.Parse(ub, CultureInfo.InvariantCulture) + 1).ToString(CultureInfo.InvariantCulture);
+        return ConvertValue(ub) + " + 1";
+    }
+
+    /// <summary>ReDim [Preserve] a(dims) [As T], ...</summary>
+    public static string ConvertReDim(string t, int ind)
+    {
+        var s = Trim(Mid(Trim(t), 6));
+        var preserve = false;
+        if (LMatch(s, "Preserve "))
+        {
+            preserve = true;
+            s = Trim(Mid(s, 10));
+        }
+        var r = "";
+        foreach (var part in SplitTopLevel(s))
+        {
+            var name = Regex.Match(part, "^" + Id).Value;
+            var open = part.IndexOf('(');
+            var close = open < 0 ? -1 : MatchParen(part, open);
+            if (name == "" || close < 0)
+            {
+                r = r + SSpace(ind) + "// TODO: VB6 ReDim not converted: " + part + vbCrLf;
+                continue;
+            }
+            var dims = SplitTopLevel(part.Substring(open + 1, close - open - 1));
+            var asType = Trim(part.Substring(close + 1));
+            var vbType = LMatch(asType, "As ") ? Trim(Mid(asType, 4)) : SubParam(name).asType;
+            var todo = "";
+            var counts = new List<string>();
+            foreach (var d in dims)
+            {
+                counts.Add(DimCount(d, out var lb));
+                if (lb != "" && lb != "0") todo = " // TODO: VB6 lower bound " + lb + " not supported";
+            }
+            if (dims.Count == 1)
+            {
+                r = r + SSpace(ind) + name + " = ReDim(" + name + ", " + counts[0] + (preserve ? ", true" : "") + ");" + todo + vbCrLf;
+            }
+            else
+            {
+                var cs = ConvertDataType(vbType == "" ? "Variant" : vbType);
+                r = r + SSpace(ind) + name + " = new " + cs + "[" + string.Join(", ", counts) + "];"
+                    + (preserve ? " // TODO: VB6 ReDim Preserve of a multi-dimensional array" : todo) + vbCrLf;
+            }
+            SubParamAssign(name);
+        }
+        return TrimEnd(r);
+    }
+
+    /// <summary>Erase a, b: dynamic arrays are released, fixed ones reset to default values.</summary>
+    public static string ConvertErase(string t, int ind)
+    {
+        var r = "";
+        foreach (var name in SplitTopLevel(Trim(Mid(Trim(t), 7))))
+        {
+            if (name == "") continue;
+            var dynamicArr = SubParam(name).asArray == "-1";
+            r = r + SSpace(ind) + name + " = ReDim(" + name + ", " + (dynamicArr ? "0" : name + ".Count") + ");" + vbCrLf;
+        }
+        return TrimEnd(r);
+    }
+
+    private static string TrimEnd(string s) => s.TrimEnd('\r', '\n');
+
+    // ---------------------------------------------------------------- string statements
+
+    /// <summary>Mid(target, start[, length]) = value / MidB.</summary>
+    public static string ConvertMidStatement(string t, int ind)
+    {
+        var m = Regex.Match(Trim(t), "^MidB?\\$?\\s*\\(");
+        if (!m.Success) return null;
+        var s = Trim(t);
+        var open = s.IndexOf('(');
+        var close = MatchParen(s, open);
+        if (close < 0) return null;
+        var rest = Trim(s.Substring(close + 1));
+        if (!LMatch(rest, "=")) return null;
+        var args = SplitTopLevel(s.Substring(open + 1, close - open - 1));
+        if (args.Count < 2) return null;
+        SubParamAssign(Regex.Match(args[0], "^" + Id).Value);
+        var r = "MidStmt(ref " + ConvertValue(args[0]) + ", " + ConvertValue(args[1]);
+        if (args.Count > 2) r = r + ", " + ConvertValue(args[2]);
+        return SSpace(ind) + r + ", " + ConvertValue(Mid(rest, 2)) + ");";
+    }
+
+    /// <summary>LSet / RSet target = value (pads or truncates to the target's current length).</summary>
+    public static string ConvertLRSet(string t, int ind)
+    {
+        var m = Regex.Match(Trim(t), "^(LSet|RSet) (.+?) = (.+)$");
+        if (!m.Success) return null;
+        var target = ConvertValue(m.Groups[2].Value);
+        SubParamAssign(Regex.Match(m.Groups[2].Value, "^" + Id).Value);
+        return SSpace(ind) + target + " = " + m.Groups[1].Value + "(" + ConvertValue(m.Groups[3].Value) + ", Len(" + target + "));";
+    }
+
+    // ---------------------------------------------------------------- file I/O (Microsoft.VisualBasic.FileSystem)
+
+    private static string FileNum(string s) => ConvertValue(Trim(s).TrimStart('#'));
+
+    /// <summary>VB6 file statements to Microsoft.VisualBasic.FileSystem calls; null when <paramref name="t"/> is none.</summary>
+    public static string ConvertFileStatement(string t, int ind)
+    {
+        t = Trim(t);
+        var i = SSpace(ind);
+        Match m;
+
+        if ((m = Regex.Match(t, "^Open (.+?)(?: For (Input|Output|Append|Binary|Random))?(?: Access (Read Write|Read|Write))?(?: (Shared|Lock Read Write|Lock Read|Lock Write))? As #?(.+?)(?: Len *= *(.+))?$")).Success)
+        {
+            var mode = m.Groups[2].Value == "" ? "Random" : m.Groups[2].Value;
+            var r = "FileOpen(" + FileNum(m.Groups[5].Value) + ", " + ConvertValue(m.Groups[1].Value) + ", OpenMode." + mode;
+            var access = m.Groups[3].Value == "" ? "Default" : m.Groups[3].Value == "Read Write" ? "ReadWrite" : m.Groups[3].Value;
+            var share = m.Groups[4].Value == "" ? "Default" : Replace(m.Groups[4].Value, " ", "");
+            if (share == "LockReadWrite" || share == "LockRead" || share == "LockWrite" || share == "Shared" || access != "Default" || m.Groups[6].Value != "")
+            {
+                r = r + ", OpenAccess." + access + ", OpenShare." + share;
+                if (m.Groups[6].Value != "") r = r + ", " + ConvertValue(m.Groups[6].Value);
+            }
+            return i + r + ");";
+        }
+        if (t == "Close" || t == "Reset") return i + (t == "Close" ? "FileClose" : "Reset") + "();";
+        if (LMatch(t, "Close ") && Regex.IsMatch(t, "^Close #?[^=]+$"))
+        {
+            var nums = new List<string>();
+            foreach (var n in SplitTopLevel(Mid(t, 7))) nums.Add(FileNum(n));
+            return i + "FileClose(" + string.Join(", ", nums) + ");";
+        }
+        if ((m = Regex.Match(t, "^(Print|Write) #([^,]+)(?:,(.*))?$")).Success)
+        {
+            var list = Trim(m.Groups[3].Value);
+            var newLine = !(Right(list, 1) == ";" || Right(list, 1) == ",");
+            if (!newLine) list = Trim(Left(list, Len(list) - 1));
+            var args = m.Groups[1].Value == "Print" ? PrintArgs(list) : WriteArgs(list);
+            var fn = m.Groups[1].Value == "Print" ? (newLine ? "PrintLine" : "Print") : (newLine ? "WriteLine" : "Write");
+            return i + fn + "(" + FileNum(m.Groups[2].Value) + (args == "" ? "" : ", " + args) + ");";
+        }
+        if ((m = Regex.Match(t, "^Line Input #([^,]+), *(.+)$")).Success)
+        {
+            SubParamAssign(Regex.Match(m.Groups[2].Value, "^" + Id).Value);
+            return i + ConvertValue(m.Groups[2].Value) + " = LineInput(" + FileNum(m.Groups[1].Value) + ");";
+        }
+        if ((m = Regex.Match(t, "^Input #([^,]+), *(.+)$")).Success)
+        {
+            var r = "";
+            foreach (var v in SplitTopLevel(m.Groups[2].Value))
+            {
+                SubParamAssign(Regex.Match(v, "^" + Id).Value);
+                r = r + (r == "" ? "" : vbCrLf + i) + "Input(" + FileNum(m.Groups[1].Value) + ", ref " + ConvertValue(v) + ");";
+            }
+            return i + r;
+        }
+        if ((m = Regex.Match(t, "^(Get|Put) #?([^,]+), *([^,]*), *(.+)$")).Success)
+        {
+            var rec = Trim(m.Groups[3].Value);
+            var v = m.Groups[4].Value;
+            if (m.Groups[1].Value == "Get")
+            {
+                SubParamAssign(Regex.Match(v, "^" + Id).Value);
+                return i + "FileGet(" + FileNum(m.Groups[2].Value) + ", ref " + ConvertValue(v) + (rec == "" ? "" : ", " + ConvertValue(rec)) + ");";
+            }
+            return i + "FilePut(" + FileNum(m.Groups[2].Value) + ", " + ConvertValue(v) + (rec == "" ? "" : ", " + ConvertValue(rec)) + ");";
+        }
+        if ((m = Regex.Match(t, "^Seek #?([^,]+), *(.+)$")).Success)
+        {
+            return i + "Seek(" + FileNum(m.Groups[1].Value) + ", " + ConvertValue(m.Groups[2].Value) + ");";
+        }
+        if ((m = Regex.Match(t, "^(Lock|Unlock) #?([^,]+)(?:, *(.+))?$")).Success)
+        {
+            var r = m.Groups[1].Value + "(" + FileNum(m.Groups[2].Value);
+            var range = Trim(m.Groups[3].Value);
+            Match rm;
+            if (range == "") { }
+            else if ((rm = Regex.Match(range, "^(.*) *To (.+)$")).Success)
+            {
+                r = r + ", " + (Trim(rm.Groups[1].Value) == "" ? "1" : ConvertValue(rm.Groups[1].Value)) + ", " + ConvertValue(rm.Groups[2].Value);
+            }
+            else r = r + ", " + ConvertValue(range);
+            return i + r + ");";
+        }
+        if ((m = Regex.Match(t, "^Width #([^,]+), *(.+)$")).Success)
+        {
+            return i + "FileWidth(" + FileNum(m.Groups[1].Value) + ", " + ConvertValue(m.Groups[2].Value) + ");";
+        }
+        if ((m = Regex.Match(t, "^Name (.+) As (.+)$")).Success)
+        {
+            return i + "Rename(" + ConvertValue(m.Groups[1].Value) + ", " + ConvertValue(m.Groups[2].Value) + ");";
+        }
+        return null;
+    }
+
+    /// <summary>Print # list: ',' moves to the next print zone (separate argument), ';' concatenates.</summary>
+    private static string PrintArgs(string list)
+    {
+        if (list == "") return "";
+        var zones = new List<string>();
+        foreach (var zone in SplitTopLevel(list, ','))
+        {
+            var parts = new List<string>();
+            foreach (var p in SplitTopLevel(zone, ';'))
+            {
+                if (p == "") continue;
+                var v = Regex.Replace(p, "^Spc\\(", "SPC(");
+                v = Regex.Replace(v, "^Tab\\(", "TAB(");
+                parts.Add(v == p ? ConvertValue(p) : v.Substring(0, 4) + ConvertValue(v.Substring(4, v.Length - 5)) + ")");
+            }
+            zones.Add(parts.Count == 0 ? "\"\"" : parts.Count == 1 ? parts[0] : "string.Concat(" + string.Join(", ", parts) + ")");
+        }
+        return string.Join(", ", zones);
+    }
+
+    private static string WriteArgs(string list)
+    {
+        if (list == "") return "";
+        var r = new List<string>();
+        foreach (var p in SplitTopLevel(Replace(list, ";", ","))) r.Add(ConvertValue(p));
+        return string.Join(", ", r);
+    }
+
+    // ---------------------------------------------------------------- expressions
+
+    private static readonly string[] LogicalOps = { " And ", " Or ", " Xor ", " Eqv ", " Imp " };
+
+    /// <summary>
+    /// Parenthesizes the operand of a top-level Not: VB6 Not binds looser than comparisons
+    /// ("Not a = b" is "Not (a = b)", "Not x Is Nothing" is "Not (x Is Nothing)"), up to the next logical operator.
+    /// </summary>
+    public static string GroupNot(string s)
+    {
+        var depth = 0;
+        for (var i = 0; i < s.Length; i++)
+        {
+            if (s[i] == '(') depth++;
+            else if (s[i] == ')') depth--;
+            if (depth != 0 || string.CompareOrdinal(s, i, "Not ", 0, 4) != 0 || i > 0 && s[i - 1] != ' ') continue;
+            var j = i + 4;
+            var d = 0;
+            for (; j < s.Length; j++)
+            {
+                if (s[j] == '(') d++;
+                else if (s[j] == ')') d--;
+                else if (d == 0 && Array.Exists(LogicalOps, op => string.CompareOrdinal(s, j, op, 0, op.Length) == 0)) break;
+            }
+            var operand = s.Substring(i + 4, j - i - 4).Trim();
+            if (SplitTopLevel(operand, ' ').Count < 2) continue; // a single term needs no grouping
+            var grouped = "Not (" + operand + ")";
+            s = s.Substring(0, i) + grouped + s.Substring(j);
+            i = i + grouped.Length - 1;
+        }
+        return s;
+    }
+
+    /// <summary>Debug.Print list: ';' concatenates, ',' is a tab; a trailing separator suppresses the new line.</summary>
+    public static string ConvertDebugPrint(string list)
+    {
+        list = Trim(list);
+        var newLine = !(Right(list, 1) == ";" || Right(list, 1) == ",");
+        if (!newLine) list = Trim(Left(list, Len(list) - 1));
+        var parts = new List<string>();
+        foreach (var zone in SplitTopLevel(list, ','))
+        {
+            foreach (var p in SplitTopLevel(zone, ';'))
+            {
+                if (p != "") parts.Add(ConvertValue(p));
+            }
+            parts.Add("\"\\t\"");
+        }
+        parts.RemoveAt(parts.Count - 1);
+        var arg = parts.Count == 0 ? "" : parts.Count == 1 ? parts[0] : "string.Concat(" + string.Join(", ", parts) + ")";
+        return "Console." + (newLine ? "WriteLine" : "Write") + "(" + arg + ")";
+    }
+
+    /// <summary>[object.]Line / PSet / Circle with the VB6 graphics syntax ("(x1, y1)-(x2, y2), color, BF") to method calls.</summary>
+    public static string ConvertGraphicsStatement(string t, int ind)
+    {
+        var m = Regex.Match(Trim(t), "^(?:(" + Id + "(?:\\." + Id + ")*)\\.)?(Line|PSet|Circle) *(Step *)?(.*)$");
+        if (!m.Success) return null;
+        var target = m.Groups[1].Value == "" ? "" : ConvertValue(m.Groups[1].Value) + ".";
+        var verb = m.Groups[2].Value;
+        var rest = Trim(m.Groups[4].Value);
+        var todo = m.Groups[3].Value != "" ? " // TODO: VB6 Step (relative coordinates)" : "";
+        var args = new List<string>();
+        if (verb == "Line")
+        {
+            if (LMatch(rest, "("))
+            {
+                var close = MatchParen(rest, 0);
+                if (close < 0) return null;
+                foreach (var a in SplitTopLevel(rest.Substring(1, close - 1))) args.Add(ConvertValue(a));
+                rest = Trim(rest.Substring(close + 1));
+            }
+            else
+            { // Line -(x2, y2): from the current position
+                args.Add(target + "CurrentX");
+                args.Add(target + "CurrentY");
+            }
+            if (!LMatch(rest, "-")) return null;
+            rest = Trim(Mid(rest, 2));
+            if (LMatch(rest, "Step"))
+            {
+                todo = " // TODO: VB6 Step (relative coordinates)";
+                rest = Trim(Mid(rest, 5));
+            }
+        }
+        if (!LMatch(rest, "(")) return null;
+        var end = MatchParen(rest, 0);
+        if (end < 0) return null;
+        foreach (var a in SplitTopLevel(rest.Substring(1, end - 1))) args.Add(ConvertValue(a));
+        rest = Trim(rest.Substring(end + 1));
+        if (LMatch(rest, ","))
+        {
+            foreach (var a in SplitTopLevel(Mid(rest, 2)))
+            {
+                if (a == "B" || a == "BF")
+                {
+                    if (args.Count == 4) args.Add("0"); // no color
+                    args.Add("true");
+                    if (a == "BF") todo = todo + " // TODO: VB6 BF (filled box)";
+                }
+                else
+                {
+                    if (a == "") todo = todo + " // TODO: VB6 omitted argument";
+                    args.Add(a == "" ? "default" : ConvertValue(a));
+                }
+            }
+        }
+        return SSpace(ind) + target + verb + "(" + string.Join(", ", args) + ");" + todo;
+    }
+
+    // ---------------------------------------------------------------- misc statements
+
+    /// <summary>Statements with a fixed translation; null when <paramref name="t"/> is none of them.</summary>
+    public static string ConvertSimpleStatement(string t, int ind)
+    {
+        t = Trim(t);
+        var i = SSpace(ind);
+        Match m;
+        if (t == "Stop") return i + "System.Diagnostics.Debugger.Break();";
+        if (t == "End") return i + "End();";
+        if (LMatch(t, "Attribute ")) return i + "// " + t;
+        if ((m = Regex.Match(t, "^Error (.+)$")).Success) return i + "Err().Raise(" + ConvertValue(m.Groups[1].Value) + ");";
+        if ((m = Regex.Match(t, "^(Date|Time)\\$? = (.+)$")).Success)
+        {
+            return i + "DateAndTime." + (m.Groups[1].Value == "Date" ? "Today" : "TimeOfDay") + " = " + ConvertValue(m.Groups[2].Value) + ";";
+        }
+        if (t == "Return") return i + "// TODO: VB6 GoSub Return not supported";
+        if (LMatch(t, "GoSub ")) return i + "// TODO: VB6 GoSub not supported: " + t;
+        return null;
+    }
+}

@@ -220,6 +220,10 @@ public static class ModSubTracking
         {
             pro = Mid(pro, 8);
         }
+        if (LMatch(pro, "Static "))
+        {
+            pro = Mid(pro, 8);
+        }
         if (LMatch(pro, "Property "))
         {
             pro = Mid(pro, 10);
@@ -365,9 +369,9 @@ public static class ModSubTracking
                 if (props[I].getter != "")
                 {
                     r = r + n + "  get {";
-                    r = r + n + "    " + props[I].asType + " " + props[I].name + ";";
+                    r = r + n + "    " + props[I].asType + " " + props[I].name + " = " + (props[I].asType == "string" ? "\"\"" : "default(" + props[I].asType + ")") + ";"; // VB6 returns the default when never assigned
                     T = props[I].getter;
-                    T = Replace(T, "Exit(Property)", "return " + props[I].name + ";");
+                    T = Replace(T, ExitPropertyMark, "return " + props[I].name + ";");
                     r = r + n + "    " + T;
                     r = r + n + "  return " + props[I].name + ";";
                     r = r + n + "  }";
@@ -377,8 +381,8 @@ public static class ModSubTracking
                     r = r + n + "  set {";
                     T = props[I].setter;
                     T = ReplaceToken(T, "value", "valueOrig");
-                    T = Replace(T, props[I].origArgName, "value");
-                    T = Replace(T, "Exit Property", "return;");
+                    T = ReplaceToken(T, props[I].origArgName, "value"); // whole identifiers only
+                    T = Replace(T, ExitPropertyMark, "return;");
                     r = r + n + "    " + T;
                     r = r + n + "  }";
                 }

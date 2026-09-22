@@ -26,6 +26,8 @@ public static class ModConvert
 {
     // Option Explicit
     public const string withMark = "_WithVar_";
+    /// <summary>Exit Property: a getter turns it into "return &lt;property&gt;;" (see ReadOutProperties).</summary>
+    public const string ExitPropertyMark = "return /*Exit Property*/;";
     private static int withLevel = 0;
     private static int maxWithLevel = 0;
     private static string withVars = "";
@@ -338,7 +340,8 @@ public static class ModConvert
         return getMultiLineSpace;
     }
 
-    public static string SanitizeCode(string str)
+    /// <param name="midLine">the text follows a ':' or a single-line If on the same line: it holds no labels or line numbers</param>
+    public static string SanitizeCode(string str, bool midLine = false)
     {
         const string namedParamSrc = ":=";
         const string namedParamTok = "###NAMED-PARAMETER###";
@@ -358,8 +361,8 @@ public static class ModConvert
             var l = iterL;
             //If IsInStr(L, "POEDIFolder") Then Stop
             //If IsInStr(L, "Set objSourceArNo = New_CDbTypeAhead") Then Stop
-            if (Right(l, 1) == "_")
-            {
+            if (l == "_" || Right(l, 2) == " _" || Right(l, 2) == "\t_")
+            { // line continuation needs whitespace before "_" (identifiers may end with "_")
                 var c = Trim(Left(l, Len(l) - 1));
                 building = building + GetMultiLineSpace(building, c) + c;
                 goto NextLine;
@@ -374,21 +377,44 @@ public static class ModConvert
             l = DeComment(l);
             l = DeString(l);
 
-            //If IsInStr(L, "CustRec <> 0") Then Stop
-            var finishSplitIf = false;
-            if (TLeft(l, 3) == "If " && Right(RTrim(l), 5) != " Then")
+            // line number: "10 x = 1" -> "L10:" + "x = 1"
+            var lineNo = System.Text.RegularExpressions.Regex.Match(l, "^\\s*([0-9]+):?(\\s+(.*))?$");
+            if (lineNo.Success && !midLine)
             {
-                finishSplitIf = true;
-                f = NextBy(l, " Then ") + " Then";
-                r = r + n + f;
-                l = Mid(l, Len(f) + 2);
-                if (NextBy(l, " Else ", 2) != "")
+                var lineLabel = ModConvertStatements.LabelName(lineNo.Groups[1].Value) + ":";
+                l = lineNo.Groups[3].Value;
+                if (Trim(l) == "")
                 {
-                    r = r + ModConvert.SanitizeCode(NextBy(l, " Else ", 1));
-                    r = r + n + "Else";
-                    l = NextBy(l, "Else ", 2);
+                    r = r + n + ReComment(lineLabel, true);
+                    goto NextLine;
                 }
+                r = r + n + lineLabel;
             }
+
+            //If IsInStr(L, "CustRec <> 0") Then Stop
+            if (TLeft(l, 3) == "If " && Right(RTrim(l), 5) != " Then" && IsInStr(l, " Then "))
+            { // single-line If: each branch is sanitized again (it may hold ':' lists or another single-line If)
+                f = NextBy(l, " Then ") + " Then";
+                r = r + n + ReComment(f, true);
+                SplitSingleLineIf(Mid(l, Len(f) + 2), out var thenPart, out var elsePart);
+                r = r + ModConvert.SanitizeCode(SingleLineIfBranch(thenPart), true);
+                if (elsePart != null)
+                {
+                    r = r + n + "Else";
+                    r = r + ModConvert.SanitizeCode(SingleLineIfBranch(elsePart), true);
+                }
+                r = r + n + "End If";
+                goto NextLine;
+            }
+
+            // a time literal (#10:30:00#) is not a statement separator
+            var timeLiterals = new System.Collections.Generic.List<string>();
+            l = System.Text.RegularExpressions.Regex.Replace(l, ModConvertStatements.TimeLiteralPattern, m =>
+            {
+                timeLiterals.Add(m.Value);
+                return "###TIME-LITERAL-" + (timeLiterals.Count - 1) + "###";
+            });
+            string RestoreTime(string x) => System.Text.RegularExpressions.Regex.Replace(x, "###TIME-LITERAL-([0-9]+)###", m => timeLiterals[int.Parse(m.Groups[1].Value)]);
 
             if (NextBy(l, ":") != l)
             {
@@ -398,37 +424,84 @@ public static class ModConvert
                 }
                 else
                 {
-                    do
+                    l = Replace(l, namedParamSrc, namedParamTok);
+                    f = NextBy(l, ":");
+                    // "Label: statement" - VB6 keeps labels in the first column
+                    var isLabel = !midLine && RegExTest(f, "^[a-zA-Z_][a-zA-Z_0-9]*$") && !IsReservedStatementWord(f);
+                    f = Replace(f, namedParamTok, namedParamSrc);
+                    r = r + n + ReComment(RestoreTime(f) + (isLabel ? ":" : ""), true);
+                    l = Replace(l, namedParamTok, namedParamSrc);
+                    if (f != l)
                     {
-                        l = Replace(l, namedParamSrc, namedParamTok);
-                        f = NextBy(l, ":");
-                        f = Replace(f, namedParamTok, namedParamSrc);
-                        r = r + n + ReComment(f, true);
-                        l = Replace(l, namedParamTok, namedParamSrc);
-                        if (f == l)
-                        {
-                            break;
-                        }
                         l = Trim(Mid(l, Len(f) + 2));
-                        r = r + ModConvert.SanitizeCode(l);
-
-                    } while (false); // VB "Loop While" (was mistranslated as Loop Until)
+                        r = r + ModConvert.SanitizeCode(RestoreTime(l), true);
+                    }
                 }
             }
             else
             {
-                r = r + n + ReComment(l, true);
-            }
-
-            if (finishSplitIf)
-            {
-                r = r + n + "End If";
+                r = r + n + ReComment(RestoreTime(l), true);
             }
             NextLine:;
         }
 
         var sanitizeCode = r;
         return sanitizeCode;
+    }
+
+    /// <summary>VB6 words that end a statement list and therefore can never be a line label.</summary>
+    private static bool IsReservedStatementWord(string w)
+    {
+        switch (w)
+        {
+            case "Else":
+            case "End":
+            case "Loop":
+            case "Next":
+            case "Wend":
+            case "Do":
+            case "Stop":
+            case "Return":
+            case "Resume":
+            case "Exit":
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    /// <summary>Splits "a Else b" of a single-line If; an Else belongs to the innermost nested single-line If.</summary>
+    public static void SplitSingleLineIf(string rest, out string thenPart, out string elsePart)
+    {
+        var words = Split(rest, " ");
+        var depth = 0;
+        for (var i = 0; i < words.Length; i++)
+        {
+            var w = words[i].TrimEnd(':');
+            if (w == "If")
+            {
+                depth++;
+            }
+            else if (w == "Else")
+            {
+                if (depth == 0)
+                {
+                    thenPart = string.Join(" ", words, 0, i);
+                    elsePart = string.Join(" ", words, i + 1, words.Length - i - 1);
+                    return;
+                }
+                depth--;
+            }
+        }
+        thenPart = rest;
+        elsePart = null;
+    }
+
+    /// <summary>"If x Then 100" jumps to line 100.</summary>
+    private static string SingleLineIfBranch(string s)
+    {
+        s = Trim(s);
+        return RegExTest(s, "^[0-9]+$") ? "GoTo " + s : s;
     }
 
     public static string ConvertCodeSegment(string s, bool asModule = false)
@@ -451,7 +524,7 @@ public static class ModConvert
         //WriteFile "C:\Users\benja\Desktop\sani.txt", S, True
         do
         {
-            var p = "(Public |Private |)(Friend |)(Function |Sub |Property Get |Property Let |Property Set )" + patToken + "[ ]*\\(";
+            var p = ProcModifiers + "(Function |Sub |Property Get |Property Let |Property Set )" + patToken + "[$%&!#@]?[ ]*\\(";
             var n = -1;
             do
             {
@@ -464,18 +537,7 @@ public static class ModConvert
                 break;
             }
 
-            if (IsInStr(f, " Function "))
-            {
-                k = "End Function";
-            }
-            else if (IsInStr(f, " Sub "))
-            {
-                k = "End Sub";
-            }
-            else if (IsInStr(f, " Property "))
-            {
-                k = "End Property";
-            }
+            k = "End " + Trim(RegExNMatch(f, "(Function|Sub|Property) ")); // the first keyword (f may have no modifier)
             n = -1;
             do
             {
@@ -501,6 +563,7 @@ public static class ModConvert
 
             r = r + CommentBlock(pre) + ConvertSub(body, asModule) + vbCrLf;
         } while (true); // VB "Loop While" (was mistranslated as Loop Until)
+        r = r + CommentBlock(NlTrim(s)); // after the last procedure: comments, a closing #End If
 
         r = ReadOutProperties(asModule) + vbCrLf2 + r;
 
@@ -519,31 +582,47 @@ public static class ModConvert
             return commentBlock;
 
         }
+        // conditional compilation around procedures stays live; everything else is kept as a comment
         var s = "";
-        s = s + "/*" + vbCrLf;
-        s = s + Replace(str, "*/", "* /") + vbCrLf;
-        s = s + "*/" + vbCrLf;
+        var run = "";
+        foreach (var l in Split(Replace(str, vbLf, ""), vbCr))
+        {
+            if (ModConvertStatements.IsDirective(l))
+            {
+                if (NlTrim(run) != "") s = s + "/*" + vbCrLf + Replace(NlTrim(run), "*/", "* /") + vbCrLf + "*/" + vbCrLf;
+                run = "";
+                s = s + ModConvertStatements.ConvertDirective(l) + vbCrLf;
+            }
+            else
+            {
+                run = run + l + vbCrLf;
+            }
+        }
+        if (NlTrim(run) != "") s = s + "/*" + vbCrLf + Replace(NlTrim(run), "*/", "* /") + vbCrLf + "*/" + vbCrLf;
         commentBlock = s;
         return commentBlock;
     }
 
+    /// <summary>Optional modifiers of a procedure declaration: [Public|Private|Friend] [Static].</summary>
+    public const string ProcModifiers = "(Public |Private |Friend |)(Friend |)(Static |)";
+
     public static string ConvertDeclare(string s, int ind, bool isGlobal = false, bool asModule = false)
     {
-        var sp = new string[0];
-
         var asPrivate = false;
 
         var pType = "";
 
         var isArr = false;
-        var aMax = 0;
-        var aMin = 0;
 
         var res = "";
 
         var ss = s;
 
         if (TLeft(s, 7) == "Public ")
+        {
+            s = TMid(s, 8);
+        }
+        if (TLeft(s, 7) == "Global ")
         {
             s = TMid(s, 8);
         }
@@ -559,11 +638,14 @@ public static class ModConvert
         }
 
         //  If IsInStr(S, "aMin") Then Stop
-        sp = Split(s, ",");
-        foreach (var iterL in sp)
+        foreach (var iterL in ModConvertStatements.SplitTopLevel(s))
         {
             var l = iterL;
             l = Trim(l);
+            if (l == "")
+            {
+                continue;
+            }
             if (LMatch(l, "WithEvents "))
             {
                 l = Trim(TMid(l, 12));
@@ -571,6 +653,11 @@ public static class ModConvert
             }
             var pName = RegExNMatch(l, patToken);
             l = Trim(TMid(l, Len(pName) + 1));
+            var suffixType = Len(l) > 0 ? ModConvertStatements.SuffixType(l[0]) : "";
+            if (suffixType != "")
+            { // Dim s$ / Dim n%(10)
+                l = Trim(Mid(l, 2));
+            }
             if (isGlobal)
             {
                 res = res + IIf(asPrivate, "private ", "public ");
@@ -579,31 +666,22 @@ public static class ModConvert
             {
                 res = res + "static ";
             }
+            isArr = false;
+            var dims = new System.Collections.Generic.List<string>();
             if (TLeft(l, 1) == "(")
             {
                 isArr = true;
-                var arraySpec = NextBy(Mid(l, 2), ")");
-                if (arraySpec == "")
+                var close = ModConvertStatements.MatchParen(l, 0);
+                var arraySpec = close < 0 ? "" : Mid(l, 2, close - 1);
+                l = close < 0 ? "" : Trim(Mid(l, close + 2));
+                if (Trim(arraySpec) != "")
                 {
-                    aMin = -1;
-                    aMax = -1;
-                    l = Trim(TMid(l, 3));
-                }
-                else
-                {
-                    l = Trim(TMid(l, Len(arraySpec) + 3));
-                    aMin = 0;
-                    aMax = ValI(SplitWord(arraySpec));
-                    arraySpec = Trim(TMid(arraySpec, Len(aMax) + 1));
-                    if (TLeft(arraySpec, 3) == "To ")
-                    {
-                        aMin = aMax;
-                        aMax = ValI(TMid(arraySpec, 4));
-                    }
+                    dims = ModConvertStatements.SplitTopLevel(arraySpec);
                 }
             }
 
             var asNew = false;
+            var fixedTodo = "";
             if (SplitWord(l, 1) == "As")
             {
                 pType = SplitWord(l, 2);
@@ -612,46 +690,63 @@ public static class ModConvert
                     pType = SplitWord(l, 3);
                     asNew = true;
                 }
+                if (LMatch(SplitWord(l, 3), "*"))
+                {
+                    fixedTodo = " // TODO: VB6 fixed-length string (" + Trim(Mid(l, InStr(l, "*"))) + ") is a variable-length string";
+                }
             }
             else
             {
-                pType = "Variant";
+                pType = suffixType != "" ? suffixType : "Variant";
             }
 
+            var cType = ConvertDataType(pType);
+            var asArray = "";
             if (!isArr)
             {
-                res = res + SSpace(ind) + ConvertDataType(pType) + " " + pName;
+                res = res + SSpace(ind) + cType + " " + pName;
                 res = res + " = ";
                 if (asNew)
                 {
                     res = res + "new ";
-                    res = res + ConvertDataType(pType);
+                    res = res + cType;
                     res = res + "()";
                 }
                 else
                 {
                     res = res + ConvertDefaultDefault(pType);
                 }
-                res = res + ";" + vbCrLf;
+                res = res + ";" + fixedTodo + vbCrLf;
+            }
+            else if (dims.Count == 0)
+            { // dynamic array: sized by ReDim
+                asArray = "-1";
+                res = res + SSpace(ind) + "List<" + cType + "> " + pName + " = new List<" + cType + "> {};" + vbCrLf;
             }
             else
             {
-                var aTodo = IIf(aMin == 0, "", " // TODO - Specified Minimum Array Boundary Not Supported: " + ss);
-                if (!IsNumeric(aMax))
+                var aTodo = "";
+                var counts = new System.Collections.Generic.List<string>();
+                foreach (var d in dims)
                 {
-                    res = res + SSpace(ind) + "List<" + ConvertDataType(pType) + "> " + pName + " = new List<" + ConvertDataType(pType) + "> (new " + ConvertDataType(pType) + "[(" + aMax + " + 1)]);  // TODO: Confirm Array Size By Token" + aTodo + vbCrLf;
+                    counts.Add(ModConvertStatements.DimCount(d, out var lb));
+                    if (lb != "" && lb != "0")
+                    {
+                        aTodo = " // TODO - Specified Minimum Array Boundary Not Supported: " + ss;
+                    }
                 }
-                else if (Val(aMax) == -1)
+                asArray = string.Join(", ", counts);
+                if (dims.Count == 1)
                 {
-                    res = res + SSpace(ind) + "List<" + ConvertDataType(pType) + "> " + pName + " = new List<" + ConvertDataType(pType) + "> {};" + aTodo + vbCrLf;
+                    res = res + SSpace(ind) + "List<" + cType + "> " + pName + " = ReDim<" + cType + ">(null, " + counts[0] + ");" + aTodo + vbCrLf;
                 }
                 else
                 {
-                    res = res + SSpace(ind) + "List<" + ConvertDataType(pType) + "> " + pName + " = new List<" + ConvertDataType(pType) + "> (new " + ConvertDataType(pType) + "[" + (Val(aMax) + 1) + "]);" + aTodo + vbCrLf;
+                    res = res + SSpace(ind) + cType + "[" + new string(',', dims.Count - 1) + "] " + pName + " = new " + cType + "[" + asArray + "];" + aTodo + vbCrLf;
                 }
             }
 
-            SubParamDecl(pName, pType, IIf(isArr, "" + aMax, ""), false, false);
+            SubParamDecl(pName, pType, asArray, false, false);
         }
 
         var convertDeclare = res;
@@ -684,6 +779,10 @@ public static class ModConvert
             s = TMid(s, 8);
         }
         if (TLeft(s, 8) == "Declare ")
+        {
+            s = TMid(s, 9);
+        }
+        if (TLeft(s, 8) == "PtrSafe ")
         {
             s = TMid(s, 9);
         }
@@ -799,8 +898,9 @@ public static class ModConvert
         {
             s = Mid(Trim(s), 7);
         }
-        var cName = SplitWord(s, 1);
+        var cName = RegExNMatch(Trim(s), "^" + patToken + "[$%&!#@]?");
         s = Trim(Mid(Trim(s), Len(cName) + 1));
+        var suffixType = ModConvertStatements.StripSuffix(ref cName);
         if (TLeft(s, 3) == "As ")
         {
             s = Trim(Mid(Trim(s), 3));
@@ -809,7 +909,7 @@ public static class ModConvert
         }
         else
         {
-            cType = "Variant";
+            cType = suffixType != "" ? suffixType : "Variant";
         }
 
         if (Left(s, 1) == "=")
@@ -823,34 +923,63 @@ public static class ModConvert
         }
 
         var dataType = ConvertDataType(cType);
-        if (dataType == "dynamic")
-        { // c# can't handle constants of type 'dynamic' when type can be inferred.
-            if (LMatch(cValue, deStringTokenBase))
+        var inferred = true;
+        if (dataType == "dynamic" || dataType == "object")
+        { // c# can't handle constants of type 'dynamic' (or object) when type can be inferred.
+            if (RegExTest(cValue, "^" + deStringTokenBase + "[0-9]+$"))
             {
                 dataType = "string";
             }
-            else if (IsNumeric(cValue))
+            else if (RegExTest(cValue, "^-?[0-9]+[.][0-9]+m?$"))
             {
-                if (IsInStr(cValue, "."))
-                {
-                    dataType = "decimal";
-                }
-                else
-                {
-                    dataType = "int";
-                }
+                dataType = "decimal";
+            }
+            else if (RegExTest(cValue, "^-?([0-9]+|0x[0-9A-Fa-f]+)$"))
+            {
+                dataType = "int";
+            }
+            else if (cValue == "true" || cValue == "false")
+            {
+                dataType = "bool";
+            }
+            else
+            {
+                inferred = false; // an expression: its type is only known to the compiler
             }
         }
 
-        if (cType == "Date")
+        if (!inferred)
         {
-            convertConstant = IIf(isGlobal, IIf(isPrivate, "private ", "public "), "") + "static readonly " + dataType + " " + cName + " = " + cValue + ";";
+            convertConstant = isGlobal ? IIf(isPrivate, "private ", "public ") + "static readonly dynamic " + cName + " = " + cValue + ";" : "var " + cName + " = " + cValue + ";";
+        }
+        else if (cType == "Date")
+        {
+            convertConstant = isGlobal ? IIf(isPrivate, "private ", "public ") + "static readonly " + dataType + " " + cName + " = " + cValue + ";" : dataType + " " + cName + " = " + cValue + ";";
         }
         else
         {
             convertConstant = IIf(isGlobal, IIf(isPrivate, "private ", "public "), "") + "const " + dataType + " " + cName + " = " + cValue + ";";
         }
         return convertConstant;
+    }
+
+    /// <summary>A Const statement, which may declare several constants ("Const A = 1, B = 2").</summary>
+    public static string ConvertConstants(string s, bool isGlobal = true, int ind = 0)
+    {
+        var m = System.Text.RegularExpressions.Regex.Match(Trim(s), "^((?:Public |Private |Global )?Const )(.*)$");
+        if (!m.Success)
+        {
+            return SSpace(ind) + ConvertConstant(s, isGlobal) + vbCrLf;
+        }
+        var r = "";
+        foreach (var item in ModConvertStatements.SplitTopLevel(m.Groups[2].Value))
+        {
+            if (item != "")
+            {
+                r = r + SSpace(ind) + ConvertConstant(m.Groups[1].Value + item, isGlobal) + vbCrLf;
+            }
+        }
+        return r;
     }
 
     public static string ConvertEvent(string s)
@@ -919,31 +1048,34 @@ public static class ModConvert
         {
             s = TMid(s, 6);
         }
-        var eName = RegExNMatch(s, patToken, 0);
-        s = NlTrim(TMid(s, Len(eName) + 1));
-
+        var lines = Split(Replace(s, vbLf, ""), vbCr);
+        var eName = RegExNMatch(lines[0], patToken, 0);
         var res = "public enum " + eName + " {";
 
-        while (TLeft(s, 8) != "End Enum" && s != "")
+        // one member per line: Name [= value]; [Bracketed Name] members get a valid identifier
+        for (var i = 1; i < lines.Length; i++)
         {
-            eName = RegExNMatch(s, patToken, 0);
-            res = res + IIf(has, ",", "") + vbCrLf + SSpace(spIndent) + eName;
-            has = true;
-
-            s = NlTrim(TMid(s, Len(eName) + 1));
-            if (TLeft(s, 1) == "=")
+            var t = Trim(lines[i]);
+            if (t == "" || LMatch(t, "End Enum"))
             {
-                s = NlTrim(Mid(s, 3));
-                if (Left(s, 1) == "&")
-                {
-                    eName = ConvertElement(RegExNMatch(s, "&H[0-9A-F]+"));
-                }
-                else
-                {
-                    eName = RegExNMatch(s, "[0-9]*", 0);
-                }
-                res = res + " = " + eName;
-                s = NlTrim(TMid(s, Len(eName) + 1));
+                continue;
+            }
+            string member;
+            if (Left(t, 1) == "[" && InStr(t, "]") > 0)
+            {
+                member = System.Text.RegularExpressions.Regex.Replace(Mid(t, 2, InStr(t, "]") - 2), "[^A-Za-z0-9_]", "_");
+                t = Trim(Mid(t, InStr(t, "]") + 1));
+            }
+            else
+            {
+                member = RegExNMatch(t, patToken, 0);
+                t = Trim(Mid(t, Len(member) + 1));
+            }
+            res = res + IIf(has, ",", "") + vbCrLf + SSpace(spIndent) + member;
+            has = true;
+            if (Left(t, 1) == "=")
+            {
+                res = res + " = " + ConvertValue(Trim(Mid(t, 2)));
             }
         }
         res = res + vbCrLf + "}";
@@ -987,8 +1119,12 @@ public static class ModConvert
             {
                 n = NextBy(Mid(s, 2), ")");
                 s = NlTrim(Mid(s, Len(n) + 3));
-                n = ConvertValue(n);
-                eArr = "[" + n + "]";
+                var counts = new System.Collections.Generic.List<string>();
+                foreach (var d in ModConvertStatements.SplitTopLevel(n))
+                {
+                    counts.Add(ModConvertStatements.DimCount(d, out _)); // VB6 bounds are inclusive
+                }
+                eArr = "[" + string.Join(", ", counts) + "]";
             }
 
             if (TLeft(s, 3) == "As ")
@@ -1001,7 +1137,7 @@ public static class ModConvert
             {
                 eType = "Variant";
             }
-            res = res + vbCrLf + " public " + ConvertDataType(eType) + IIf(eArr == "", "", "[]") + " " + eName;
+            res = res + vbCrLf + " public " + ConvertDataType(eType) + IIf(eArr == "", "", "[" + new string(',', StrCnt(eArr, ",")) + "]") + " " + eName;
             if (eArr == "")
             {
                 res = res + " = " + ConvertDefaultDefault(eType);
@@ -1054,20 +1190,27 @@ public static class ModConvert
             s = Mid(s, 7);
         }
         var pName = SplitWord(s, 1);
-        if (isByRef && SubParam(pName).assignedBeforeUsed)
+        s = Trim(Mid(s, Len(pName) + 1));
+        var isArrayParam = IsInStr(pName, "()");
+        pName = Replace(pName, "()", "");
+        var suffixType = ModConvertStatements.StripSuffix(ref pName); // ByVal s$
+        if (isArrayParam)
+        {
+            pName = pName + "()";
+        }
+        if (isByRef && SubParam(Replace(pName, "()", "")).assignedBeforeUsed)
         {
             asOut = true;
         }
-        s = Trim(Mid(s, Len(pName) + 1));
-        if (TLeft(s, 2) == "As")
+        if (TLeft(s, 3) == "As ")
         {
             s = TMid(s, 4);
-            pType = SplitWord(s, 1, "=");
-            s = Trim(Mid(s, Len(pType) + 1));
+            pType = Trim(SplitWord(s, 1, "="));
+            s = Trim(Mid(s, InStr(s, pType) + Len(pType)));
         }
         else
         {
-            pType = "Variant";
+            pType = suffixType != "" ? suffixType : "Variant";
         }
         if (Left(s, 1) == "=")
         {
@@ -1132,7 +1275,12 @@ public static class ModConvert
             s = Mid(s, 9);
         }
         if (LMatch(s, "Friend "))
-        {
+        { // visible to the project only
+            res = res + "internal ";
+            s = Mid(s, 8);
+        }
+        if (LMatch(s, "Static "))
+        { // all locals static: handled by ConvertSub
             s = Mid(s, 8);
         }
         if (asModule)
@@ -1152,9 +1300,10 @@ public static class ModConvert
         }
 
         var fName = Trim(SplitWord(Trim(s), 1, "("));
+        s = Trim(TMid(s, Len(fName) + 2));
+        var suffixType = ModConvertStatements.StripSuffix(ref fName); // Function Name$(...)
         asName = fName;
 
-        s = Trim(TMid(s, Len(fName) + 2));
         if (Left(s, 1) == "(")
         {
             s = Trim(TMid(s, 2));
@@ -1182,7 +1331,7 @@ public static class ModConvert
             }
             else
             {
-                retType = "Variant";
+                retType = suffixType != "" ? suffixType : "Variant";
             }
             if (Right(retType, 1) == ")" && Right(retType, 2) != "()")
             {
@@ -1250,14 +1399,22 @@ public static class ModConvert
         }
 
         //If IsInStr(S, "Debug.Print") Then Stop
-        if (Left(Trim(s), 2) == "&H")
+        var radix = ModConvertStatements.ConvertRadixLiteral(s);
+        if (radix != null)
         {
-            convertElement = "0x" + Mid(Trim(s), 3);
+            convertElement = radix;
             return convertElement;
 
         }
 
-        if (IsNumeric(Trim(s)))
+        s = ModConvertStatements.StripTypeSuffixes(s);
+        if (LMatch(s, "AddressOf "))
+        { // a procedure passed as a callback: the method group converts to the delegate type
+            convertElement = Trim(Mid(s, 11));
+            return convertElement;
+        }
+
+        if (IsNumeric(Trim(s)) && !RegExTest(Trim(s), "^&"))
         {
             convertElement = Val(s).ToString(System.Globalization.CultureInfo.InvariantCulture);
             if (IsInStr(s, "."))
@@ -1268,18 +1425,14 @@ public static class ModConvert
 
         }
 
-        var vMax = 0;
-
-        while (RegExTest(s, "#[0-9]+/[0-9]+/[0-9]+#"))
+        // VB6 date literals are always month/day/year
+        var dateLit = ModConvertStatements.ConvertDateLiterals(s);
+        if (dateLit != s && RegExTest(Trim(s), "^#[^#]+#$"))
         {
-            var dStr = RegExNMatch(s, "#[0-9]+/[0-9]+/[0-9]+#", 0);
-            s = Replace(s, dStr, "DateValue(\"" + Mid(dStr, 2, Len(dStr) - 2) + "\")");
-            vMax = vMax + 1;
-            if (vMax > 10)
-            {
-                break;
-            }
+            convertElement = dateLit;
+            return convertElement;
         }
+        s = dateLit;
 
         //If IsInStr(S, "RS!") Then Stop
         //If IsInStr(S, ".SetValueDisplay Row") Then Stop
@@ -1441,16 +1594,7 @@ public static class ModConvert
         //If IsInStr(ConvertElement, "&H") And Right(ConvertElement, 1) = "&" Then Stop
         //If IsInStr(ConvertElement, "1/1/2001") Then Stop
 
-        convertElement = RegExReplace(convertElement, "([0-9])#", "$1");
-
-        if (Left(convertElement, 2) == "&H")
-        {
-            convertElement = "0x" + Mid(convertElement, 3);
-            if (Right(convertElement, 1) == "&")
-            {
-                convertElement = Left(convertElement, Len(convertElement) - 1);
-            }
-        }
+        convertElement = System.Text.RegularExpressions.Regex.Replace(convertElement, "&[HhOo][0-9A-Fa-f]+&?(?![A-Za-z0-9_])", m => ModConvertStatements.ConvertRadixLiteral(m.Value) ?? m.Value);
 
         if (withLevel > 0)
         {
@@ -1547,6 +1691,7 @@ public static class ModConvert
         //If Left(S, 6) = "fName" Then Stop
 
         SubParamUsedList(TokenList(s));
+        s = ModConvertStatements.GroupNot(s);
 
         if (RegExTest(s, "^-[a-zA-Z0-9_]"))
         {
@@ -1555,6 +1700,10 @@ public static class ModConvert
 
         }
 
+        // operands and the (trimmed) VB operators between them
+        var raws = new System.Collections.Generic.List<string>();
+        var parts = new System.Collections.Generic.List<string>();
+        var ops = new System.Collections.Generic.List<string>();
         while (true)
         {
             var f = NextByOp(s, 1, ref op);
@@ -1562,12 +1711,84 @@ public static class ModConvert
             {
                 break;
             }
-            switch (Trim(op))
+
+            raws.Add(Trim(f));
+            if (Left(f, 1) == "(" && Right(f, 1) == ")" && ModConvertStatements.MatchParen(f, 0) == Len(f) - 1)
+            {
+                parts.Add("(" + ModConvert.ConvertValue(Mid(f, 2, Len(f) - 2)) + ")");
+            }
+            else if (TLMatch(f, "TypeOf "))
+            {
+                parts.Add(ModConvert.ConvertValue(Trim(Mid(Trim(f), 8))));
+            }
+            else
+            {
+                parts.Add(ConvertElement(f));
+            }
+
+            if (op == "" || op == null)
+            {
+                break;
+            }
+            ops.Add(Trim(op));
+            s = Mid(s, Len(f) + Len(op) + 1);
+            if (s == "")
+            {
+                break;
+            }
+        }
+        while (ops.Count >= parts.Count && ops.Count > 0)
+        {
+            ops.RemoveAt(ops.Count - 1);
+        }
+
+        // operators that become calls or patterns bind their two neighbouring operands
+        for (var pass = 0; pass < 2; pass++)
+        {
+            for (var i = 0; i < ops.Count; i++)
+            {
+                string folded = null;
+                switch (ops[i])
+                {
+                    case "^" when pass == 0:
+                        folded = "Pow(" + parts[i] + ", " + parts[i + 1] + ")";
+                        break;
+                    case "Like" when pass == 1:
+                        folded = "IsLike(" + parts[i] + ", " + parts[i + 1] + ")";
+                        break;
+                    case "Is" when pass == 1 && TLMatch(raws[i], "TypeOf "):
+                        folded = parts[i] + " is " + ConvertDataType(raws[i + 1]);
+                        break;
+                    case "Imp" when pass == 1:
+                        folded = "(!(" + parts[i] + ") || (" + parts[i + 1] + "))";
+                        break;
+                }
+                if (folded == null)
+                {
+                    continue;
+                }
+                parts[i] = folded;
+                raws[i] = folded;
+                parts.RemoveAt(i + 1);
+                raws.RemoveAt(i + 1);
+                ops.RemoveAt(i);
+                i--;
+            }
+        }
+
+        o = parts.Count > 0 ? parts[0] : "";
+        for (var i = 0; i < ops.Count; i++)
+        {
+            // And/Or/Xor on an integer operand are bitwise in VB6
+            var bitwise = IsIntegerLiteral(raws[i]) || IsIntegerLiteral(raws[i + 1]);
+            switch (ops[i])
             {
                 case "\\":
-                    opN = "/";
+                    opN = " / ";
                     break;
                 case "=":
+                case "Is":
+                case "Eqv":
                     opN = " == ";
                     break;
                 case "<>":
@@ -1579,45 +1800,30 @@ public static class ModConvert
                 case "Mod":
                     opN = " % ";
                     break;
-                case "Is":
-                    opN = " == ";
-                    break;
-                case "Like":
-                    opN = " == ";
-                    break;
                 case "And":
-                    opN = " && ";
+                    opN = bitwise ? " & " : " && ";
                     break;
                 case "Or":
-                    opN = " || ";
+                    opN = bitwise ? " | " : " || ";
+                    break;
+                case "Xor":
+                    opN = " ^ ";
                     break;
                 default:
-                    opN = op;
+                    opN = " " + ops[i] + " ";
                     break;
             }
-
-
-            if (Left(f, 1) == "(" && Right(f, 1) == ")")
-            {
-                o = o + "(" + ModConvert.ConvertValue(Mid(f, 2, Len(f) - 2)) + ")" + opN;
-            }
-            else
-            {
-                o = o + ConvertElement(f) + opN;
-            }
-
-            if (op == "")
-            {
-                break;
-            }
-            s = Mid(s, Len(f) + Len(op) + 1);
-            if (s == "" || op == "")
-            {
-                break;
-            }
+            o = o + opN + parts[i + 1];
         }
         convertValue = o;
         return convertValue;
+    }
+
+    /// <summary>An integer literal operand (decimal, &amp;H or &amp;O, optional type character).</summary>
+    private static bool IsIntegerLiteral(string s)
+    {
+        s = Trim(s);
+        return RegExTest(s, "^-?[0-9]+[%&]?$") || RegExTest(s, "^&[HhOo][0-9A-Fa-f]+[&%]?$");
     }
 
     public static string ConvertGlobals(string str, bool asModule = false)
@@ -1652,9 +1858,25 @@ public static class ModConvert
                     building = "";
                 }
             }
-            else if (l == "Option *")
+            else if (LMatch(l, "Option Base ") || LMatch(l, "Option Compare Text"))
+            {
+                o = "// TODO: VB6 " + l + (LMatch(l, "Option Base ") ? " (converted arrays are 0-based)" : " (string comparisons are case-sensitive)");
+            }
+            else if (LMatch(l, "Option ") || LMatch(l, "Attribute ") || LMatch(l, "Rem "))
             {
                 o = "// " + l;
+            }
+            else if (ModConvertStatements.IsDirective(l))
+            {
+                o = ModConvertStatements.ConvertDirective(l);
+            }
+            else if (RegExTest(l, "^Def(Bool|Byte|Int|Lng|Cur|Sng|Dbl|Dec|Date|Str|Obj|Var) "))
+            {
+                o = "// TODO: VB6 " + l + " (implicit types of undeclared names are not converted)";
+            }
+            else if (LMatch(l, "Implements "))
+            {
+                o = "// TODO: VB6 " + l + " (add the interface to the class and map its Iface_Member procedures)";
             }
             else if (RegExTest(l, "^(Public |Private |)Declare "))
             {
@@ -1662,7 +1884,7 @@ public static class ModConvert
             }
             else if (RegExTest(l, "^(Global |Public |Private |)Const "))
             {
-                o = ConvertConstant(l, true);
+                o = TrimCrLf(ConvertConstants(l, true));
             }
             else if (RegExTest(l, "^(Public |Private |)Event "))
             {
@@ -1676,7 +1898,7 @@ public static class ModConvert
             {
                 building = l;
             }
-            else if (TLeft(l, 8) == "Private " || TLeft(l, 7) == "Public " || TLeft(l, 4) == "Dim ")
+            else if (TLeft(l, 8) == "Private " || TLeft(l, 7) == "Public " || TLeft(l, 7) == "Global " || TLeft(l, 4) == "Dim ")
             {
                 o = ConvertDeclare(l, 0, true, asModule);
             }
@@ -1692,6 +1914,54 @@ public static class ModConvert
         res = ReString(res, true);
         var convertGlobals = res;
         return convertGlobals;
+    }
+
+    /// <summary>1-based position of the "=" of an assignment statement ("[Set ]target = value"), or 0.</summary>
+    /// <remarks>The target may index with several arguments ("grid(i, j) = x"): only spaces outside parentheses end it.</remarks>
+    public static int AssignmentPos(string s)
+    {
+        var t = Trim(s);
+        var offset = Len(s) - Len(LTrim(s));
+        if (LMatch(t, "Set "))
+        {
+            t = Mid(t, 5);
+            offset = offset + 4;
+        }
+        if (!RegExTest(t, "^[a-zA-Z_.]"))
+        {
+            return 0;
+        }
+        var depth = 0;
+        for (var i = 0; i < t.Length; i++)
+        {
+            var c = t[i];
+            if (c == '(')
+            {
+                depth++;
+            }
+            else if (c == ')')
+            {
+                depth--;
+            }
+            else if (depth == 0 && c == ' ')
+            {
+                return string.CompareOrdinal(t, i, " = ", 0, 3) == 0 ? offset + i + 2 : 0;
+            }
+            else if (depth == 0 && !(char.IsLetterOrDigit(c) || c == '_' || c == '.' || c == '!'))
+            {
+                return 0;
+            }
+        }
+        return 0;
+    }
+
+    private static string TrimCrLf(string s)
+    {
+        while (Right(s, 2) == vbCrLf)
+        {
+            s = Left(s, Len(s) - 2);
+        }
+        return s;
     }
 
     public static string ConvertCodeLine(string s)
@@ -1733,10 +2003,10 @@ public static class ModConvert
 
         }
 
-        if (RegExTest(Trim(s), "^[a-zA-Z0-9_.()]+ \\= ") || RegExTest(Trim(s), "^Set [a-zA-Z0-9_.()]+ \\= "))
+        var T = AssignmentPos(s);
+        if (T > 0)
         {
             // Assignment
-            var T = InStr(s, "=");
             var a = Trim(Left(s, T - 1));
             if (TLeft(a, 4) == "Set ")
             {
@@ -1807,7 +2077,11 @@ public static class ModConvert
             }
             else if (firstWord == "Debug.Print")
             {
-                convertCodeLine = "Console.WriteLine(" + ConvertValue(rest) + ")";
+                convertCodeLine = ModConvertStatements.ConvertDebugPrint(rest);
+            }
+            else if (firstWord == "Debug.Assert")
+            {
+                convertCodeLine = "System.Diagnostics.Debug.Assert(" + ConvertValue(rest) + ")";
             }
             else if (StrQCnt(firstWord, "(") == 0)
             {
@@ -1920,6 +2194,28 @@ public static class ModConvert
         return postConvertCodeLine;
     }
 
+    /// <summary>A loop or Select Case open in the procedure being converted.</summary>
+    private sealed class Breakable
+    {
+        public string Kind = "";
+        public string Label = "";
+    }
+
+    /// <summary>Lines that end the innermost open block (or one of its sections).</summary>
+    private static bool IsBlockCloser(string t)
+    {
+        return t == "Else" || LMatch(t, "ElseIf ") || t == "End If" || t == "Case Else" || LMatch(t, "Case ") || t == "End Select"
+               || t == "Loop" || LMatch(t, "Loop ") || t == "Next" || LMatch(t, "Next ") || t == "Wend" || t == "End With"
+               || t == "End Sub" || t == "End Function" || t == "End Property";
+    }
+
+    /// <summary>Statements an On Error GoTo handler protects (declarations are hoisted, labels and error statements stay outside).</summary>
+    private static bool IsProtectable(string t)
+    {
+        return !IsBlockCloser(t) && !RegExTest(t, "^[a-zA-Z_][a-zA-Z_0-9]*:$") && !LMatch(t, "Dim ") && !LMatch(t, "Static ") && !LMatch(t, "Const ")
+               && !LMatch(t, "On Error ") && !LMatch(t, "On Local Error ") && !LMatch(t, "Attribute ") && !ModConvertStatements.IsDirective(t);
+    }
+
     public static string ConvertSub(string str, bool asModule = false, vbTriState scanFirst = vbTriState.vbUseDefault)
     {
         var convertSub = "";
@@ -1928,8 +2224,6 @@ public static class ModConvert
         var T = "";
         var u = "";
         var v = "";
-
-        var inCase = 0;
 
         var returnVariable = "";
 
@@ -1961,6 +2255,60 @@ public static class ModConvert
         s = Split(str, vbCr);
         var ind = 0;
 
+        var decls = ""; // VB6 locals are procedure-scoped and initialized on entry: declarations are hoisted
+        var declPos = 0;
+        var fields = ""; // Static locals keep their value between calls: they become fields
+        var statics = new System.Collections.Generic.Dictionary<string, string>();
+        var staticProc = false;
+        var hadPrototype = false;
+        var errs = new ModConvertStatements.ErrorScope();
+        var selects = new System.Collections.Generic.Stack<bool>(); // per open Select Case: a case section is open
+        // open loops and switches, innermost last: a C# break leaves only the innermost one
+        var breakables = new System.Collections.Generic.List<Breakable>();
+        var exitLabels = 0;
+
+        void OpenBreakable(string kind)
+        {
+            breakables.Add(new Breakable { Kind = kind });
+        }
+
+        // closes the innermost block; a loop left with goto gets its exit label after the closing brace
+        string CloseBreakable()
+        {
+            if (breakables.Count == 0)
+            {
+                return "";
+            }
+            var b = breakables[breakables.Count - 1];
+            breakables.RemoveAt(breakables.Count - 1);
+            return b.Label == "" ? "" : vbCrLf + SSpace(ind) + b.Label + ":;";
+        }
+
+        string ExitLoop(string kind)
+        {
+            for (var k = breakables.Count - 1; k >= 0; k--)
+            {
+                if (breakables[k].Kind != kind)
+                {
+                    continue;
+                }
+                if (k == breakables.Count - 1)
+                {
+                    return "break;";
+                }
+                if (breakables[k].Label == "")
+                {
+                    exitLabels = exitLabels + 1;
+                    breakables[k].Label = "exit" + kind + exitLabels;
+                }
+                return "goto " + breakables[k].Label + ";";
+            }
+            return "break;";
+        }
+
+        var pp = "^" + ProcModifiers + "(Function |Sub )" + patToken + "[$%&!#@]?[ ]*\\(";
+        var pq = "^" + ProcModifiers + "(Property )(Get |Let |Set )" + patToken + "[$%&!#@]?[ ]*\\(";
+
         //If IsInStr(Str, " WinCDSDataPath(") Then Stop
         //If IsInStr(Str, " RunShellExecute(") Then Stop
         //If IsInStr(Str, " ValidateSI(") Then Stop
@@ -1973,7 +2321,19 @@ public static class ModConvert
             l = DeComment(l);
             l = DeString(l);
             var o = "";
-
+            var pre = "";
+            var wrap = false; // a simple statement: guarded under On Error Resume Next
+            var isProto = RegExNMatch(l, pp) != "";
+            var isDecl = TLMatch(l, "Dim ") || TLMatch(l, "Static ") || TLMatch(l, "Const ");
+            if (!isProto && !isDecl)
+            {
+                l = ModConvertStatements.StripTypeSuffixes(l);
+            }
+            if (TLMatch(l, "Let "))
+            {
+                l = TMid(l, 5);
+            }
+            var t = Trim(l);
 
             //If IsInStr(L, "1/1/2001") Then Stop
             //If ScanFirst = vbFalse Then Stop
@@ -1981,17 +2341,34 @@ public static class ModConvert
             //If IsInStr(L, "GetCustomerBalance") Then Stop
             //If IsInStr(L, "IsIDE") Then Stop
 
-            var pp = "^(Public |Private |)(Friend |)(Function |Sub )" + patToken + "[ ]*\\(";
-            var pq = "^(Public |Private )(Property )(Get |Let |Set )" + patToken + "[ ]*\\(";
-            if (RegExNMatch(l, pp) != "")
+            // On Error GoTo: the handler protects the statements through a try block, which can only span one C# block
+            if (t != "" && !isProto)
+            {
+                if (errs.TryOpen && IsBlockCloser(t) && ind <= errs.TryInd + spIndent)
+                {
+                    pre = pre + errs.CloseTry(ref ind);
+                }
+                else if (errs.Mode == ModConvertStatements.ErrorScope.Modes.GoTo && !errs.TryOpen && IsProtectable(t))
+                {
+                    pre = pre + errs.OpenTry(ref ind);
+                }
+            }
+
+            string x;
+            if (t == "")
+            {
+                o = "";
+            }
+            else if (ModConvertStatements.IsDirective(t))
+            {
+                o = SSpace(ind) + ModConvertStatements.ConvertDirective(t);
+            }
+            else if (isProto)
             {
                 //      CurrSub = nextBy(L, "(", 1)
-                //      If (LMatch(CurrSub, "Public ")) Then CurrSub = Mid(CurrSub, 8)
-                //      If (LMatch(CurrSub, "Private ")) Then CurrSub = Mid(CurrSub, 9)
-                //      If (LMatch(CurrSub, "Friend ")) Then CurrSub = Mid(CurrSub, 8)
-                //      If (LMatch(CurrSub, "Function ")) Then CurrSub = Mid(CurrSub, 10)
-                //      If (LMatch(CurrSub, "Sub ")) Then CurrSub = Mid(CurrSub, 5)
                 //If IsInStr(L, "Public Function IsIn") Then Stop
+                staticProc = RegExTest(l, "^(Public |Private |Friend |)(Friend |)Static ");
+                hadPrototype = true;
                 o = o + SSpace(ind) + ConvertPrototype(l, ref returnVariable, asModule, ref currSub);
                 ind = ind + spIndent;
             }
@@ -2002,8 +2379,9 @@ public static class ModConvert
                 return convertSub;// repacked later...  not added here.
 
             }
-            else if (TLMatch(l, "End Sub") || TLMatch(l, "End Function"))
+            else if (t == "End Sub" || t == "End Function")
             {
+                pre = pre + errs.CloseTry(ref ind);
                 if (returnVariable != "")
                 {
                     o = o + SSpace(ind) + "return " + returnVariable + ";" + vbCrLf;
@@ -2011,166 +2389,175 @@ public static class ModConvert
                 ind = ind - spIndent;
                 o = o + SSpace(ind) + "}";
             }
-            else if (TLMatch(l, "Exit Function") || TLMatch(l, "Exit Sub"))
+            else if (t == "Exit Function" || t == "Exit Sub")
             {
                 if (returnVariable != "")
                 {
-                    o = o + SSpace(ind) + "return " + returnVariable + ";" + vbCrLf;
+                    o = o + SSpace(ind) + "return " + returnVariable + ";";
                 }
                 else
                 {
-                    o = o + "return;" + vbCrLf;
+                    o = o + SSpace(ind) + "return;";
                 }
             }
-            else if (TLMatch(l, "GoTo "))
+            else if (t == "Exit Property")
             {
-                o = o + "goto " + SplitWord(Trim(l), 2) + ";";
+                o = SSpace(ind) + ExitPropertyMark;
             }
-            else if (RegExTest(Trim(l), "^[a-zA-Z_][a-zA-Z_0-9]*:$"))
-            { // Goto Label
-                o = o + l + ";"; // c# requires a trailing ; on goto labels without trailing statements.  Likely a C# bug/oversight, but it's there.
+            else if (RegExTest(t, "^[a-zA-Z_][a-zA-Z_0-9]*:$"))
+            { // Goto Label: kept outside the protected block, so the handler (and Resume label) can jump to it
+                if (errs.TryOpen && ind <= errs.TryInd + spIndent)
+                {
+                    pre = pre + errs.CloseTry(ref ind);
+                }
+                if (errs.Mode == ModConvertStatements.ErrorScope.Modes.GoTo && Left(t, Len(t) - 1) == errs.Handler)
+                {
+                    errs.Mode = ModConvertStatements.ErrorScope.Modes.None; // the handler itself runs unprotected
+                }
+                o = o + t + ";"; // c# requires a trailing ; on goto labels without trailing statements.  Likely a C# bug/oversight, but it's there.
             }
-            else if (TLeft(l, 3) == "Dim")
+            else if (LMatch(t, "GoTo "))
             {
-                o = ConvertDeclare(l, ind);
+                o = SSpace(ind) + "goto " + ModConvertStatements.LabelName(Mid(t, 6)) + ";";
             }
-            else if (TLeft(l, 5) == "Const")
+            else if (LMatch(t, "On Error ") || LMatch(t, "On Local Error "))
             {
-                o = SSpace(ind) + ConvertConstant(l, false);
+                o = ModConvertStatements.ConvertOnError(t, errs, ref ind);
+            }
+            else if (LMatch(t, "On ") && (x = ModConvertStatements.ConvertOnGoTo(t, ind)) != null)
+            {
+                o = x;
+            }
+            else if (t == "Resume" || LMatch(t, "Resume "))
+            {
+                o = ModConvertStatements.ConvertResume(t, ind);
+            }
+            else if (LMatch(t, "Static ") && hadPrototype || LMatch(t, "Dim ") && staticProc && hadPrototype)
+            {
+                // a field named after the procedure; references in the body are renamed
+                var rest = Trim(Mid(t, InStr(t, " ") + 1));
+                var field = ConvertDeclare("Private " + rest, 0, true, asModule);
+                foreach (var item in ModConvertStatements.SplitTopLevel(rest))
+                {
+                    var name = RegExNMatch(item, "^" + patToken);
+                    if (name == "")
+                    {
+                        continue;
+                    }
+                    statics[name] = currSub + "_" + name;
+                    field = System.Text.RegularExpressions.Regex.Replace(field, "(?<![A-Za-z0-9_.])" + name + "(?![A-Za-z0-9_])", currSub + "_" + name);
+                }
+                fields = fields + field;
+            }
+            else if (LMatch(t, "Dim ") || LMatch(t, "Static "))
+            {
+                decls = decls + (LMatch(t, "Static ") ? SSpace(spIndent) + "// TODO: VB6 Static local (value not kept between calls)" + vbCrLf : "")
+                        + ConvertDeclare("Dim " + Trim(Mid(t, InStr(t, " ") + 1)), spIndent);
+            }
+            else if (LMatch(t, "Const "))
+            {
+                decls = decls + ConvertConstants(t, false, spIndent);
             }
             else if (TLeft(l, 3) == "If ")
             { // Code sanitization prevents all single-line ifs.
                 //If IsInStr(L, "optDelivered") Then Stop
                 //If IsInStr(L, "PRFolder") Then Stop
-                T = Mid(Trim(l), 4, Len(Trim(l)) - 8);
+                T = Mid(t, 4, Len(t) - 8);
                 o = SSpace(ind) + "if (" + ConvertValue(T) + ") {";
                 ind = ind + spIndent;
             }
             else if (TLeft(l, 7) == "ElseIf ")
             {
                 T = TMid(l, 8);
-                if (Right(Trim(l), 5) == " Then")
+                if (Right(t, 5) == " Then")
                 {
                     T = Left(T, Len(T) - 5);
                 }
                 o = SSpace(ind - spIndent) + "} else if (" + ConvertValue(T) + ") {";
             }
-            else if (TLeft(l, 5) == "Else")
+            else if (t == "Else")
             {
                 o = SSpace(ind - spIndent) + "} else {";
             }
-            else if (TLeft(l, 6) == "End If")
+            else if (t == "End If")
             {
                 ind = ind - spIndent;
                 o = SSpace(ind) + "}";
             }
-            else if (TLeft(l, 12) == "Select Case ")
+            else if (LMatch(t, "Select Case "))
             {
-                o = o + SSpace(ind) + "switch(" + ConvertValue(TMid(l, 13)) + ") {";
+                o = o + SSpace(ind) + "switch (" + ConvertValue(Mid(t, 13)) + ") {";
+                selects.Push(false);
+                OpenBreakable("Select");
                 ind = ind + spIndent;
             }
-            else if (TLeft(l, 10) == "End Select")
+            else if (t == "End Select")
             {
-                if (inCase > 0)
+                if (selects.Count > 0 && selects.Pop())
                 {
+                    o = o + SSpace(ind) + "break;" + vbCrLf;
                     ind = ind - spIndent;
-                    inCase = inCase - 1;
                 }
                 ind = ind - spIndent;
-                o = o + "break;" + vbCrLf;
-                o = o + "}";
+                o = o + SSpace(ind) + "}" + CloseBreakable();
             }
-            else if (TLeft(l, 9) == "Case Else")
+            else if (t == "Case Else" || LMatch(t, "Case "))
             {
-                if (inCase > 0)
-                {
+                if (selects.Count > 0 && selects.Peek())
+                { // C# sections cannot fall through
                     o = o + SSpace(ind) + "break;" + vbCrLf;
                     ind = ind - spIndent;
-                    inCase = inCase - 1;
                 }
-                o = o + SSpace(ind) + "default:";
-                inCase = inCase + 1;
+                if (selects.Count > 0)
+                {
+                    selects.Pop();
+                    selects.Push(true);
+                }
+                o = o + SSpace(ind) + (t == "Case Else" ? "default:" : ModConvertStatements.ConvertCaseLabels(Mid(t, 6)));
                 ind = ind + spIndent;
             }
-            else if (TLeft(l, 5) == "Case ")
-            {
-                T = Mid(res, InStrRev(res, "switch("));
-                if (RegExTest(T, "case [^:]+:"))
-                {
-                    o = o + SSpace(ind) + "break;" + vbCrLf;
-                    ind = ind - spIndent;
-                    inCase = inCase - 1;
-                }
-                T = TMid(l, 6);
-                if (TLeft(T, 5) == "Like " || TLeft(T, 3) == "Is " || T == "* = *")
-                {
-                    o = o + "// TODO: Cannot convert case: " + T + vbCrLf;
-                    o = o + SSpace(ind) + "case 0: ";
-                }
-                else if (NextBy(T, ",", 2) != "")
-                {
-                    o = o + SSpace(ind);
-                    do
-                    {
-                        u = NextBy(T, ", ");
-                        if (u == "")
-                        {
-                            break;
-                        }
-                        T = Trim(Mid(T, Len(u) + Len(", ") + 1)); // skip the delimiter too (only the first value was emitted)
-                        o = o + "case " + ConvertValue(u) + ": ";
-                    } while (true); // VB "Loop While" (was mistranslated as Loop Until)
-                }
-                else if (T == "* To *")
-                {
-                    o = o + "// CONVERSION: Case was " + T + vbCrLf;
-                    o = o + SSpace(ind);
-                    var cN = ValI(SplitWord(T, 1, " To "));
-                    var cm = ValI(SplitWord(T, 2, " To "));
-                    for (var k = cN; k <= cm; k++)
-                    {
-                        o = o + "case " + k + ": ";
-                    }
-                }
-                else
-                {
-                    //          O = O & sSpace(Ind) & "case " & ConvertValue(T) & ":"
-                    o = o + Space(ind);
-                    foreach (var iterLl in Split(T, ","))
-                    {
-                        dynamic ll = iterLl;
-                        o = o + "case " + ConvertValue(Trim(ll)) + ": "; // was ConvertValue(T): the whole list per item
-                    }
-                }
-                inCase = inCase + 1;
-                ind = ind + spIndent;
-            }
-            else if (Trim(l) == "Do")
+            else if (t == "Do")
             {
                 o = o + SSpace(ind) + "do {";
+                OpenBreakable("Do");
                 ind = ind + spIndent;
             }
-            else if (TLeft(l, 9) == "Do While ")
+            else if (LMatch(t, "Do While "))
             {
-                o = o + SSpace(ind) + "while(" + ConvertValue(TMid(l, 10)) + ") {";
+                o = o + SSpace(ind) + "while(" + ConvertValue(Mid(t, 10)) + ") {";
+                OpenBreakable("Do");
                 ind = ind + spIndent;
             }
-            else if (TLeft(l, 9) == "Do Until ")
+            else if (LMatch(t, "Do Until "))
             {
-                o = o + SSpace(ind) + "while(!(" + ConvertValue(TMid(l, 10)) + ")) {";
+                o = o + SSpace(ind) + "while(!(" + ConvertValue(Mid(t, 10)) + ")) {";
+                OpenBreakable("Do");
                 ind = ind + spIndent;
             }
-            else if (TLeft(l, 9) == "For Each ")
+            else if (LMatch(t, "While "))
             {
-                l = TMid(l, 10);
+                o = o + SSpace(ind) + "while(" + ConvertValue(Mid(t, 7)) + ") {";
+                OpenBreakable("While");
+                ind = ind + spIndent;
+            }
+            else if (t == "Wend")
+            {
+                ind = ind - spIndent;
+                o = o + SSpace(ind) + "}" + CloseBreakable();
+            }
+            else if (LMatch(t, "For Each "))
+            {
+                l = Mid(t, 10);
 
                 var iterVar = SplitWord(l, 1, " In ");
-                o = o + SSpace(ind) + "foreach(var iter" + iterVar + " in " + SplitWord(l, 2, " In ") + ") {" + vbCrLf + iterVar + " = iter" + iterVar + ";";
+                o = o + SSpace(ind) + "foreach(var iter" + iterVar + " in " + ConvertValue(SplitWord(l, 2, " In ", true, true)) + ") {" + vbCrLf + SSpace(ind + spIndent) + iterVar + " = iter" + iterVar + ";";
+                SubParamAssign(iterVar);
+                OpenBreakable("For");
                 ind = ind + spIndent;
             }
-            else if (TLeft(l, 4) == "For ")
+            else if (LMatch(t, "For "))
             {
-                l = TMid(l, 5);
+                l = Mid(t, 5);
                 var forKey = SplitWord(l, 1, "=");
                 l = SplitWord(l, 2, "=", true, true);
                 var forStr = SplitWord(l, 1, " To ");
@@ -2181,7 +2568,8 @@ public static class ModConvert
                     forEnd = SplitWord(forEnd, 1, " Step "); // "Step" used to end up inside the end expression
                 }
                 var fk = ConvertElement(forKey);
-                var fe = ConvertElement(forEnd);
+                var fe = ConvertValue(forEnd);
+                SubParamAssign(Trim(forKey));
                 string forCond;
                 string forIncr;
                 // VB For ... To is inclusive of the end value (was "<"); a negative Step counts down
@@ -2201,38 +2589,43 @@ public static class ModConvert
                     forCond = "(" + fs + " >= 0 ? " + fk + " <= " + fe + " : " + fk + " >= " + fe + ")";
                     forIncr = fk + " += " + fs;
                 }
-                o = o + SSpace(ind) + "for(" + fk + "=" + ConvertElement(forStr) + "; " + forCond + "; " + forIncr + ") {";
+                o = o + SSpace(ind) + "for(" + fk + "=" + ConvertValue(forStr) + "; " + forCond + "; " + forIncr + ") {";
+                OpenBreakable("For");
                 ind = ind + spIndent;
             }
-            else if (TLeft(l, 11) == "Loop While ")
+            else if (LMatch(t, "Loop While "))
             {
                 ind = ind - spIndent;
-                o = o + SSpace(ind) + "} while(" + ConvertValue(TMid(l, 12)) + ");"; // was negated like Loop Until
+                o = o + SSpace(ind) + "} while(" + ConvertValue(Mid(t, 12)) + ");" + CloseBreakable(); // was negated like Loop Until
             }
-            else if (TLeft(l, 11) == "Loop Until ")
+            else if (LMatch(t, "Loop Until "))
             {
                 ind = ind - spIndent;
-                o = o + SSpace(ind) + "} while(!(" + ConvertValue(TMid(l, 12)) + "));";
+                o = o + SSpace(ind) + "} while(!(" + ConvertValue(Mid(t, 12)) + "));" + CloseBreakable();
             }
-            else if (TLeft(l, 5) == "Loop")
+            else if (t == "Loop")
             {
                 ind = ind - spIndent;
-                o = o + SSpace(ind) + "}";
+                o = o + SSpace(ind) + "}" + CloseBreakable();
             }
-            else if (TLeft(l, 8) == "Exit For" || TLeft(l, 7) == "Exit Do" || TLeft(l, 10) == "Exit While")
+            else if (t == "Exit For" || t == "Exit Do" || t == "Exit While")
             {
-                o = o + SSpace(ind) + "break;";
+                o = o + SSpace(ind) + ExitLoop(Mid(t, 6));
             }
-            else if (TLeft(l, 5) == "Next")
-            {
-                ind = ind - spIndent;
-                o = SSpace(ind) + "}";
+            else if (t == "Next" || LMatch(t, "Next "))
+            { // "Next j, i" closes two loops
+                var loops = t == "Next" ? 1 : ModConvertStatements.SplitTopLevel(Mid(t, 6)).Count;
+                for (var k = 0; k < loops; k++)
+                {
+                    ind = ind - spIndent;
+                    o = o + (k == 0 ? "" : vbCrLf) + SSpace(ind) + "}" + CloseBreakable();
+                }
             }
-            else if (TLeft(l, 5) == "With ")
+            else if (LMatch(t, "With "))
             {
                 withLevel = withLevel + 1;
 
-                T = ConvertValue(TMid(l, 6));
+                T = ConvertValue(Mid(t, 6));
                 u = ConvertDataType(SubParam(T).asType);
                 v = withMark + (SubParam(T).name != "" ? T : Random().ToString());
                 if (u == "")
@@ -2249,21 +2642,42 @@ public static class ModConvert
                 o = o + SSpace(ind) + v + " = " + T + ";";
                 ind = ind + spIndent;
             }
-            else if (TLeft(l, 8) == "End With")
+            else if (t == "End With")
             {
                 withLevel = withLevel - 1;
                 T = Stack(ref withAssign);
                 u = Stack(ref withTypes);
                 v = Stack(ref withVars);
+                ind = ind - spIndent;
                 if (SubParam(T).name != "")
                 {
                     o = o + SSpace(ind) + T + " = " + v + ";";
                 }
-                ind = ind - spIndent;
             }
-            else if (IsInStr(l, "On Error ") || IsInStr(l, "Resume "))
+            else if ((x = ModConvertStatements.ConvertSimpleStatement(t, ind)) != null)
             {
-                o = SSpace(ind) + "// TODO (not supported): " + l;
+                o = x;
+                wrap = LMatch(t, "Error ") || LMatch(t, "Date") || LMatch(t, "Time");
+            }
+            else if (LMatch(t, "ReDim "))
+            {
+                o = ModConvertStatements.ConvertReDim(t, ind);
+                wrap = true;
+            }
+            else if (LMatch(t, "Erase "))
+            {
+                o = ModConvertStatements.ConvertErase(t, ind);
+                wrap = true;
+            }
+            else if (t == "Rem" || LMatch(t, "Rem "))
+            {
+                o = SSpace(ind) + "// " + Trim(Mid(t, 4));
+            }
+            else if ((x = ModConvertStatements.ConvertMidStatement(t, ind) ?? ModConvertStatements.ConvertLRSet(t, ind) ?? ModConvertStatements.ConvertFileStatement(t, ind)
+                          ?? ModConvertStatements.ConvertGraphicsStatement(t, ind)) != null)
+            {
+                o = x;
+                wrap = true;
             }
             else
             {
@@ -2272,6 +2686,17 @@ public static class ModConvert
                 //If IsInStr(L, "Debug.Print") Then Stop
                 //If IsInStr(L, "HasGit") Then Stop
                 o = SSpace(ind) + ConvertCodeLine(l);
+                wrap = true;
+            }
+
+            if (wrap && errs.Mode == ModConvertStatements.ErrorScope.Modes.ResumeNext && Trim(o) != "")
+            {
+                o = ModConvertStatements.WrapResumeNext(o, ind);
+            }
+            o = pre + o;
+            foreach (var st in statics)
+            {
+                o = System.Text.RegularExpressions.Regex.Replace(o, "(?<![A-Za-z0-9_.])" + st.Key + "(?![A-Za-z0-9_])", st.Value);
             }
 
             o = ModConvert.PostConvertCodeLine(o);
@@ -2279,9 +2704,17 @@ public static class ModConvert
 
             o = ReComment(o);
             res = res + ReComment(o) + IIf(o == "", "", vbCrLf);
+            if (isProto)
+            {
+                declPos = Len(res);
+            }
         }
 
-        convertSub = res;
+        if (decls != "")
+        {
+            res = Left(res, declPos) + decls + Mid(res, declPos + 1);
+        }
+        convertSub = fields + res;
         return convertSub;
     }
 }

@@ -395,6 +395,9 @@ public static class ModUtils
 
         var xIs = NextByP(src, " Is ");
         var xLk = NextByP(src, " Like ");
+        var lX = NextByP(src, " Xor ");
+        var lE = NextByP(src, " Eqv ");
+        var lI = NextByP(src, " Imp ");
 
         var p = a;
         var k = 3;
@@ -490,6 +493,21 @@ public static class ModUtils
         {
             p = xIs;
             k = 4;
+        }
+        if (Len(p) > Len(lX))
+        {
+            p = lX;
+            k = 5;
+        }
+        if (Len(p) > Len(lE))
+        {
+            p = lE;
+            k = 5;
+        }
+        if (Len(p) > Len(lI))
+        {
+            p = lI;
+            k = 5;
         }
 
         var nextByOp = p;
@@ -710,6 +728,10 @@ public static class ModUtils
 
             }
         } while (codeSectionGlobalEndLoc > 8 && Mid(s, codeSectionGlobalEndLoc - 8, 8) == "Declare "); // VB "Loop While" (was mistranslated as Loop Until)
+        if (codeSectionGlobalEndLoc > 7 && Mid(s, codeSectionGlobalEndLoc - 7, 7) == "Static ")
+        {
+            codeSectionGlobalEndLoc = codeSectionGlobalEndLoc - 7;
+        }
         if (codeSectionGlobalEndLoc > 7 && Mid(s, codeSectionGlobalEndLoc - 7, 7) == "Friend ")
         {
             codeSectionGlobalEndLoc = codeSectionGlobalEndLoc - 7;
@@ -747,6 +769,12 @@ public static class ModUtils
             case "And":
             case "Or":
             case "Xor":
+            case "Eqv":
+            case "Imp":
+            case "Like":
+            case "Is":
+            case "^":
+            case "\\":
                 isOperator = true;
                 break;
             default:

@@ -920,6 +920,32 @@ public static class VbExtension
         return false;
     }
 
+    /// <summary>VB6 ReDim [Preserve] of a converted (List-backed) array: <paramref name="count"/> elements, VB6 defaults ("" for String).</summary>
+    public static List<T> ReDim<T>(List<T> array, int count, bool preserve = false)
+    {
+        if (count < 0) throw new IndexOutOfRangeException("Subscript out of range");
+        var fill = typeof(T) == typeof(string) ? (T)(object)"" : default(T);
+        var r = new List<T>(count);
+        for (var i = 0; i < count; i++) r.Add(preserve && array != null && i < array.Count ? array[i] : fill);
+        return r;
+    }
+
+    /// <summary>VB6 Mid statement: overwrites characters of <paramref name="target"/> in place; its length never changes.</summary>
+    public static void MidStmt(ref string target, int start, int length, string value)
+    {
+        target = target ?? "";
+        value = value ?? "";
+        if (start < 1 || start > target.Length || length < 0) throw new ArgumentException("Invalid procedure call or argument");
+        var n = Math.Min(Math.Min(length, value.Length), target.Length - start + 1);
+        target = target.Substring(0, start - 1) + value.Substring(0, n) + target.Substring(start - 1 + n);
+    }
+
+    /// <summary>VB6 Mid statement without a length: replaces as many characters as <paramref name="value"/> has.</summary>
+    public static void MidStmt(ref string target, int start, string value)
+    {
+        MidStmt(ref target, start, int.MaxValue, value);
+    }
+
     //public static string Chr(int C) { return Chr((int)C); }
     //public static string Mid(string S, int F) { return Mid(S, (int)F); }
     //public static string Mid(string S, int F, int L) { return Mid(S, (int)F, (int)L); }

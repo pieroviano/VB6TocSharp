@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using static Microsoft.VisualBasic.Constants;
 using static Microsoft.VisualBasic.Conversion;
 using static Microsoft.VisualBasic.Strings;
@@ -23,6 +24,12 @@ public static class ModVb6ToCs
         switch (dType)
         {
             case "Integer":
+            case "Long":
+            case "Single":
+            case "Double":
+            case "Currency":
+            case "Decimal":
+            case "Byte":
                 convertDefaultDefault = "0";
                 break;
             case "Date":
@@ -76,6 +83,12 @@ public static class ModVb6ToCs
                 break;
             case "Byte":
                 convertDataType = "byte";
+                break;
+            case "Single":
+                convertDataType = "float";
+                break;
+            case "Any":
+                convertDataType = "object";
                 break;
             case "Boolean":
                 convertDataType = "bool";
@@ -373,62 +386,82 @@ public static class ModVb6ToCs
         complete = false;
         var w = RegExNMatch(Trim(s), patToken);
         var r = SplitWord(Trim(s), 2, " ", true, true);
+        // keyword literals only when they are the whole element ("Me.Caption" is a member access, "Date + 1" an expression)
+        var whole = Trim(s) == w;
+        if (LMatch(Trim(s), "Me.") && !whole)
+        {
+            s = "this." + Mid(Trim(s), 4);
+            w = "";
+        }
         switch (w)
         {
-            case "True":
+            case "True" when whole:
                 complete = true;
                 s = "true";
                 break;
-            case "False":
+            case "False" when whole:
                 complete = true;
                 s = "false";
                 break;
-            case "Me":
+            case "Me" when whole:
                 complete = true;
                 s = "this";
                 break;
-            case "Nothing":
+            case "Nothing" when whole:
                 complete = true;
                 s = "null";
                 break;
-            case "vbTrue":
+            case "Empty" when whole:
+            case "Null" when whole:
+                complete = true;
+                s = "null";
+                break;
+            case "vbTrue" when whole:
                 complete = true;
                 s = "vbTriState.vbTrue";
                 break;
-            case "vbFalse":
+            case "vbFalse" when whole:
                 complete = true;
                 s = "vbTriState.vbFalse";
                 break;
-            case "vbUseDefault":
+            case "vbUseDefault" when whole:
                 complete = true;
                 s = "vbTriState.vbUseDefault";
                 break;
-            case "Date":
+            case "Date" when whole:
                 complete = true;
-                s = "DateTime.Today;";
+                s = "DateTime.Today";
                 break;
-            case "Now":
+            case "Now" when whole:
                 complete = true;
-                s = "DateTime.Now;";
+                s = "DateTime.Now";
                 break;
-            case "Kill":
-                s = "File.Delete(" + r + ");";
+            case "Time" when whole:
+                complete = true;
+                s = "DateAndTime.TimeOfDay";
                 break;
-            case "FreeFile":
-                s = "FreeFile();";
+            case "Err" when whole:
+                complete = true; // the default member of Err
+                s = "Err().Number";
                 break;
-            case "Open":
-                s = "VBOpenFile(" + Replace(SplitWord(r, 2, " As "), "#", "") + ", " + SplitWord(r, 1, " For ") + ");";
+            case "Erl" when whole:
+                complete = true;
+                s = "Err().Erl";
                 break;
-            case "Print":
-                s = "VBWriteFile(" + Replace(SplitWord(r, 1, ","), "#", "") + ", " + Replace(SplitWord(r, 2, ", ", true, true), ";", ",") + ");";
+            case "Error" when whole:
+                complete = true;
+                s = "Err().Description";
                 break;
-            case "Close":
-                s = "VBCloseFile(" + Replace(r, "#", "") + ");";
+            case "Error" when LMatch(Trim(s), "Error("):
+                s = "ErrorToString" + Mid(Trim(s), 6);
+                break;
+            case "FreeFile" when whole:
+                complete = true;
+                s = "FreeFile()";
                 break;
             case "New":
                 complete = true;
-                s = "new " + r + "();";
+                s = "new " + r + "()";
                 break;
             case "vbAlignLeft":
                 s = "AlignConstants.vbAlignLeft";
@@ -445,50 +478,20 @@ public static class ModVb6ToCs
             case "RaiseEvent":
                 complete = true;
                 w = RegExNMatch(r, patToken);
-                r = Mid(r, Len(w) + 1);
-                if (r == "")
+                r = Trim(Mid(r, Len(w) + 1));
+                var eventArgs = new List<string>();
+                if (Left(r, 1) == "(" && Right(r, 1) == ")" && Trim(Mid(r, 2, Len(r) - 2)) != "")
                 {
-                    r = "()";
+                    foreach (var a in ModConvertStatements.SplitTopLevel(Mid(r, 2, Len(r) - 2)))
+                    {
+                        eventArgs.Add(ModConvert.ConvertValue(a));
+                    }
                 }
-                s = "event" + w + "?.Invoke" + r + ";";
-                break;
-            case "ReDim":
-                complete = true;
-                var redimPres = false;
-
-                if (TLMatch(r, "Preserve "))
-                {
-                    r = Trim(TMid(r, 10));
-                    redimPres = true;
-                }
-
-                var redimVar = RegExNMatch(r, patToken);
-                var redimTyp = ConvertDataType(SubParam(redimVar).asType);
-                r = Trim(Replace(r, redimVar, ""));
-                if (TLeft(r, 1) == "(")
-                {
-                    r = Mid(Trim(r), 2);
-                }
-                var redimMax = Val(NextBy(r, ")")).ToString();
-                var redimTmp = redimVar + "_" + Random() + "_tmp";
-                var redimIter = "redim_iter_" + Random();
-                s = "";
-                s = s + "List<" + redimTyp + "> " + redimTmp + " = new List<" + redimTyp + ">();" + vbCrLf;
-
-                s = s + "for (int " + redimIter + "=0;i<" + redimMax + ";" + redimIter + "++) {";
-                if (redimPres)
-                {
-                    s = s + redimVar + ".Add(" + redimIter + "<" + redimVar + ".Count ? " + redimVar + "(" + redimIter + ") : " + ConvertDefaultDefault(SubParam(redimVar).asType) + ");";
-                }
-                else
-                {
-                    s = s + redimVar + ".Add(" + ConvertDefaultDefault(SubParam(redimVar).asType) + ");";
-                }
-                s = s + "}";
+                s = "event" + w + "?.Invoke(" + string.Join(", ", eventArgs) + ");";
                 break;
         }
 
-        if (IsInStr(s, ".Print "))
+        if (IsInStr(s, ".Print ") && !LMatch(Trim(s), "Debug.Print "))
         {
             if (Right(s, 1) == ";")
             {

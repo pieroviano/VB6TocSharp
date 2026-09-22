@@ -59,7 +59,7 @@ public sealed class ConverterFixture : IDisposable
     }
 }
 
-public class ConverterTests : IClassFixture<ConverterFixture>
+public partial class ConverterTests : IClassFixture<ConverterFixture>
 {
     private readonly ConverterFixture fixture;
 
