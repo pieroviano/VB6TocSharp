@@ -149,7 +149,7 @@ static class ModConfig
 
     public static string OutputSubFolder(string f)
     {
-        string outputSubFolder = "";
+        var outputSubFolder = "";
         LoadSettings();
         switch (FileExt(f))
         {

@@ -21,7 +21,7 @@ namespace WinCDS.Classes
 
         public string HeaderLine(bool Commented = false, bool addNL = false)
         {
-            string S = "";
+            var S = "";
             if (Commented) S += "# ";
             foreach (var f in FieldInfoList()) S += ProtectCSV(f.Name) + ",";
             if (Strings.Right(S, 1) == ",") S = Strings.Left(S, S.Length - 1);
@@ -31,21 +31,21 @@ namespace WinCDS.Classes
 
         protected string getFieldByIndex(int i)
         {
-            FieldInfo f = thisField(i);
+            var f = thisField(i);
             if (f != null) return "" + f.GetValue(this);
-            int extraIdx = i - FieldInfoListCount();
+            var extraIdx = i - FieldInfoListCount();
             if (extraIdx < extraFields.Count) return extraFields[extraIdx];
             return "";
         }
 
         protected void setFieldByIndex(int i, string value)
         {
-            FieldInfo f = thisField(i);
+            var f = thisField(i);
             if (f != null)
                 f.SetValue(this, value);
             else
             {
-                int extraIdx = i - FieldInfoListCount();
+                var extraIdx = i - FieldInfoListCount();
                 while (extraIdx >= extraFields.Count) extraFields.Add("");
                 extraFields[extraIdx] = value;
             }
@@ -69,7 +69,7 @@ namespace WinCDS.Classes
 
         public void FromLine(string line)
         {
-            int i = 0;
+            var i = 0;
             foreach (var f in FieldInfoList()) f.SetValue(this, CSVField(line, i++));
             extraFields = new List<string>();
             for (i = 0; i < CSVFieldCount(line) - FieldInfoListCount(); i++) extraFields.Add("");
@@ -77,12 +77,12 @@ namespace WinCDS.Classes
 
         public static List<T> FromCsvFile<T>(string csvContents) where T : CsvRecord, new()
         {
-            List<T> res = new List<T>();
+            var res = new List<T>();
             foreach (var l in csvContents.Replace("\r", "").Split('\n'))
             {
                 if (l == "") continue;
                 if (Strings.Left(l, 1) == "#") continue;
-                T item = new T();
+                var item = new T();
                 item.FromLine(l);
                 res.Add(item);
             }
@@ -91,7 +91,7 @@ namespace WinCDS.Classes
 
         public static string ToCsvFile<T>(List<T> lines, bool addHeader = false) where T : CsvRecord, new()
         {
-            string res = "";
+            var res = "";
             if (lines.Count == 0) return res;
             if (addHeader) res += lines[0].HeaderLine() + "\r\n";
 

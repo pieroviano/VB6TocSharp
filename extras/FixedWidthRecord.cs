@@ -8,11 +8,11 @@ namespace WinCDS.Classes
 
         public new string ToString()
         {
-            string s = RecordStart;
+            var s = RecordStart;
             foreach (var f in FieldInfoList())
             {
-                RecordField r = thisFieldMod(f.Name);
-                int w = r.max;
+                var r = thisFieldMod(f.Name);
+                var w = r.max;
                 s += (f.GetValue(this).ToString() + new string(' ', w)).Substring(0, w);
             }
             s += RecordTerminator;
@@ -24,9 +24,9 @@ namespace WinCDS.Classes
         {
             foreach (var f in FieldInfoList())
             {
-                RecordField r = thisFieldMod(f.Name);
-                int w = r.max;
-                string v = l.Substring(0, w);
+                var r = thisFieldMod(f.Name);
+                var w = r.max;
+                var v = l.Substring(0, w);
                 l = l.Substring(w);
                 f.SetValue(this, l);
             }

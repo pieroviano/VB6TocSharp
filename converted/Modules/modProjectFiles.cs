@@ -21,7 +21,7 @@ static class ModProjectFiles
 
     public static string VbpModules(string projectFile = "")
     {
-        string vbpModules = "";
+        var vbpModules = "";
 
         const string c = "Module=";
         if (projectFile == "")
@@ -53,7 +53,7 @@ static class ModProjectFiles
 
     public static string VbpForms(string projectFile = "")
     {
-        string vbpForms = "";
+        var vbpForms = "";
         const bool withExt = true;
 
         const string c = "Form=";
@@ -86,7 +86,7 @@ static class ModProjectFiles
 
     public static string VbpClasses(string projectFile = "", bool classNames = false)
     {
-        string vbpClasses = "";
+        var vbpClasses = "";
 
         const string c = "Class=";
         if (projectFile == "")
@@ -116,7 +116,7 @@ static class ModProjectFiles
 
     public static string VbpUserControls(string projectFile = "")
     {
-        string vbpUserControls = "";
+        var vbpUserControls = "";
 
         const string c = "UserControl=";
         if (projectFile == "")

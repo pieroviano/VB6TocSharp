@@ -76,12 +76,12 @@ static class ModQuickLint
 
     public static string QuickLintFiles(string listUnused)
     {
-        string quickLintFiles = "";
+        var quickLintFiles = "";
         const int lintDotsPerRow = 50;
 
-        int x = 0;
+        var x = 0;
 
-        DateTime startTime = DateTime.MinValue;
+        var startTime = DateTime.MinValue;
 
         startTime = DateTime.Now; ;
 
@@ -117,7 +117,7 @@ static class ModQuickLint
 
     public static string QuickLintFile(string file)
     {
-        string quickLintFile = "";
+        var quickLintFile = "";
         if (InStr(file, "\\") == 0)
         {
             file = AppDomain.CurrentDomain.BaseDirectory + "\\" + file;
@@ -141,26 +141,26 @@ static class ModQuickLint
 
     public static string QuickLintContents(string contents)
     {
-        List<string> lines = new List<string> { }; // TODO - Specified Minimum Array Boundary Not Supported:   Dim Lines() As String, LL As Variant, L As String
+        var lines = new List<string> { }; // TODO - Specified Minimum Array Boundary Not Supported:   Dim Lines() As String, LL As Variant, L As String
 
         // TODO (not supported): On Error GoTo LintError
         errorIgnore = "";
         lines.AddRange(Split(Replace(contents, vbCr, ""), vbLf));
 
-        bool inAttributes = false;
-        bool inBody = false;
+        var inAttributes = false;
+        var inBody = false;
 
 
-        string multiLine = "";
+        var multiLine = "";
 
-        int lineN = 0;
+        var lineN = 0;
 
-        string errors = "";
-        int errorCount = 0;
+        var errors = "";
+        var errorCount = 0;
 
-        int blankLineCount = 0;
+        var blankLineCount = 0;
 
-        Collection options = new Collection();
+        var options = new Collection();
 
 
         var indent = 0;
@@ -220,7 +220,7 @@ static class ModQuickLint
             lineN = lineN + 1;
             //If LineN = 15 Then Stop
 
-            bool unindentedAlready = false;
+            var unindentedAlready = false;
 
             if (RegExTest(l, "^Option "))
             {
@@ -386,7 +386,7 @@ static class ModQuickLint
 
     public static string CleanLine(string line)
     {
-        int x = 0;
+        var x = 0;
 
         while (true)
         {
@@ -447,7 +447,7 @@ static class ModQuickLint
 
     public static string StripLeft(string l, string find)
     {
-        string stripLeft = "";
+        var stripLeft = "";
         if (StartsWith(l, find))
         {
             stripLeft = Mid(l, Len(find) + 1);
@@ -587,8 +587,8 @@ static class ModQuickLint
         foreach (var iterLl in Split(l, ", "))
         {
             dynamic ll = iterLl;
-            string argType = "";
-            string argDefault = "";
+            var argType = "";
+            var argDefault = "";
 
 
             bool isOptional = StartsWith(ll, "Optional ");
@@ -685,7 +685,7 @@ static class ModQuickLint
             RecordError(ref errors, ref errorCount, tyPripu, lineN, "Either Private or Public should be specified, but neither was.");
         }
 
-        bool withReturn = false;
+        var withReturn = false;
 
         var l = ll;
         l = StripLeft(l, "Private ");
@@ -699,7 +699,7 @@ static class ModQuickLint
         l = StripLeft(l, "Function ");
         l = StripLeft(l, "Property ");
 
-        int ix2 = 0;
+        var ix2 = 0;
 
         var ix = InStr(l, "(");
         if (ix == 0)

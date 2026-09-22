@@ -19,7 +19,7 @@ static class ModVb6ToCs
 
     public static string ConvertDefaultDefault(string dType)
     {
-        string convertDefaultDefault = "";
+        var convertDefaultDefault = "";
         switch (dType)
         {
             case "Integer":
@@ -43,7 +43,7 @@ static class ModVb6ToCs
 
     public static string ConvertDataType(string s)
     {
-        string convertDataType = IniMap(iniSectionDataTypes, s); // project-specific types from config win
+        var convertDataType = IniMap(iniSectionDataTypes, s); // project-specific types from config win
         if (convertDataType != null)
         {
             return convertDataType;
@@ -454,7 +454,7 @@ static class ModVb6ToCs
                 break;
             case "ReDim":
                 complete = true;
-                bool redimPres = false;
+                var redimPres = false;
 
                 if (TLMatch(r, "Preserve "))
                 {

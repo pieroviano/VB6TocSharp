@@ -57,7 +57,7 @@ static class ModSubTracking
     {
         if (!setLockout)
         {
-            List<Variable> nVars = new List<Variable> { };
+            var nVars = new List<Variable> { };
 
             vars = nVars;
         }
@@ -65,7 +65,7 @@ static class ModSubTracking
 
     private static int SubParamIndex(string p)
     {
-        int subParamIndex = 0;
+        var subParamIndex = 0;
         // TODO (not supported):   On Error GoTo NoEntries
         for (subParamIndex = 0; subParamIndex < vars.Count; subParamIndex++)
         {
@@ -144,7 +144,7 @@ static class ModSubTracking
 
     public static void SubParamUsedList(string s)
     {
-        string[] sp = new string[0];
+        var sp = new string[0];
 
         if (lockout)
         {
@@ -165,14 +165,14 @@ static class ModSubTracking
 
     public static void ClearProperties()
     {
-        List<Property> nProps = new List<Property> { };
+        var nProps = new List<Property> { };
 
         props = nProps;
     }
 
     private static int PropIndex(string p)
     {
-        int propIndex = 0;
+        var propIndex = 0;
         // TODO (not supported):   On Error GoTo NoEntries
         for (propIndex = 0; propIndex < props.Count; propIndex++)
         {
@@ -188,13 +188,13 @@ static class ModSubTracking
 
     public static void AddProperty(string s)
     {
-        bool asPublic = false;
+        var asPublic = false;
 
-        bool asFunc = false;
+        var asFunc = false;
 
-        string gsl = "";
-        string pArgName = "";
-        string pType = "";
+        var gsl = "";
+        var pArgName = "";
+        var pType = "";
 
 
         var pro = SplitWord(s, 1, vbCr);
@@ -334,7 +334,7 @@ static class ModSubTracking
     {
         // TODO (not supported): On Error Resume Next
 
-        string T = "";
+        var T = "";
 
         var r = "";
         var m = "";

@@ -57,7 +57,7 @@ namespace WinCDS.Classes
 
         public static void sqlExecutionError(string mSQL, Exception e)
         {
-            string T = "";
+            var T = "";
             T += "getRecordSet Failed: " + e.Message + "\r\n";
             T += "\r\n";
             T += mSQL + "\r\n";
@@ -101,24 +101,22 @@ namespace WinCDS.Classes
             get
             {
                 if (table == null) return null;
-                List<string> result = new List<string>();
+                var result = new List<string>();
                 foreach (DataColumn item in table.Columns) result.Add(item.ColumnName);
                 return result;
             }
         }
 
-        public PropIndexer<dynamic, dynamic> Field
-        {
-            get => new PropIndexer<dynamic, dynamic>(
+        public PropIndexer<dynamic, dynamic> Field =>
+            new PropIndexer<dynamic, dynamic>(
                 (k) => Fields[k].Value,
                 (k, v) => { Fields[k].Value = v; }
             );
-        }
 
         public dynamic this[dynamic field]
         {
             get => GetField(field);
-            set { SetField(field, value); }
+            set => SetField(field, value);
         }
 
         public dynamic GetField(dynamic key) => Fields[key].Value;
@@ -149,9 +147,9 @@ namespace WinCDS.Classes
 
         internal bool Find(string v)
         {
-            DataTable temp = table.Select(mFilter).CopyToDataTable();
+            var temp = table.Select(mFilter).CopyToDataTable();
             if (temp.Rows.Count == 0) return false;
-            int x = table.Rows.IndexOf(temp.Rows[0]);
+            var x = table.Rows.IndexOf(temp.Rows[0]);
             AbsolutePosition = x;
             return true;
         }
@@ -166,12 +164,12 @@ namespace WinCDS.Classes
                 return;
             }
 
-            DataSet result = new DataSet();
+            var result = new DataSet();
             connection = new OleDbConnection(ConnectionString(Database));
-            OleDbCommand command = new OleDbCommand(Source, connection);
+            var command = new OleDbCommand(Source, connection);
             foreach(var key in Parameters.Keys)
             {
-                OleDbParameter param = command.CreateParameter();
+                var param = command.CreateParameter();
                 param.ParameterName = key;
                 param.Value = Parameters[key];
             }
@@ -193,7 +191,7 @@ namespace WinCDS.Classes
 
         public void Update()
         {
-            OleDbCommandBuilder cb = new OleDbCommandBuilder(adapter);
+            var cb = new OleDbCommandBuilder(adapter);
             cb.QuotePrefix = "[";
             cb.QuoteSuffix = "]";
             try
@@ -213,7 +211,7 @@ namespace WinCDS.Classes
 
         public void AddNew()
         {
-            DataRow newRow = table.NewRow();
+            var newRow = table.NewRow();
             table.Rows.InsertAt(newRow, table.Rows.Count);
             AbsolutePosition = table.Rows.Count - 1;
             mAddingRow = true;
@@ -221,7 +219,7 @@ namespace WinCDS.Classes
 
         public void Delete()
         {
-            OleDbCommandBuilder cb = new OleDbCommandBuilder(adapter);
+            var cb = new OleDbCommandBuilder(adapter);
             try
             {
                 connection.Open();

@@ -47,8 +47,8 @@ static class ModConvert
 
     public static bool ConvertFileList(string path, string list, string sep = vbCrLf)
     {
-        bool convertFileList = true;
-        int n = 0;
+        var convertFileList = true;
+        var n = 0;
 
         var v = StrCnt(list, sep) + 1;
         Prg(0, v, n + "/" + v + "...");
@@ -78,7 +78,7 @@ static class ModConvert
 
     public static bool ConvertFile(string someFile, bool uiOnly = false)
     {
-        bool convertFile = false;
+        var convertFile = false;
         if (!IsInStr(someFile, "\\"))
         {
             someFile = VbpPath + someFile;
@@ -107,7 +107,7 @@ static class ModConvert
 
     public static bool ConvertForm(string frmFile, bool uiOnly = false)
     {
-        bool convertForm = false;
+        var convertForm = false;
 
         if (!FileExists(frmFile))
         {
@@ -171,7 +171,7 @@ static class ModConvert
 
     public static bool ConvertModule(string basFile)
     {
-        bool convertModule = false;
+        var convertModule = false;
 
         if (!FileExists(basFile))
         {
@@ -212,7 +212,7 @@ static class ModConvert
 
     public static bool ConvertClass(string clsFile)
     {
-        bool convertClass = false;
+        var convertClass = false;
 
         if (!FileExists(clsFile))
         {
@@ -267,9 +267,9 @@ static class ModConvert
     {
         const string namedParamSrc = ":=";
         const string namedParamTok = "###NAMED-PARAMETER###";
-        string[] sp = new string[0];
+        var sp = new string[0];
 
-        string f = "";
+        var f = "";
 
 
         var r = "";
@@ -358,14 +358,14 @@ static class ModConvert
 
     public static string ConvertCodeSegment(string s, bool asModule = false)
     {
-        string f = "";
-        int T = 0;
-        int e = 0;
-        string k = "";
+        var f = "";
+        var T = 0;
+        var e = 0;
+        var k = "";
 
-        string pre = "";
+        var pre = "";
 
-        string r = "";
+        var r = "";
 
 
         ClearProperties();
@@ -437,7 +437,7 @@ static class ModConvert
 
     public static string CommentBlock(string str)
     {
-        string commentBlock = "";
+        var commentBlock = "";
 
         if (NlTrim(str) == "")
         {
@@ -454,15 +454,15 @@ static class ModConvert
 
     public static string ConvertDeclare(string s, int ind, bool isGlobal = false, bool asModule = false)
     {
-        string[] sp = new string[0];
+        var sp = new string[0];
 
-        bool asPrivate = false;
+        var asPrivate = false;
 
-        string pType = "";
+        var pType = "";
 
-        bool isArr = false;
-        int aMax = 0;
-        int aMin = 0;
+        var isArr = false;
+        var aMax = 0;
+        var aMin = 0;
 
         var res = "";
 
@@ -588,16 +588,16 @@ static class ModConvert
         //Private Declare Function CreateFile Lib "kernel32" Alias "CreateFileA" (ByVal lpFileName As String, ByVal dwDesiredAccess As Long, ByVal dwShareMode As Long, ByVal lpSecurityAttributes As Long, ByVal dwCreationDisposition As Long, ByVal dwFlagsAndAttributes As Long, ByVal hTemplateFile As Long) As Long
         //[DllImport("User32.dll")]
         //public static extern int MessageBox(int h, string m, string c, int type);
-        bool isPrivate = false;
-        bool isSub = false;
+        var isPrivate = false;
+        var isSub = false;
 
-        string aLib = "";
+        var aLib = "";
 
-        string aAlias = "";
+        var aAlias = "";
 
-        string aReturn = "";
+        var aReturn = "";
 
-        bool has = false;
+        var has = false;
 
         if (TLeft(s, 8) == "Private ")
         {
@@ -702,10 +702,10 @@ static class ModConvert
 
     public static string ConvertConstant(string s, bool isGlobal = true)
     {
-        string convertConstant = "";
-        string cType = "";
-        string cValue = "";
-        bool isPrivate = false;
+        var convertConstant = "";
+        var cType = "";
+        var cValue = "";
+        var isPrivate = false;
 
         if (TLeft(s, 7) == "Public ")
         {
@@ -780,7 +780,7 @@ static class ModConvert
 
     public static string ConvertEvent(string s)
     {
-        string tArgs = "";
+        var tArgs = "";
 
         if (TLeft(s, 7) == "Public ")
         {
@@ -830,7 +830,7 @@ static class ModConvert
 
     public static string ConvertEnum(string s)
     {
-        bool has = false;
+        var has = false;
 
         if (TLeft(s, 7) == "Public ")
         {
@@ -879,10 +879,10 @@ static class ModConvert
 
     public static string ConvertType(string s)
     {
-        bool isPrivate = false;
-        string eType = "";
+        var isPrivate = false;
+        var eType = "";
 
-        string n = "";
+        var n = "";
 
         if (TLeft(s, 7) == "Public ")
         {
@@ -953,12 +953,12 @@ static class ModConvert
 
     public static string ConvertParameter(string s, bool neverUnused = false)
     {
-        bool isOptional = false;
+        var isOptional = false;
 
-        bool asOut = false;
+        var asOut = false;
 
-        string pType = "";
-        string pDef = "";
+        var pType = "";
+        var pDef = "";
 
 
         s = Trim(s);
@@ -1038,7 +1038,7 @@ static class ModConvert
     {
         const string retToken = "#RET#";
 
-        string retType = "";
+        var retType = "";
 
 
         var s = ss;
@@ -1162,13 +1162,13 @@ static class ModConvert
 
     public static string ConvertElement(string s)
     {
-        string convertElement = "";
+        var convertElement = "";
         //Debug.Print "ConvertElement: " & S
         //If IsInStr(S, "frmSetup") Then Stop
         //If IsInStr(S, "chkShowBalance.Value") Then Stop
         //If IsInStr(S, "optTelephone") Then Stop
 
-        bool complete = false;
+        var complete = false;
 
         s = Trim(s);
         if (s == "")
@@ -1196,7 +1196,7 @@ static class ModConvert
 
         }
 
-        int vMax = 0;
+        var vMax = 0;
 
         while (RegExTest(s, "#[0-9]+/[0-9]+/[0-9]+#"))
         {
@@ -1455,9 +1455,9 @@ static class ModConvert
 
     public static string ConvertValue(string s)
     {
-        string convertValue = "";
-        string op = "";
-        string opN = "";
+        var convertValue = "";
+        var op = "";
+        var opN = "";
 
         var o = "";
         s = Trim(s);
@@ -1550,7 +1550,7 @@ static class ModConvert
 
     public static string ConvertGlobals(string str, bool asModule = false)
     {
-        string[] s = new string[0];
+        var s = new string[0];
 
 
         var res = "";
@@ -1624,8 +1624,8 @@ static class ModConvert
 
     public static string ConvertCodeLine(string s)
     {
-        string convertCodeLine = "";
-        string b = "";
+        var convertCodeLine = "";
+        var b = "";
 
 
         //If IsInStr(S, "dbClose") Then Stop
@@ -1651,7 +1651,7 @@ static class ModConvert
             return convertCodeLine;
 
         }
-        bool complete = false;
+        var complete = false;
 
         s = ConvertVb6Specific(s, out complete);
         if (complete)
@@ -1850,16 +1850,16 @@ static class ModConvert
 
     public static string ConvertSub(string str, bool asModule = false, vbTriState scanFirst = vbTriState.vbUseDefault)
     {
-        string convertSub = "";
+        var convertSub = "";
 
-        string[] s = new string[0];
-        string T = "";
-        string u = "";
-        string v = "";
+        var s = new string[0];
+        var T = "";
+        var u = "";
+        var v = "";
 
-        int inCase = 0;
+        var inCase = 0;
 
-        string returnVariable = "";
+        var returnVariable = "";
 
 
         //  If IsInStr(Str, "Dim oFTP As New FTP") Then Stop

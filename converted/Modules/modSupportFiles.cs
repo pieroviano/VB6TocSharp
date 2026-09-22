@@ -18,7 +18,7 @@ static class ModSupportFiles
 
     public static bool CreateProjectSupportFiles()
     {
-        bool createProjectSupportFiles = false;
+        var createProjectSupportFiles = false;
 
         var s = ApplicationXaml();
         var f = "application.xaml";
@@ -46,7 +46,7 @@ static class ModSupportFiles
 
     public static bool GeneratePropertiesFiles()
     {
-        bool generatePropertiesFiles = false;
+        var generatePropertiesFiles = false;
 
         var s = OutputFolder();
         s = s + "Properties\\";

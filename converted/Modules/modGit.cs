@@ -32,7 +32,7 @@ static class ModGit
 
     public static string GitCmd(string c, bool noOutput = false, bool hideCommand = false)
     {
-        string errSt = "";
+        var errSt = "";
 
         PushDir(GitFolder());
         if (!hideCommand)
@@ -54,7 +54,7 @@ static class ModGit
 
     private static bool GitOut(string msg)
     {
-        bool gitOut = false;
+        var gitOut = false;
         msg = Trim(msg);
         while ((Left(msg, 1) == vbCr || Left(msg, 1) == vbLf))
         {
@@ -109,7 +109,7 @@ static class ModGit
 
     public static bool GitPull(bool withReset = true)
     {
-        bool gitPull = false;
+        var gitPull = false;
         if (!IsIde())
         {
             return gitPull;
@@ -135,7 +135,7 @@ static class ModGit
 
     public static string GitStatus()
     {
-        string gitStatus = "";
+        var gitStatus = "";
         if (!IsIde())
         {
             return gitStatus;
@@ -147,7 +147,7 @@ static class ModGit
 
     public static string GitVersion()
     {
-        string gitVersion = "";
+        var gitVersion = "";
         if (!IsIde())
         {
             return gitVersion;
@@ -159,7 +159,7 @@ static class ModGit
 
     public static bool HasGit()
     {
-        bool hasGit = false;
+        var hasGit = false;
         if (!IsIde())
         {
             return hasGit;
@@ -171,7 +171,7 @@ static class ModGit
 
     public static bool GitReset(bool hard = false, bool toMaster = false)
     {
-        bool gitReset = false;
+        var gitReset = false;
         if (!IsIde())
         {
             return gitReset;
@@ -201,7 +201,7 @@ static class ModGit
 
     public static bool GitPush(string committerUnused, string commitMessage)
     {
-        bool gitPush = false;
+        var gitPush = false;
         if (!IsIde())
         {
             return gitPush;

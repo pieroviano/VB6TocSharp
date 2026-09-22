@@ -38,7 +38,7 @@ static class ModTextFiles
 
     public static bool DeleteFileIfExists(string sFIle, bool bNoAttributeClearing = false)
     {
-        bool deleteFileIfExists = false;
+        var deleteFileIfExists = false;
         // TODO (not supported): On Error Resume Next
         if (!FileExists(sFIle))
         {
@@ -60,7 +60,7 @@ static class ModTextFiles
 
     public static string ReadEntireFile(string tFileName)
     {
-        string readEntireFile =
+        var readEntireFile =
             //::::ReadEntireFile
             //:::SUMMARY
             //:Read an entire file.
@@ -99,7 +99,7 @@ static class ModTextFiles
 
     public static string ReadEntireFileAndDelete(string tFileName)
     {
-        string readEntireFileAndDelete = "";
+        var readEntireFileAndDelete = "";
         //::::ReadEntireFileAndDelete
         //:::SUMMARY
         //:Read an entire file and safely delete it..
@@ -133,7 +133,7 @@ static class ModTextFiles
 
     public static string ReadFile(string tFileName, int startline = 1, int numLines = 0)
     {//, Optional ByRef WasEOF As Boolean = False)
-        string readFile = "";
+        var readFile = "";
         //::::ReadFile
         //:::SUMMARY
         //:Random Access Read a given file based on line number.
@@ -239,7 +239,7 @@ static class ModTextFiles
 
     public static int CountLines(string source, bool ignoreBlank = true, string ignorePrefix = "'")
     {
-        int countLines = 0;
+        var countLines = 0;
         //::::CountLines
         //:::SUMMARY
         //:Returns the number of lines in a given string (not a file).
@@ -282,7 +282,7 @@ static class ModTextFiles
 
     public static string LineByNumber(string source, int startline, int numLines = 0, string nl = vbCrLf)
     {
-        string lineByNumber = "";
+        var lineByNumber = "";
         //::::LineByNumber
         //:::SUMMARY
         //:Returns the line(s) specified by the <StartLine> and <NumLines> parameters from a given <Source> string.
@@ -304,7 +304,7 @@ static class ModTextFiles
         //:::SEE ALSO
         //:  WriteFile, ReadFile, VBFileCountLines, CountFileLines, CountLines
 
-        int I = 0;
+        var I = 0;
 
         var a = 0;
         if (startline <= 0)
@@ -356,7 +356,7 @@ static class ModTextFiles
 
     public static bool VbFileCountLines(string tFileName, ref int totl, ref int code, ref int blnk, ref int cmnt)
     {
-        bool vbFileCountLines = false;
+        var vbFileCountLines = false;
         //::::VBFileCountLines
         //:::SUMMARY
         //:Count lines in a VB6 file.
@@ -413,10 +413,10 @@ static class ModTextFiles
         //:- tFileName - The name of the file to read.
         //:::SEE ALSO
         //:  ReadEntireFile, WriteFile, CountLines, VBFileCountLines
-        int T = 0;
-        int c = 0;
-        int b = 0;
-        int m = 0;
+        var T = 0;
+        var c = 0;
+        var b = 0;
+        var m = 0;
 
         if (VbFileCountLines(tFileName, ref T, ref c, ref b, ref m))
         {

@@ -72,7 +72,7 @@ static class ModShell
     public static string RunCmdToOutput(string cmd, out string errStr, bool asAdmin = false)
     {
         // TODO (not supported): On Error GoTo RunError
-        string c = "";
+        var c = "";
 
         if (!asAdmin)
         {

@@ -18,7 +18,7 @@ static class ModUsingEverything
 
     public static string UsingEverything(string packageName = "")
     {
-        string name = "";
+        var name = "";
 
         dynamic l = null;
 

@@ -9,11 +9,11 @@ public static class ModCsv
         public static string ProtectCSV(string s)
         {
             if (s == null) return "";
-            bool needQuotes = false;
+            var needQuotes = false;
             if (s.IndexOf(',') >= 0 || s.IndexOf('"') >= 0 || s.IndexOf('\n') >= 0 || s.IndexOf('\r') >= 0)
                 needQuotes = true;
 
-            string outStr = s.Replace("\"", "\"\"");
+            var outStr = s.Replace("\"", "\"\"");
             if (needQuotes) outStr = "\"" + outStr + "\"";
             return outStr;
         }
@@ -21,8 +21,8 @@ public static class ModCsv
         public static string CSVLine(string[] fields)
         {
             if (fields == null || fields.Length == 0) return string.Empty;
-            StringBuilder sb = new StringBuilder();
-            for (int i = 0; i < fields.Length; i++)
+            var sb = new StringBuilder();
+            for (var i = 0; i < fields.Length; i++)
             {
                 if (i > 0) sb.Append(',');
                 sb.Append(ProtectCSV(fields[i] ?? string.Empty));
@@ -33,9 +33,9 @@ public static class ModCsv
         public static string CSVField(string line, int index)
         {
             if (string.IsNullOrEmpty(line)) return string.Empty;
-            int len = line.Length;
-            int field = 0;
-            int i = 0;
+            var len = line.Length;
+            var field = 0;
+            var i = 0;
 
             while (i <= len)
             {
@@ -46,7 +46,7 @@ public static class ModCsv
                     break;
                 }
 
-                StringBuilder cur = new StringBuilder();
+                var cur = new StringBuilder();
                 if (line[i] == '"')
                 {
                     // quoted field
@@ -99,9 +99,9 @@ public static class ModCsv
         public static int CSVFieldCount(string line)
         {
             if (string.IsNullOrEmpty(line)) return 0;
-            int len = line.Length;
-            int i = 0;
-            int count = 0;
+            var len = line.Length;
+            var i = 0;
+            var count = 0;
 
             while (i <= len)
             {

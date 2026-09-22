@@ -12,10 +12,10 @@ namespace WinCDS.Classes
 
         protected List<FieldInfo> FieldInfoList()
         {
-            string n = GetType().Name;
+            var n = GetType().Name;
             if (!fieldInfoList.ContainsKey(n))
             {
-                List<FieldInfo> l =
+                var l =
                 fieldInfoList[n] = GetType().GetFields(BindingFlags.Public | BindingFlags.Instance | BindingFlags.FlattenHierarchy)
                     .ToList()
                     .FindAll(f => f.GetCustomAttribute<RecordField>() != null);

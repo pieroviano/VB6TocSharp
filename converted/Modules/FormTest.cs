@@ -85,7 +85,7 @@ static class FormTest
 
     public static string TestCaseFrm()
     {
-        string s = "";
+        var s = "";
 
         var n = vbCrLf;
         s = s + n + "VERSION 5.00";

@@ -51,7 +51,7 @@ static class ModConvertUtils
 
     public static string ReComment(string str, bool keepVbComments = false)
     {
-        string reComment = "";
+        var reComment = "";
 
         var pr = IIf(keepVbComments, "'", "//");
         if (eolComment == "")
@@ -91,7 +91,7 @@ static class ModConvertUtils
 
     public static string DeString(string s)
     {
-        string deString = "";
+        var deString = "";
         const string q = "\"";
 
         if (mStrings == null)

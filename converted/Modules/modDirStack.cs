@@ -51,7 +51,7 @@ static class ModDirStack
 
     public static string PopDir(bool doSet = true)
     {
-        string popDir = "";
+        var popDir = "";
         //::::PopDir
         //:::SUMMARY
         //:Remove to dir from stack.  Error Safe.  Generally to change current directory.
@@ -96,7 +96,7 @@ static class ModDirStack
 
     public static string PeekDir(bool doSet = true)
     {
-        string peekDir = "";
+        var peekDir = "";
         //::::PeekDir
         //:::SUMMARY
         //:Return directory on top of stack without removing it.  Generally to change current directory.

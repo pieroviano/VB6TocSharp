@@ -40,7 +40,7 @@ static class ModRefScan
 
     public static int FuncsCount(bool vLocal = false)
     {
-        int funcsCount = 0;
+        var funcsCount = 0;
         // TODO (not supported): On Error Resume Next
         if (vLocal)
         {
@@ -104,14 +104,14 @@ static class ModRefScan
 
     private static int ScanRefsFile(string fn)
     {
-        string l = "";
+        var l = "";
 
-        string f = "";
-        string g = "";
+        var f = "";
+        var g = "";
 
-        bool cont = false;
+        var cont = false;
 
-        string currEnum = "";
+        var currEnum = "";
 
         var m = FileBaseName(fn);
         var s = ReadEntireFile(fn);
@@ -292,7 +292,7 @@ static class ModRefScan
 
     public static string FuncRef(string fName)
     {
-        string funcRef = "";
+        var funcRef = "";
         if (fName == cFuncRefName)
         {
             funcRef = cFuncRefValue;
@@ -366,7 +366,7 @@ static class ModRefScan
 
     public static bool IsControlRef(string src, string formName = "")
     {
-        bool isControlRef = false;
+        var isControlRef = false;
 
         var tok = RegExNMatch(src, patToken);
         var tok2 = RegExNMatch(src, patToken, 1);
@@ -458,7 +458,7 @@ static class ModRefScan
 
     public static string FuncRefArgDefault(string fName, int n)
     {
-        string funcRefArgDefault = "";
+        var funcRefArgDefault = "";
 
         if (!FuncRefArgOptional(fName, n))
         {
@@ -489,10 +489,10 @@ static class ModRefScan
 
     public static string FormControlRepl(string src, string formName = "")
     {
-        string formControlRepl = "";
+        var formControlRepl = "";
 
-        string f = "";
-        string v = "";
+        var f = "";
+        var v = "";
 
         var tok = RegExNMatch(src, patToken);
         var tok2 = RegExNMatch(src, patToken, 1);

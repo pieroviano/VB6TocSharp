@@ -153,7 +153,7 @@ static class ModUtils
 
     public static bool IsIn(string s, params dynamic[] kUnused)
     {
-        bool isIn = false;
+        var isIn = false;
 
         foreach (var iterL in kUnused)
         {
@@ -170,7 +170,7 @@ static class ModUtils
 
     public static bool WriteOut(string f, string s, string o = "")
     {
-        bool writeOut = false;
+        var writeOut = false;
         if (!IsConverted(f, o))
         {
             writeOut = WriteFile(OutputFolder(o) + f, s, true);
@@ -190,7 +190,7 @@ static class ModUtils
 
     public static string FileExt(string fn, bool vLCase = true)
     {
-        string fileExt = "";
+        var fileExt = "";
         if (fn == "")
         {
             return fileExt;
@@ -263,7 +263,7 @@ static class ModUtils
 
     public static string NextBy(string src, string del = "\"", int ind = 1, bool processVbCommentsUnused = false)
     {
-        string nextBy = "";
+        var nextBy = "";
 
         DoEvents();
         var l = InStr(src, del);
@@ -286,7 +286,7 @@ static class ModUtils
 
     public static int StrQCnt(string src, string str)
     {
-        bool q = false;
+        var q = false;
 
 
         var strQCnt = 0;
@@ -314,7 +314,7 @@ static class ModUtils
 
     public static int NextByPCt(string src, string del = "\"", int indUnused = 1)
     {
-        int m = 0;
+        var m = 0;
 
         var n = 0;
         do
@@ -344,10 +344,10 @@ static class ModUtils
 
     public static string NextByP(string src, string del = "\"", int ind = 1)
     {
-        string nextByP = "";
-        int m = 0;
+        var nextByP = "";
+        var m = 0;
 
-        string r = "";
+        var r = "";
 
         var n = 0;
         do
@@ -516,7 +516,7 @@ static class ModUtils
 
     public static string SplitWord(string source, int n = 1, string space = " ", bool trimResult = true, bool includeRest = false)
     {
-        string splitWord = "";
+        var splitWord = "";
 
         //::::SplitWord
         //:::SUMMARY
@@ -575,7 +575,7 @@ static class ModUtils
 
     public static int CountWords(string source, string space = " ")
     {
-        int countWords = 0;
+        var countWords = 0;
         //::::CountWords
         //:::SUMMARY
         //: Returns the number of words in a string (determined by <Space> parameter)
@@ -612,11 +612,11 @@ static class ModUtils
             return null;
         }
 
-        Array src = (Array)sourceArray;
+        var src = (Array)sourceArray;
         fromIndex = FitRange(src.GetLowerBound(0), fromIndex, src.GetUpperBound(0));
         toIndex = FitRange(fromIndex, toIndex, src.GetUpperBound(0));
 
-        Array tempList = Array.CreateInstance(src.GetType().GetElementType(), Math.Max(0, toIndex - fromIndex + 1));
+        var tempList = Array.CreateInstance(src.GetType().GetElementType(), Math.Max(0, toIndex - fromIndex + 1));
         Array.Copy(src, fromIndex, tempList, 0, tempList.Length);
         return tempList;
     }
@@ -640,7 +640,7 @@ static class ModUtils
 
     public static bool InRange(dynamic lBnd, dynamic chk, dynamic uBnd, bool includeBounds = true)
     {
-        bool inRange = false;
+        var inRange = false;
         // TODO (not supported): On Error Resume Next // because we're doing this as variants..
         if (includeBounds)
         {
@@ -674,7 +674,7 @@ static class ModUtils
 
     public static int CodeSectionLoc(string s)
     {
-        int codeSectionLoc = 0;
+        var codeSectionLoc = 0;
         const string token = "Attribute VB_Name";
 
 
@@ -700,7 +700,7 @@ static class ModUtils
 
     public static int CodeSectionGlobalEndLoc(string s)
     {
-        int codeSectionGlobalEndLoc = 0;
+        var codeSectionGlobalEndLoc = 0;
         do
         {
             codeSectionGlobalEndLoc = codeSectionGlobalEndLoc + RegExNPos(Mid(s, codeSectionGlobalEndLoc + 1), "([^a-zA-Z0-9_]Function |[^a-zA-Z0-9_]Sub |[^a-zA-Z0-9_]Property )") + 1;
@@ -729,7 +729,7 @@ static class ModUtils
 
     public static bool IsOperator(string s)
     {
-        bool isOperator = false;
+        var isOperator = false;
         switch (Trim(s))
         {
             // the translation had kept only "+" of the VB case list
@@ -804,7 +804,7 @@ static class ModUtils
 
     public static bool IsInCode(string src, int nUnused)
     {
-        bool qu = false;
+        var qu = false;
 
         var isInCode = false;
         for (var I = nUnused; I > 0; I--)
@@ -835,7 +835,7 @@ static class ModUtils
 
     public static string TokenList(string s)
     {
-        string tokenList = "";
+        var tokenList = "";
 
         var n = RegExCount(s, patToken);
         for (var I = 0; I <= n - 1; I++)
@@ -855,7 +855,7 @@ static class ModUtils
 
     public static string Stack(ref string src, string val = "##REM##", bool peek = false)
     {
-        string stack = "";
+        var stack = "";
         if (val == "##REM##")
         {
             // entries are quoted: find the closing quote (skipping doubled ones), since values may contain commas

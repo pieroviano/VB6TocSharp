@@ -19,14 +19,14 @@ static class ModConvertForm
 
     public static string Frm2Xml(string f)
     {
-        string[] sp = new string[0];
-        int I = 0;
+        var strings = new string[0];
+        var i = 0;
 
-        string r = "";
+        var r = "";
 
-        sp = Split(f, vbCrLf);
+        strings = Split(f, vbCrLf);
 
-        foreach (var iterL in sp)
+        foreach (var iterL in strings)
         {
             var l = iterL;
             l = Trim(l);
@@ -39,17 +39,17 @@ static class ModConvertForm
             }
             else if (Left(l, 6) == "Begin ")
             {
-                r = r + SSpace(I * spIndent) + "<item type=\"" + SplitWord(l, 2) + "\" name=\"" + SplitWord(l, 3) + "\">" + vbCrLf;
-                I = I + 1;
+                r = r + SSpace(i * spIndent) + "<item type=\"" + SplitWord(l, 2) + "\" name=\"" + SplitWord(l, 3) + "\">" + vbCrLf;
+                i = i + 1;
             }
             else if (l == "End")
             {
-                I = I - 1;
-                r = r + SSpace(I * spIndent) + "</item>" + vbCrLf;
+                i = i - 1;
+                r = r + SSpace(i * spIndent) + "</item>" + vbCrLf;
             }
             else
             {
-                r = r + SSpace(I * spIndent) + "<prop name=\"" + SplitWord(l, 1, "=") + "\" value=\"" + SplitWord(l, 2, "=", true, true) + "\" />" + vbCrLf;
+                r = r + SSpace(i * spIndent) + "<prop name=\"" + SplitWord(l, 1, "=") + "\" value=\"" + SplitWord(l, 2, "=", true, true) + "\" />" + vbCrLf;
             }
             NextLine:;
         }
@@ -59,9 +59,9 @@ static class ModConvertForm
 
     public static string FormControls(string src, string f, bool asLocal = true)
     {
-        string[] sp = new string[0];
+        var sp = new string[0];
 
-        string r = "";
+        var r = "";
 
         sp = Split(f, vbCrLf);
 
@@ -98,17 +98,17 @@ static class ModConvertForm
 
     public static string ConvertFormUi(string f, string codeSection)
     {
-        List<string> stck = new List<string>(new string[1]);
+        var stck = new List<string>(new string[1]);
 
-        string[] sp = new string[0];
-        int I = 0;
-        string tag = "";
+        var sp = new string[0];
+        var I = 0;
+        var tag = "";
 
-        string m = "";
+        var m = "";
 
-        string r = "";
+        var r = "";
 
-        string prefix = "";
+        var prefix = "";
 
         Collection props = null;
 
@@ -200,14 +200,14 @@ static class ModConvertForm
 
     private static string StartControl(string l, Collection props, bool doEmpty, string code, out string tagType)
     {
-        string startControl = "";
+        var startControl = "";
 
-        string tType = "";
-        bool tCont = false;
-        string tDef = "";
-        string features = "";
+        var tType = "";
+        var tCont = false;
+        var tDef = "";
+        var features = "";
 
-        string m = "";
+        var m = "";
 
         var n = vbCrLf;
         tagType = "";
@@ -383,7 +383,7 @@ static class ModConvertForm
 
     public static string CheckEvent(string eventName, string controlName, string controlType, string codeSection = "")
     {
-        string checkEvent = "";
+        var checkEvent = "";
 
         var n = controlName + "_" + eventName;
         var search = " " + n + "(";
@@ -421,7 +421,7 @@ static class ModConvertForm
 
     public static string EndControl(string tType)
     {
-        string endControl = "";
+        var endControl = "";
         switch (tType)
         {
             case "Line":
@@ -448,7 +448,7 @@ static class ModConvertForm
 
     public static string EventStub(string fName)
     {
-        string s = "";
+        var s = "";
 
 
         var c = SplitWord(fName, 1, "_");
