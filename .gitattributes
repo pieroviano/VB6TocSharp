@@ -1,0 +1,6 @@
+# VB6 sources are CRLF (the IDE and the converter expect it)
+*.bas text eol=crlf
+*.cls text eol=crlf
+*.frm text eol=crlf
+*.ctl text eol=crlf
+*.vbp text eol=crlf
