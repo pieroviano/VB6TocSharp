@@ -104,7 +104,7 @@ public static class ModSupportFiles
         s = s + n + "    <OutputType>WinExe</OutputType>";
         s = s + n + "    <RootNamespace>" + AssemblyName() + "</RootNamespace>";
         s = s + n + "    <AssemblyName>" + AssemblyName() + "</AssemblyName>";
-        s = s + n + "    <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>";
+        s = s + n + "    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>";
         s = s + n + "    <FileAlignment>512</FileAlignment>";
         s = s + n + "    <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>";
         s = s + n + "    <WarningLevel>4</WarningLevel>";
@@ -153,6 +153,11 @@ public static class ModSupportFiles
         s = s + n + "    <Reference Include=\"WindowsBase\" />";
         s = s + n + "    <Reference Include=\"PresentationCore\" />";
         s = s + n + "    <Reference Include=\"PresentationFramework\" />";
+        s = s + n + "  </ItemGroup>";
+        s = s + n + "  <ItemGroup>";
+        // the runtime of converted code (VB6 arrays, UDTs, fixed-length strings, controls), like VB Migration Partner's library
+        var runtime = typeof(ModSupportFiles).Assembly.GetName().Version;
+        s = s + n + "    <PackageReference Include=\"Net4x.Vb6ToCSharp.UpgradeHelpers\" Version=\"" + runtime.Major + "." + runtime.Minor + ".*\" />";
         s = s + n + "  </ItemGroup>";
         s = s + n + "  <ItemGroup>";
         s = s + n + "    <ApplicationDefinition Include=\"Application.xaml\">";

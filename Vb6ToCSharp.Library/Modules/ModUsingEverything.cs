@@ -42,6 +42,8 @@ public static class ModUsingEverything
             e = e + n + "using static VBExtension;";
             e = e + n + "using static VBConstants;";
             e = e + n + "using Microsoft.VisualBasic;";
+            e = e + n + "using Microsoft.VisualBasic.CompilerServices;"; // Conversions: VB6 implicit conversions
+            e = e + n + "using static Vb6ToCSharp.UpgradeHelpers.VbRuntime;"; // ReDim, NewArray, FixedLen, MidStmt...
 
             e = e + n + "using System;";
             e = e + n + "using static System.DateTime;";

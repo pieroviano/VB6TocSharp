@@ -7,6 +7,7 @@ using static Microsoft.VisualBasic.Constants;
 using static Microsoft.VisualBasic.Strings;
 using static Vb6ToCSharp.Modules.ModConfig;
 using static Vb6ToCSharp.Modules.ModConvert;
+using static Vb6ToCSharp.Modules.ModProjectFiles;
 using static Vb6ToCSharp.Modules.ModSubTracking;
 using static Vb6ToCSharp.Modules.ModUtils;
 using static Vb6ToCSharp.Modules.ModVb6ToCs;
@@ -26,6 +27,333 @@ public static class ModConvertStatements
     public const string SetProjectError = "Microsoft.VisualBasic.CompilerServices.ProjectData.SetProjectError";
 
     private const string Id = "[A-Za-z_][A-Za-z0-9_]*";
+
+    // ---------------------------------------------------------------- module options (reset by BeginFile)
+
+    /// <summary>Option Base of the file: the default lower bound of arrays.</summary>
+    public static int OptionBase;
+
+    /// <summary>Option Compare Text: string comparisons ignore case.</summary>
+    public static bool OptionCompareText;
+
+    /// <summary>Arrays with a non-zero lower bound become zero-based T[] sized ub + 1 (pragma ArrayBounds ForceZero).</summary>
+    public static bool ForceZeroBounds;
+
+    /// <summary>Module-level "As New" variables are auto-instancing properties (pragma AutoNew).</summary>
+    public static bool AutoNew = true;
+
+    /// <summary>DefType statements: first letter (upper case) to VB6 type.</summary>
+    private static readonly Dictionary<char, string> defTypes = new Dictionary<char, string>();
+
+    /// <summary>User-defined types known to the conversion (this file's, and the project's).</summary>
+    private static readonly HashSet<string> udts = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+    private static string udtProject;
+
+    /// <summary>Resets the per-file options (Option Base/Compare, DefType, pragmas) and module variables.</summary>
+    public static void ResetFileOptions()
+    {
+        OptionBase = 0;
+        OptionCompareText = false;
+        ForceZeroBounds = false;
+        AutoNew = true;
+        defTypes.Clear();
+        ClearModuleVars();
+    }
+
+    /// <summary>Applies a module-level Option / DefType statement; returns the C# comment to emit, or null.</summary>
+    public static string ApplyModuleOption(string l)
+    {
+        l = Trim(l);
+        Match m;
+        if ((m = Regex.Match(l, "^Option Base ([01])$")).Success)
+        {
+            OptionBase = int.Parse(m.Groups[1].Value, CultureInfo.InvariantCulture);
+            return "// VB6 " + l + " (arrays declared without a lower bound start at " + OptionBase + ")";
+        }
+        if (l == "Option Compare Text" || l == "Option Compare Binary" || l == "Option Compare Database")
+        {
+            OptionCompareText = l != "Option Compare Binary";
+            return "// VB6 " + l;
+        }
+        if ((m = Regex.Match(l, "^Def(Bool|Byte|Int|Lng|Cur|Sng|Dbl|Dec|Date|Str|Obj|Var) (.+)$")).Success)
+        {
+            var type = DefTypeName(m.Groups[1].Value);
+            foreach (var range in SplitTopLevel(m.Groups[2].Value))
+            {
+                var r = Regex.Match(range, "^([A-Za-z])(?: *- *([A-Za-z]))?$");
+                if (!r.Success) continue;
+                var from = char.ToUpperInvariant(r.Groups[1].Value[0]);
+                var to = r.Groups[2].Success ? char.ToUpperInvariant(r.Groups[2].Value[0]) : from;
+                for (var c = from; c <= to; c++) defTypes[c] = type;
+            }
+            return "// VB6 " + l + " (applied to declarations without a type)";
+        }
+        return null;
+    }
+
+    private static string DefTypeName(string d)
+    {
+        switch (d)
+        {
+            case "Bool": return "Boolean";
+            case "Int": return "Integer";
+            case "Lng": return "Long";
+            case "Cur": return "Currency";
+            case "Sng": return "Single";
+            case "Dbl": return "Double";
+            case "Dec": return "Variant";
+            case "Str": return "String";
+            case "Obj": return "Object";
+            case "Var": return "Variant";
+            default: return d; // Byte, Date
+        }
+    }
+
+    /// <summary>The VB6 type of a name declared without As / type character: DefType, else Variant.</summary>
+    public static string ImplicitType(string name)
+    {
+        name = Trim(name);
+        return name != "" && defTypes.TryGetValue(char.ToUpperInvariant(name[0]), out var t) ? t : "Variant";
+    }
+
+    /// <summary>Registers a user-defined type declared in the file being converted.</summary>
+    public static void RegisterUdt(string name) => udts.Add(name);
+
+    /// <summary>Whether <paramref name="vbType"/> is a user-defined type (this file's or any project module's).</summary>
+    public static bool IsUdt(string vbType)
+    {
+        if (string.IsNullOrEmpty(vbType)) return false;
+        if (udtProject != VbpFile)
+        {
+            udtProject = VbpFile;
+            try
+            {
+                var folder = FilePath(VbpFile);
+                var files = VbpModules(VbpFile) + vbCrLf + VbpClasses(VbpFile) + vbCrLf + VbpForms(VbpFile) + vbCrLf + VbpUserControls(VbpFile);
+                foreach (var f in Split(files, vbCrLf))
+                {
+                    if (Trim(f) == "" || !System.IO.File.Exists(folder + f)) continue;
+                    foreach (Match m in Regex.Matches(System.IO.File.ReadAllText(folder + f), "(?m)^(?:Public |Private |Global )?Type (" + Id + ")")) udts.Add(m.Groups[1].Value);
+                }
+            }
+            catch (Exception)
+            {
+                // no project: only the types of the converted file are known
+            }
+        }
+        return udts.Contains(vbType);
+    }
+
+    /// <summary>Initial value of a VB6 variable (an initialized UDT for user-defined types).</summary>
+    public static string DefaultValue(string vbType) => IsUdt(vbType) ? "NewStruct<" + vbType + ">()" : ConvertDefaultDefault(vbType);
+
+    /// <summary>C# types whose arrays need no per-element initialization (new T[n] is VB6-correct).</summary>
+    public static bool IsPlainValueType(string cType)
+    {
+        switch (cType)
+        {
+            case "short": case "int": case "long": case "byte": case "float": case "double": case "decimal": case "bool": case "DateTime":
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    /// <summary>Bounds of one dimension ("ub" or "lb To ub", lb defaulting to Option Base), converted; returns the zero-based element count (ub + 1).</summary>
+    public static string DimBounds(string dim, out string lower, out string upper)
+    {
+        var m = Regex.Match(Trim(dim), "^(.+) To (.+)$");
+        var lb = m.Success ? Trim(m.Groups[1].Value) : OptionBase.ToString(CultureInfo.InvariantCulture);
+        var ub = m.Success ? Trim(m.Groups[2].Value) : Trim(dim);
+        lower = Regex.IsMatch(lb, "^-?[0-9]+$") ? lb : ConvertValue(lb);
+        upper = Regex.IsMatch(ub, "^-?[0-9]+$") ? ub : ConvertValue(ub);
+        if (Regex.IsMatch(ub, "^-?[0-9]+$")) return (long.Parse(ub, CultureInfo.InvariantCulture) + 1).ToString(CultureInfo.InvariantCulture);
+        return upper + " + 1";
+    }
+
+    // ---------------------------------------------------------------- implicit conversions (VB6 converts on assignment, C# does not)
+
+    private static readonly HashSet<string> NumericFunctions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        "Len", "LenB", "InStr", "InStrB", "InStrRev", "Asc", "AscW", "AscB", "UBound", "LBound", "Val", "Int", "Fix", "Abs", "Sgn",
+        "CInt", "CLng", "CByte", "CSng", "CDbl", "CCur", "Round", "StrComp", "FreeFile", "Loc", "LOF", "Seek", "FileLen",
+        "Year", "Month", "Day", "Hour", "Minute", "Second", "Weekday", "DatePart", "DateDiff", "Timer", "Rnd", "Sqr", "Exp", "Log",
+        "Sin", "Cos", "Tan", "Atn", "RGB", "QBColor", "ColorTranslate", "Err().Number",
+    };
+
+    /// <summary>VB6 type of a raw (VB6) operand when it can be told: a literal, a declared variable, a numeric function.</summary>
+    public static string OperandType(string raw)
+    {
+        raw = Trim(raw);
+        if (Regex.IsMatch(raw, "^-?[0-9]+[%&]?$") || Regex.IsMatch(raw, "^&[HhOo][0-9A-Fa-f]+&?$")) return "Long";
+        if (Regex.IsMatch(raw, "^-?[0-9]+\\.[0-9]+[#!]?$")) return "Double";
+        if (Regex.IsMatch(raw, "^" + ModConvertUtils.deStringTokenBase + "[0-9]+$")) return "String";
+        if (raw == "True" || raw == "False") return "Boolean";
+        if (Regex.IsMatch(raw, "^" + Id + "$"))
+        {
+            var v = SubParam(raw);
+            return v.name != "" && v.asArray == "" ? v.asType : "";
+        }
+        var call = Regex.Match(raw, "^(" + Id + ")\\$?\\(");
+        if (call.Success && MatchParen(raw, call.Length - 1) == raw.Length - 1)
+        {
+            var fn = call.Groups[1].Value;
+            if (NumericFunctions.Contains(fn)) return "Double";
+            if (ModRefScan.IsFuncRef(fn)) return ModRefScan.FuncRefDeclRet(fn);
+            var arr = SubParam(fn);
+            if (arr.name != "" && arr.asArray != "") return arr.asType; // an array element
+        }
+        return "";
+    }
+
+    private static bool IsNumericType(string t) => t == "Integer" || t == "Long" || t == "Byte" || t == "Single" || t == "Double" || t == "Currency";
+
+    private static readonly string[] NumericRank = { "Byte", "Integer", "Long", "Currency", "Single", "Double" };
+
+    /// <summary>
+    /// VB6 type of an expression, from its operands: comparisons are Boolean, &amp; String, "/" and "^" Double, arithmetic
+    /// the widest operand (Currency with Single / Double is Double). "" when an operand's type is unknown.
+    /// </summary>
+    public static string ExprType(string raw)
+    {
+        raw = Trim(raw);
+        while (raw.Length > 1 && raw[0] == '(' && MatchParen(raw, 0) == raw.Length - 1) raw = Trim(raw.Substring(1, raw.Length - 2));
+        if (LMatch(raw, "-")) return ExprType(Mid(raw, 2));
+        var single = OperandType(raw);
+        if (single != "" || SplitTopLevel(raw, ' ').Count == 1) return single;
+        var types = new List<string>();
+        var ops = new List<string>();
+        var s = raw;
+        var op = "";
+        for (var guard = 0; guard < 200; guard++)
+        {
+            var f = NextByOp(s, 1, ref op);
+            if (f == "") break;
+            if (string.IsNullOrEmpty(op) && ops.Count == 0) return ""; // no operator: a term this analysis cannot type
+            types.Add(LMatch(Trim(f), "Not ") ? ExprType(Mid(Trim(f), 5)) : ExprType(f));
+            if (string.IsNullOrEmpty(op)) break;
+            ops.Add(Trim(op));
+            s = Mid(s, Len(f) + Len(op) + 1);
+            if (s == "") break;
+        }
+        if (ops.Count == 0) return "";
+        if (ops.Exists(o => o == "=" || o == "<>" || o == "<" || o == ">" || o == "<=" || o == ">=" || o == "Is" || o == "Like")) return "Boolean";
+        if (ops.Exists(o => o == "&")) return "String";
+        if (ops.Exists(o => o == "And" || o == "Or" || o == "Xor" || o == "Eqv" || o == "Imp"))
+        {
+            return types.TrueForAll(t => t == "Boolean") ? "Boolean" : types.TrueForAll(IsNumericType) ? "Long" : "";
+        }
+        if (ops.Exists(o => o == "/" || o == "^")) return types.TrueForAll(t => t == "" || IsNumericType(t)) ? "Double" : "";
+        if (!types.TrueForAll(IsNumericType)) return types.Exists(t => t == "String") && ops.TrueForAll(o => o == "+") ? "String" : "";
+        if (types.Contains("Currency") && (types.Contains("Double") || types.Contains("Single"))) return "Double";
+        var rank = 0;
+        foreach (var t in types) rank = Math.Max(rank, Array.IndexOf(NumericRank, t));
+        return ops.Exists(o => o == "\\" || o == "Mod") && rank <= 2 ? "Long" : NumericRank[rank];
+    }
+
+    /// <summary>C# cannot mix decimal with float / double: in such an expression Currency operands become double (VB6 gives a Double).</summary>
+    public static void PromoteCurrency(List<string> raws, List<string> parts)
+    {
+        var types = raws.ConvertAll(OperandType);
+        if (!types.Contains("Currency") || !(types.Contains("Double") || types.Contains("Single"))) return;
+        for (var i = 0; i < parts.Count && i < types.Count; i++)
+        {
+            if (types[i] == "Currency") parts[i] = "(double)" + parts[i];
+        }
+    }
+
+    /// <summary>VB6 conversion functions as VB Migration Partner maps them (CInt returns a 16-bit Integer).</summary>
+    public static string ConversionFunction(string name)
+    {
+        switch (name)
+        {
+            case "CStr": return "Conversions.ToString";
+            case "CInt": return "Conversions.ToShort";
+            case "CLng": return "Conversions.ToInteger";
+            case "CByte": return "Conversions.ToByte";
+            case "CSng": return "Conversions.ToSingle";
+            case "CDbl": return "Conversions.ToDouble";
+            case "CCur": return "Conversions.ToDecimal";
+            case "CDec": return "Conversions.ToDecimal";
+            case "CBool": return "Conversions.ToBoolean";
+            case "CDate": case "CVDate": return "Conversions.ToDate";
+            case "CVar": return "(object)";
+            default: return null;
+        }
+    }
+
+    /// <summary>
+    /// The value assigned to a <paramref name="target"/>-typed variable, converted the way VB6 converts implicitly
+    /// (Microsoft.VisualBasic Conversions: rounding to even, string parsing), where C# would not compile or would differ.
+    /// </summary>
+    public static string ImplicitConversion(string target, string raw, string cs)
+    {
+        var source = ExprType(raw);
+        if (source == target || cs == "null") return cs;
+        var intLiteral = Regex.IsMatch(Trim(raw), "^-?[0-9]+$");
+        var floating = cs.Contains("Pow(") || source == "Double" || source == "Single" || source == "Currency";
+        string To(string fn) => "Conversions." + fn + "(" + cs + ")";
+        switch (target)
+        {
+            case "Integer": return intLiteral ? cs : To("ToShort");
+            case "Byte": return intLiteral ? cs : To("ToByte");
+            case "Single": return intLiteral ? cs : To("ToSingle");
+            case "Currency": return intLiteral ? cs : To("ToDecimal");
+            case "Long":
+                return source == "Integer" || source == "Byte" || intLiteral || source == "" && !floating ? cs : To("ToInteger");
+            case "Double":
+                return source == "" || IsNumericType(source) && source != "Currency" ? cs : To("ToDouble");
+            case "Variant":
+            case "Object":
+                return cs;
+            case "String":
+                return source == "" ? cs : To("ToString");
+            case "Boolean":
+                return source == "" ? cs : To("ToBoolean");
+            case "Date":
+                return source == "" ? cs : To("ToDate");
+            default:
+                return cs;
+        }
+    }
+
+    /// <summary>The left operand of VB6 "/" as a double (so the division is not an integer one).</summary>
+    public static string AsDouble(string raw, string cs)
+    {
+        var type = OperandType(raw);
+        if (type == "Double" || type == "Single" || cs.Contains("Pow(")) return cs;
+        if (Regex.IsMatch(Trim(raw), "^-?[0-9]+$")) return cs + ".0";
+        if (type == "Integer" || type == "Long" || type == "Byte" || type == "Currency") return "(double)" + cs;
+        return "Conversions.ToDouble(" + cs + ")";
+    }
+
+    /// <summary>
+    /// A VB6 condition (If / While / Until) as a C# bool: a numeric or Variant operand is tested against zero as VB6 does;
+    /// Not on a number stays bitwise (Not 5 is -6, which is True).
+    /// </summary>
+    public static string ConditionValue(string vb)
+    {
+        vb = Trim(vb);
+        var negate = false;
+        var inner = vb;
+        if (LMatch(inner, "Not ") && SplitTopLevel(Mid(inner, 5), ' ').Count == 1)
+        {
+            negate = true;
+            inner = Trim(Mid(inner, 5));
+        }
+        var type = SplitTopLevel(inner, ' ').Count == 1 ? OperandType(inner) : "";
+        if (IsNumericType(type))
+        {
+            var cs = ConvertValue(inner);
+            return negate ? "~(" + (type == "Integer" || type == "Long" || type == "Byte" ? cs : "(long)" + cs) + ") != 0" : cs + " != 0";
+        }
+        if (type == "Variant" || type == "String")
+        {
+            var cs = "Conversions.ToBoolean(" + ConvertValue(inner) + ")";
+            return negate ? "!" + cs : cs;
+        }
+        return ConvertValue(vb);
+    }
 
     // ---------------------------------------------------------------- lexical helpers
 
@@ -164,6 +492,7 @@ public static class ModConvertStatements
     /// </summary>
     public static string BeginFile(string vbSource, IDictionary<string, string> projectConstants = null)
     {
+        ResetFileOptions();
         ppConsts = ProjectConstantValues(projectConstants);
         var header = new StringBuilder();
         var defined = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
@@ -690,7 +1019,7 @@ public static class ModConvertStatements
         return ConvertValue(ub) + " + 1";
     }
 
-    /// <summary>ReDim [Preserve] a(dims) [As T], ...</summary>
+    /// <summary>ReDim [Preserve] a(dims) [As T], ... for T[] / T[,] (ReDim helper) and VB6Array (lower bound kept).</summary>
     public static string ConvertReDim(string t, int ind)
     {
         var s = Trim(Mid(Trim(t), 6));
@@ -712,39 +1041,54 @@ public static class ModConvertStatements
                 continue;
             }
             var dims = SplitTopLevel(part.Substring(open + 1, close - open - 1));
-            var asType = Trim(part.Substring(close + 1));
-            var vbType = LMatch(asType, "As ") ? Trim(Mid(asType, 4)) : SubParam(name).asType;
-            var todo = "";
+            var v = SubParam(name);
             var counts = new List<string>();
+            var lbs = new List<string>();
+            var ubs = new List<string>();
             foreach (var d in dims)
             {
-                counts.Add(DimCount(d, out var lb));
-                if (lb != "" && lb != "0") todo = " // TODO: VB6 lower bound " + lb + " not supported";
+                counts.Add(DimBounds(d, out var lb, out var ub));
+                lbs.Add(lb);
+                ubs.Add(ub);
             }
-            if (dims.Count == 1)
+            var keep = preserve ? ", true" : "";
+            if (v.vb6Array && dims.Count == 1)
             {
-                r = r + SSpace(ind) + name + " = ReDim(" + name + ", " + counts[0] + (preserve ? ", true" : "") + ");" + todo + vbCrLf;
+                r = r + SSpace(ind) + name + ".ReDim(" + lbs[0] + ", " + ubs[0] + keep + ");" + vbCrLf;
+            }
+            else if (dims.Count <= 2)
+            {
+                var todo = lbs.Exists(lb => lb != "0") ? " // TODO: VB6 lower bound " + string.Join(", ", lbs) + " (a zero-based array sized to the upper bound)" : "";
+                r = r + SSpace(ind) + name + " = ReDim(" + name + ", " + string.Join(", ", counts) + keep + ");" + todo + vbCrLf;
             }
             else
             {
-                var cs = ConvertDataType(vbType == "" ? "Variant" : vbType);
+                var asType = Trim(part.Substring(close + 1));
+                var cs = ConvertDataType(LMatch(asType, "As ") ? Trim(Mid(asType, 4)) : v.asType == "" ? "Variant" : v.asType);
                 r = r + SSpace(ind) + name + " = new " + cs + "[" + string.Join(", ", counts) + "];"
-                    + (preserve ? " // TODO: VB6 ReDim Preserve of a multi-dimensional array" : todo) + vbCrLf;
+                    + (preserve ? " // TODO: VB6 ReDim Preserve of a " + dims.Count + "-dimensional array" : "") + vbCrLf;
             }
             SubParamAssign(name);
         }
         return TrimEnd(r);
     }
 
-    /// <summary>Erase a, b: dynamic arrays are released, fixed ones reset to default values.</summary>
+    /// <summary>Erase a, b: dynamic arrays are released, fixed ones get default elements again.</summary>
     public static string ConvertErase(string t, int ind)
     {
         var r = "";
         foreach (var name in SplitTopLevel(Trim(Mid(Trim(t), 7))))
         {
             if (name == "") continue;
-            var dynamicArr = SubParam(name).asArray == "-1";
-            r = r + SSpace(ind) + name + " = ReDim(" + name + ", " + (dynamicArr ? "0" : name + ".Count") + ");" + vbCrLf;
+            var v = SubParam(name);
+            var dynamicArr = v.asArray == "-1";
+            var rank = v.asArray == "-1" || v.asArray == "" ? 1 : SplitTopLevel(v.asArray).Count;
+            string stmt;
+            if (v.vb6Array) stmt = name + ".Erase(" + (dynamicArr ? "false" : "true") + ");";
+            else if (dynamicArr) stmt = name + " = null;";
+            else if (rank == 2) stmt = name + " = ReDim(" + name + ", " + name + ".GetLength(0), " + name + ".GetLength(1));";
+            else stmt = name + " = ReDim(" + name + ", " + name + ".Length);";
+            r = r + SSpace(ind) + stmt + vbCrLf;
         }
         return TrimEnd(r);
     }

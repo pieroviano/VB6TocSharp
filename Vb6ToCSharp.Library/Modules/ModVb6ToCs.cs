@@ -55,6 +55,10 @@ public static class ModVb6ToCs
         {
             return convertDataType;
         }
+        if (s != null && s.Length > 2 && s.EndsWith("()"))
+        { // array return / parameter type: Long() -> int[]
+            return ConvertDataType(s.Substring(0, s.Length - 2)) + "[]";
+        }
         switch (s)
         {
             case "Object":
@@ -66,16 +70,17 @@ public static class ModVb6ToCs
             case "String":
                 convertDataType = "string";
                 break;
-            case "String()":
-                convertDataType = "List<string>";
-                break;
+            // VB6 widths (as VB Migration Partner): Integer is 16-bit, Long 32-bit, Double a binary double
             case "Long":
                 convertDataType = "int";
                 break;
             case "Integer":
-                convertDataType = "int";
+                convertDataType = "short";
                 break;
             case "Double":
+                convertDataType = "double";
+                break;
+            case "Decimal":
                 convertDataType = "decimal";
                 break;
             case "Variant":
@@ -412,9 +417,12 @@ public static class ModVb6ToCs
                 s = "null";
                 break;
             case "Empty" when whole:
-            case "Null" when whole:
                 complete = true;
                 s = "null";
+                break;
+            case "Null" when whole:
+                complete = true; // VB6 Null is a database null, distinct from Empty / Nothing
+                s = "DBNull.Value";
                 break;
             case "vbTrue" when whole:
                 complete = true;

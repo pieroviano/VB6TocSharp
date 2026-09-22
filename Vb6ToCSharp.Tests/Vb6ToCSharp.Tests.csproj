@@ -26,6 +26,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Vb6ToCSharp.Library\Vb6ToCSharp.Library.csproj" />
+    <ProjectReference Include="..\Vb6ToCSharp.UpgradeHelpers\Vb6ToCSharp.UpgradeHelpers.csproj" />
   </ItemGroup>
 
   <ItemGroup>

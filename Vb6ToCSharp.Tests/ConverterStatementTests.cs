@@ -227,7 +227,7 @@ public partial class ConverterTests
     {
         var cs = Convert(Sub("  Dim s$, n%, l&", "  s = Left$(\"abc\", 2)", "  l = 5&"));
         Assert.Contains("string s = \"\";", cs);
-        Assert.Contains("int n = 0;", cs);
+        Assert.Contains("short n = 0;", cs); // % is Integer: 16-bit
         Assert.Contains("s = Left(", cs);
         Assert.Contains("l = 5;", cs);
     }
@@ -236,9 +236,9 @@ public partial class ConverterTests
     public void Arrays_SymbolicAndMultiDimensionalBounds()
     {
         var cs = Convert(Sub("  Dim a(MAXV) As Long, g(2, 3) As String, d() As Long"));
-        Assert.Contains("List<int> a = ReDim<int>(null, MAXV + 1);", cs);
-        Assert.Contains("string[,] g = new string[3, 4];", cs);
-        Assert.Contains("List<int> d = new List<int> {};", cs);
+        Assert.Contains("int[] a = new int[MAXV + 1];", cs);
+        Assert.Contains("string[,] g = NewArray<string>(3, 4);", cs); // VB6 strings start as ""
+        Assert.Contains("int[] d = null;", cs);
     }
 
     [Fact]
@@ -254,7 +254,7 @@ public partial class ConverterTests
         var cs = Convert(Sub("  Dim d() As Long, n As Long", "  ReDim d(n)", "  ReDim Preserve d(n + 1)", "  Erase d"));
         Assert.Contains("d = ReDim(d, n + 1);", cs);
         Assert.Contains("d = ReDim(d, n + 1 + 1, true);", cs);
-        Assert.Contains("d = ReDim(d, 0);", cs);
+        Assert.Contains("d = null;", cs); // Erase releases a dynamic array
     }
 
     [Fact]
@@ -309,8 +309,8 @@ public partial class ConverterTests
     [InlineData("Stop", "System.Diagnostics.Debugger.Break();")]
     [InlineData("End", "End();")]
     [InlineData("Date = d", "DateAndTime.Today = d;")]
-    [InlineData("n = 2 ^ 3", "n = Pow(2, 3);")]
-    [InlineData("n = n + 2 ^ 3 * 4", "n = n + Pow(2, 3) * 4;")]
+    [InlineData("n = 2 ^ 3", "n = Conversions.ToInteger(Pow(2, 3));")] // a Double assigned to a Long rounds as in VB6
+    [InlineData("n = n + 2 ^ 3 * 4", "n = Conversions.ToInteger(n + Pow(2, 3) * 4);")]
     [InlineData("b = s Like \"a*\"", "b = IsLike(s, ")]
     [InlineData("b = TypeOf o Is Collection", "b = o is Collection;")]
     [InlineData("n = n And &HFF", "n = n & 0xFF;")]
@@ -375,19 +375,26 @@ public partial class ConverterTests
         var vb = "Option Explicit\nDefInt A-Z\nImplements IFoo\nPublic Const A As Long = 1, B% = 2\nGlobal G As Long\n" +
                  "Public Enum E\n  eA = -1\n  eB = &H8000&\n  [Two Words]\n  eC\nEnd Enum\n" +
                  "Private Type R\n  V(1 To 5) As Long\n  G(2, 3) As Double\nEnd Type\n";
-        var cs = TestUtil.WithTimeout(() => ModConvert.ConvertGlobals(vb.Replace("\n", "\r\n"), true), 30000);
+        Begin();
+        string cs;
+        try { cs = TestUtil.WithTimeout(() => ModConvert.ConvertGlobals(vb.Replace("\n", "\r\n"), true), 30000); }
+        finally { Begin(); } // DefInt applies to the rest of that file only
         Assert.Contains("// Option Explicit", cs);
-        Assert.Contains("TODO: VB6 DefInt", cs);
+        Assert.Contains("// VB6 DefInt A-Z", cs);
         Assert.Contains("TODO: VB6 Implements IFoo", cs);
         Assert.Contains("public const int A = 1;", cs);
-        Assert.Contains("public const int B = 2;", cs);
+        Assert.Contains("public const short B = 2;", cs);
         Assert.Contains("public static int G = 0;", cs);
         Assert.Contains("eA = -1", cs);
         Assert.Contains("eB = 0x8000", cs);
         Assert.Contains("Two_Words", cs);
         Assert.Contains("eC", cs);
-        Assert.Contains("public int[] V = new int[6];", cs);
-        Assert.Contains("public decimal[,] G = new decimal[3, 4];", cs);
+        // a UDT is a struct (VB6 copies it on assignment); fixed members are set up by Initialize and marshal as in VB6
+        Assert.Contains("private struct R : IVbStruct {", cs);
+        Assert.Contains("[MarshalAs(UnmanagedType.ByValArray, SizeConst = 6)] public int[] V;", cs);
+        Assert.Contains("public double[,] G;", cs);
+        Assert.Contains("V = NewArray<int>(6);", cs);
+        Assert.Contains("G = NewArray<double>(3, 4);", cs);
         AssertParses(cs);
     }
 
@@ -485,28 +492,4 @@ public class StatementHelperTests
     [InlineData("Debug.Print a = b", 0)]
     [InlineData("If a = b Then", 0)]
     public void AssignmentPos_FindsTheTopLevelEquals(string s, int pos) => Assert.Equal(pos, ModConvert.AssignmentPos(s));
-
-
-    [Fact]
-    public void ReDim_NewAndPreserve()
-    {
-        var a = VbExtension.ReDim(new List<int> { 1, 2, 3 }, 5, true);
-        Assert.Equal(new[] { 1, 2, 3, 0, 0 }, a);
-        Assert.Equal(new[] { 0, 0 }, VbExtension.ReDim(a, 2));
-        Assert.Equal(new[] { "", "" }, VbExtension.ReDim<string>(null, 2)); // VB6 String elements start as ""
-        Assert.Empty(VbExtension.ReDim(a, 0));
-    }
-
-    [Fact]
-    public void MidStmt_ReplacesInPlaceWithoutChangingLength()
-    {
-        var s = "abcdef";
-        VbExtension.MidStmt(ref s, 2, 3, "XYZW");
-        Assert.Equal("aXYZef", s);
-        VbExtension.MidStmt(ref s, 5, "12345");
-        Assert.Equal("aXYZ12", s);
-        VbExtension.MidStmt(ref s, 1, 1, "");
-        Assert.Equal("aXYZ12", s);
-        Assert.Throws<ArgumentException>(() => VbExtension.MidStmt(ref s, 7, "x"));
-    }
 }

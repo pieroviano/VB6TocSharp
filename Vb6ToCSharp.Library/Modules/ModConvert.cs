@@ -661,6 +661,7 @@ public static class ModConvert
             { // Dim s$ / Dim n%(10)
                 l = Trim(Mid(l, 2));
             }
+            var declStart = Len(res);
             if (isGlobal)
             {
                 res = res + IIf(asPrivate, "private ", "public ");
@@ -684,7 +685,7 @@ public static class ModConvert
             }
 
             var asNew = false;
-            var fixedTodo = "";
+            var fixedLen = "";
             if (SplitWord(l, 1) == "As")
             {
                 pType = SplitWord(l, 2);
@@ -694,18 +695,35 @@ public static class ModConvert
                     asNew = true;
                 }
                 if (LMatch(SplitWord(l, 3), "*"))
-                {
-                    fixedTodo = " // TODO: VB6 fixed-length string (" + Trim(Mid(l, InStr(l, "*"))) + ") is a variable-length string";
+                { // String * n
+                    fixedLen = ConvertValue(Trim(Mid(l, InStr(l, "*") + 1)));
                 }
             }
             else
             {
-                pType = suffixType != "" ? suffixType : "Variant";
+                pType = suffixType != "" ? suffixType : ModConvertStatements.ImplicitType(pName);
             }
 
             var cType = ConvertDataType(pType);
             var asArray = "";
-            if (!isArr)
+            var vb6Array = false;
+            var mods = Mid(res, declStart + 1); // access modifiers already emitted for this variable
+            var before = Left(res, declStart);
+            if (!isArr && fixedLen != "" && isGlobal)
+            { // a field keeps its length through a property (VB6 pads or truncates every assignment)
+                res = before + SSpace(ind) + Replace(mods, "public ", "private ") + "string _" + pName + " = new string(' ', " + fixedLen + ");" + vbCrLf
+                      + SSpace(ind) + mods + "string " + pName + " { get => _" + pName + "; set => _" + pName + " = FixedLen(value, " + fixedLen + "); }" + vbCrLf;
+            }
+            else if (!isArr && fixedLen != "")
+            { // a local: assignments are padded / truncated (see ConvertCodeLine)
+                res = res + SSpace(ind) + "string " + pName + " = new string(' ', " + fixedLen + ");" + vbCrLf;
+            }
+            else if (!isArr && asNew && isGlobal && ModConvertStatements.AutoNew)
+            { // VB6 auto-instancing: created on first use, and again after Set x = Nothing
+                res = before + SSpace(ind) + Replace(mods, "public ", "private ") + cType + " _" + pName + ";" + vbCrLf
+                      + SSpace(ind) + mods + cType + " " + pName + " { get => _" + pName + " ?? (_" + pName + " = new " + cType + "()); set => _" + pName + " = value; }" + vbCrLf;
+            }
+            else if (!isArr)
             {
                 res = res + SSpace(ind) + cType + " " + pName;
                 res = res + " = ";
@@ -717,39 +735,61 @@ public static class ModConvert
                 }
                 else
                 {
-                    res = res + ConvertDefaultDefault(pType);
+                    res = res + ModConvertStatements.DefaultValue(pType);
                 }
-                res = res + ";" + fixedTodo + vbCrLf;
-            }
-            else if (dims.Count == 0)
-            { // dynamic array: sized by ReDim
-                asArray = "-1";
-                res = res + SSpace(ind) + "List<" + cType + "> " + pName + " = new List<" + cType + "> {};" + vbCrLf;
+                res = res + ";" + vbCrLf;
             }
             else
             {
                 var aTodo = "";
+                var lbs = new System.Collections.Generic.List<string>();
+                var ubs = new System.Collections.Generic.List<string>();
                 var counts = new System.Collections.Generic.List<string>();
                 foreach (var d in dims)
                 {
-                    counts.Add(ModConvertStatements.DimCount(d, out var lb));
-                    if (lb != "" && lb != "0")
+                    counts.Add(ModConvertStatements.DimBounds(d, out var lb, out var ub));
+                    lbs.Add(lb);
+                    ubs.Add(ub);
+                    if (lb != "0" && dims.Count > 1)
                     {
                         aTodo = " // TODO - Specified Minimum Array Boundary Not Supported: " + ss;
                     }
                 }
-                asArray = string.Join(", ", counts);
-                if (dims.Count == 1)
+                var lower = dims.Count == 0 ? ModConvertStatements.OptionBase.ToString() : lbs[0];
+                vb6Array = dims.Count <= 1 && lower != "0" && !ModConvertStatements.ForceZeroBounds;
+                if (dims.Count == 0)
+                { // dynamic array: sized by ReDim
+                    asArray = "-1";
+                    res = res + SSpace(ind) + (vb6Array ? "VB6Array<" + cType + "> " + pName + " = new VB6Array<" + cType + ">(" + lower + ");" : cType + "[] " + pName + " = null;") + vbCrLf;
+                }
+                else if (vb6Array)
                 {
-                    res = res + SSpace(ind) + "List<" + cType + "> " + pName + " = ReDim<" + cType + ">(null, " + counts[0] + ");" + aTodo + vbCrLf;
+                    asArray = counts[0];
+                    res = res + SSpace(ind) + "VB6Array<" + cType + "> " + pName + " = new VB6Array<" + cType + ">(" + lbs[0] + ", " + ubs[0] + ");" + vbCrLf;
                 }
                 else
                 {
-                    res = res + SSpace(ind) + cType + "[" + new string(',', dims.Count - 1) + "] " + pName + " = new " + cType + "[" + asArray + "];" + aTodo + vbCrLf;
+                    asArray = string.Join(", ", counts);
+                    var rank = dims.Count == 1 ? "[]" : "[" + new string(',', dims.Count - 1) + "]";
+                    var alloc = ModConvertStatements.IsPlainValueType(cType) || dims.Count > 2 ? "new " + cType + "[" + asArray + "]" : "NewArray<" + cType + ">(" + asArray + ")";
+                    res = res + SSpace(ind) + cType + rank + " " + pName + " = " + alloc + ";" + aTodo + vbCrLf;
                 }
             }
 
-            SubParamDecl(pName, pType, asArray, false, false);
+            if (isGlobal)
+            {
+                ModuleVarDecl(pName, pType, asArray);
+            }
+            else
+            {
+                SubParamDecl(pName, pType, asArray, false, false);
+            }
+            var declared = SubParam(pName);
+            if (declared.name == pName)
+            {
+                declared.vb6Array = vb6Array;
+                declared.fixedLen = fixedLen;
+            }
         }
 
         var convertDeclare = res;
@@ -933,9 +973,9 @@ public static class ModConvert
             {
                 dataType = "string";
             }
-            else if (RegExTest(cValue, "^-?[0-9]+[.][0-9]+m?$"))
+            else if (RegExTest(cValue, "^-?[0-9]+[.][0-9]+$"))
             {
-                dataType = "decimal";
+                dataType = "double";
             }
             else if (RegExTest(cValue, "^-?([0-9]+|0x[0-9A-Fa-f]+)$"))
             {
@@ -1090,6 +1130,10 @@ public static class ModConvert
         return convertEnum;
     }
 
+    /// <summary>
+    /// Type ... End Type to a struct (VB6 UDTs are values: assignment copies them). Strings, fixed-length strings, fixed
+    /// arrays and nested UDTs are set up by Initialize (IVbStruct); fixed members carry MarshalAs for API calls.
+    /// </summary>
     public static string ConvertType(string s)
     {
         var isPrivate = false;
@@ -1112,63 +1156,93 @@ public static class ModConvert
         }
         var eName = RegExNMatch(s, patToken, 0);
         s = NlTrim(TMid(s, Len(eName) + 1));
+        ModConvertStatements.RegisterUdt(eName);
 
         //If IsInStr(eName, "OSVERSIONINFO") Then Stop
-        var res = IIf(isPrivate, "private ", "public ") + "class " + eName + " {";
+        var res = "[StructLayout(LayoutKind.Sequential)]" + vbCrLf + IIf(isPrivate, "private ", "public ") + "struct " + eName + " : IVbStruct {";
+        var init = "";
 
         while (TLeft(s, 8) != "End Type" && s != "")
         {
             if (TLeft(s, 1) == "#")
             { // conditional compilation around members
                 var eol = InStr(s, vbCr);
-                res = res + vbCrLf + ModConvertStatements.ConvertDirective(eol > 0 ? Left(s, eol - 1) : s);
+                var directive = ModConvertStatements.ConvertDirective(eol > 0 ? Left(s, eol - 1) : s);
+                res = res + vbCrLf + directive;
+                init = init + vbCrLf + directive;
                 s = eol > 0 ? NlTrim(Mid(s, eol)) : "";
                 continue;
             }
             eName = RegExNMatch(s, patToken, 0);
             s = NlTrim(TMid(s, Len(eName) + 1));
-            var eArr = "";
+            var counts = new System.Collections.Generic.List<string>();
+            var dynamicArray = false;
+            var boundTodo = "";
             if (LMatch(s, "("))
             {
                 n = NextBy(Mid(s, 2), ")");
                 s = NlTrim(Mid(s, Len(n) + 3));
-                var counts = new System.Collections.Generic.List<string>();
-                foreach (var d in ModConvertStatements.SplitTopLevel(n))
+                dynamicArray = Trim(n) == "";
+                if (!dynamicArray)
                 {
-                    counts.Add(ModConvertStatements.DimCount(d, out _)); // VB6 bounds are inclusive
+                    foreach (var d in ModConvertStatements.SplitTopLevel(n))
+                    {
+                        counts.Add(ModConvertStatements.DimBounds(d, out var lb, out _)); // VB6 bounds are inclusive
+                        if (lb != "0")
+                        {
+                            boundTodo = " // TODO: VB6 lower bound " + lb + " (element indexes are not shifted)";
+                        }
+                    }
                 }
-                eArr = "[" + string.Join(", ", counts) + "]";
             }
 
             if (TLeft(s, 3) == "As ")
             {
                 s = NlTrim(Mid(s, 4));
-                eType = RegExNMatch(s, patToken, 0);
+                eType = RegExNMatch(s, patToken + "(\\." + patToken + ")?", 0);
                 s = NlTrim(TMid(s, Len(eType) + 1));
             }
             else
             {
-                eType = "Variant";
+                eType = ModConvertStatements.ImplicitType(eName);
             }
-            res = res + vbCrLf + " public " + ConvertDataType(eType) + IIf(eArr == "", "", "[" + new string(',', StrCnt(eArr, ",")) + "]") + " " + eName;
-            if (eArr == "")
-            {
-                res = res + " = " + ConvertDefaultDefault(eType);
-            }
-            else
-            {
-                res = res + " = new " + ConvertDataType(eType) + eArr;
-            }
-            res = res + ";";
-            if (TLMatch(s, "* "))
-            {
-                s = Mid(LTrim(s), 3);
-                n = RegExNMatch(s, "[0-9]+", 0);
-                s = NlTrim(Mid(LTrim(s), Len(n) + 1));
-                res = res + " //TODO: Fixed Length Strings Not Supported: * " + n;
+            var fixedLen = "";
+            if (TLMatch(s, "*"))
+            { // String * n
+                s = LTrim(Mid(LTrim(s), 2));
+                fixedLen = RegExNMatch(s, "^[a-zA-Z0-9_]+", 0);
+                s = NlTrim(Mid(LTrim(s), Len(fixedLen) + 1));
+                fixedLen = ConvertValue(fixedLen);
             }
 
+            var cType = ConvertDataType(eType);
+            var isArray = dynamicArray || counts.Count > 0;
+            var rank = !isArray ? "" : "[" + new string(',', Math.Max(counts.Count, 1) - 1) + "]";
+            var marshal = "";
+            if (fixedLen != "" && !isArray)
+            {
+                marshal = "[MarshalAs(UnmanagedType.ByValTStr, SizeConst = " + fixedLen + ")] ";
+                init = init + vbCrLf + "  " + eName + " = FixedLen(\"\", " + fixedLen + ");";
+            }
+            else if (counts.Count > 0)
+            {
+                if (counts.Count == 1 && RegExTest(counts[0], "^[0-9]+$"))
+                {
+                    marshal = "[MarshalAs(UnmanagedType.ByValArray, SizeConst = " + counts[0] + ")] ";
+                }
+                init = init + vbCrLf + "  " + eName + " = NewArray<" + cType + ">(" + string.Join(", ", counts) + ");";
+            }
+            else if (!isArray && eType == "String")
+            {
+                init = init + vbCrLf + "  " + eName + " = \"\";";
+            }
+            else if (!isArray && ModConvertStatements.IsUdt(eType))
+            {
+                init = init + vbCrLf + "  " + eName + " = NewStruct<" + cType + ">();";
+            }
+            res = res + vbCrLf + " " + marshal + "public " + cType + rank + " " + eName + ";" + boundTodo;
         }
+        res = res + vbCrLf + " public void Initialize() {" + init + vbCrLf + " }";
         res = res + vbCrLf + "}";
 
         var convertType = res;
@@ -1223,7 +1297,7 @@ public static class ModConvert
         }
         else
         {
-            pType = suffixType != "" ? suffixType : "Variant";
+            pType = suffixType != "" ? suffixType : ModConvertStatements.ImplicitType(pName);
         }
         if (Left(s, 1) == "=")
         {
@@ -1344,7 +1418,7 @@ public static class ModConvert
             }
             else
             {
-                retType = suffixType != "" ? suffixType : "Variant";
+                retType = suffixType != "" ? suffixType : ModConvertStatements.ImplicitType(fName);
             }
             if (Right(retType, 1) == ")" && Right(retType, 2) != "()")
             {
@@ -1421,6 +1495,16 @@ public static class ModConvert
         }
 
         s = ModConvertStatements.StripTypeSuffixes(s);
+        var element = System.Text.RegularExpressions.Regex.Match(Trim(s), "^([a-zA-Z_][a-zA-Z_0-9]*)\\(");
+        if (element.Success && SubParam(element.Groups[1].Value).asArray != "")
+        { // an array element with a member: list(i).Name -> list[i].Name
+            var close = ModConvertStatements.MatchParen(Trim(s), element.Length - 1);
+            if (close > 0 && close < Len(Trim(s)) - 1 && Trim(s)[close + 1] == '.')
+            {
+                convertElement = element.Groups[1].Value + "[" + ConvertValue(Mid(Trim(s), element.Length + 1, close - element.Length)) + "]" + Mid(Trim(s), close + 2);
+                return convertElement;
+            }
+        }
         if (LMatch(s, "AddressOf "))
         { // a procedure passed as a callback: the method group converts to the delegate type
             convertElement = Trim(Mid(s, 11));
@@ -1429,10 +1513,10 @@ public static class ModConvert
 
         if (IsNumeric(Trim(s)) && !RegExTest(Trim(s), "^&"))
         {
-            convertElement = Val(s).ToString(System.Globalization.CultureInfo.InvariantCulture);
-            if (IsInStr(s, "."))
-            {
-                convertElement = convertElement + "m";
+            convertElement = Val(s).ToString("R", System.Globalization.CultureInfo.InvariantCulture);
+            if (IsInStr(s, ".") && !IsInStr(convertElement, ".") && !IsInStr(convertElement, "E"))
+            { // a VB6 literal with a decimal point is a Double
+                convertElement = convertElement + ".0";
             }
             return convertElement;
 
@@ -1626,7 +1710,7 @@ public static class ModConvert
         //Debug.Print "ConvertFunctionCall: " & fCall
         var tb = "";
         var name = RegExNMatch(fCall, "^[a-zA-Z0-9_.]*");
-        tb = tb + name;
+        tb = tb + (ModConvertStatements.ConversionFunction(name) ?? name);
 
         var ts = Mid(fCall, Len(name) + 2);
         ts = Left(ts, Len(ts) - 1);
@@ -1666,9 +1750,12 @@ public static class ModConvert
                     {
                         if (FuncRefArgByRef(name, I))
                         {
-                            tb = tb + "ref ";
+                            tb = tb + "ref " + ConvertValue(tv);
                         }
-                        tb = tb + ConvertValue(tv);
+                        else
+                        { // a VB6 argument is converted to the parameter type (Integer parameter, Long argument)
+                            tb = tb + ModConvertStatements.ImplicitConversion(Trim(SplitWord(FuncRefArgType(name, I), 1, "=")), tv, ConvertValue(tv));
+                        }
                     }
                 }
                 else
@@ -1789,6 +1876,15 @@ public static class ModConvert
             }
         }
 
+        ModConvertStatements.PromoteCurrency(raws, parts);
+        for (var i = 0; i < ops.Count; i++)
+        {
+            if (ops[i] == "/" && (i == 0 || ops[i - 1] != "/"))
+            { // VB6 "/" always divides as Double; C# would divide integers as integers
+                parts[i] = ModConvertStatements.AsDouble(raws[i], parts[i]);
+            }
+        }
+
         o = parts.Count > 0 ? parts[0] : "";
         for (var i = 0; i < ops.Count; i++)
         {
@@ -1849,6 +1945,7 @@ public static class ModConvert
         str = Replace(str, vbLf, "");
         s = Split(str, vbCr);
         var n = 0;
+        string x;
         //  Prg 0, UBound(S) - LBound(S) + 1, "Globals..."
         InitDeString();
         foreach (var iterL in s)
@@ -1871,9 +1968,9 @@ public static class ModConvert
                     building = "";
                 }
             }
-            else if (LMatch(l, "Option Base ") || LMatch(l, "Option Compare Text"))
-            {
-                o = "// TODO: VB6 " + l + (LMatch(l, "Option Base ") ? " (converted arrays are 0-based)" : " (string comparisons are case-sensitive)");
+            else if ((x = ModConvertStatements.ApplyModuleOption(l)) != null)
+            { // Option Base / Option Compare / DefType change how the rest of the file converts
+                o = x;
             }
             else if (LMatch(l, "Option ") || LMatch(l, "Attribute ") || LMatch(l, "Rem "))
             {
@@ -1882,10 +1979,6 @@ public static class ModConvert
             else if (ModConvertStatements.IsDirective(l))
             {
                 o = ModConvertStatements.ConvertDirective(l);
-            }
-            else if (RegExTest(l, "^Def(Bool|Byte|Int|Lng|Cur|Sng|Dbl|Dec|Date|Str|Obj|Var) "))
-            {
-                o = "// TODO: VB6 " + l + " (implicit types of undeclared names are not converted)";
             }
             else if (LMatch(l, "Implements "))
             {
@@ -2065,7 +2158,14 @@ public static class ModConvert
 
             convertCodeLine = ConvertValue(convertCodeLine) + " = ";
 
-            b = ConvertValue(Trim(Mid(s, T + 1)));
+            var rhs = Trim(Mid(s, T + 1));
+            b = ConvertValue(rhs);
+            // the target's VB6 type decides the conversion VB6 applies implicitly (a variable, or an element of an array)
+            var target = SubParam(RegExNMatch(a, "^" + patToken));
+            if (target.name != "" && RegExTest(a, "^" + patToken + "(\\(.*\\))?$") && (!IsInStr(a, "(") || target.asArray != ""))
+            {
+                b = target.fixedLen != "" && !IsInStr(a, "(") ? "FixedLen(" + b + ", " + target.fixedLen + ")" : ModConvertStatements.ImplicitConversion(target.asType, rhs, b);
+            }
             convertCodeLine = convertCodeLine + b;
         }
         else
@@ -2109,7 +2209,10 @@ public static class ModConvert
                     {
                         break;
                     }
-                    convertCodeLine = convertCodeLine + IIf(n == 1, "", ", ") + ConvertValue(b);
+                    var arg = IsFuncRef(firstWord) && !FuncRefArgByRef(firstWord, n)
+                        ? ModConvertStatements.ImplicitConversion(Trim(SplitWord(FuncRefArgType(firstWord, n), 1, "=")), b, ConvertValue(b))
+                        : ConvertValue(b);
+                    convertCodeLine = convertCodeLine + IIf(n == 1, "", ", ") + arg;
                 } while (true); // VB "Loop While" (was mistranslated as Loop Until)
                 convertCodeLine = convertCodeLine + ")";
                 //      ConvertCodeLine = ConvertElement(ConvertCodeLine)
@@ -2499,7 +2602,7 @@ public static class ModConvert
                 //If IsInStr(L, "optDelivered") Then Stop
                 //If IsInStr(L, "PRFolder") Then Stop
                 T = Mid(t, 4, Len(t) - 8);
-                o = SSpace(ind) + "if (" + ConvertValue(T) + ") {";
+                o = SSpace(ind) + "if (" + ModConvertStatements.ConditionValue(T) + ") {";
                 ind = ind + spIndent;
             }
             else if (TLeft(l, 7) == "ElseIf ")
@@ -2509,7 +2612,7 @@ public static class ModConvert
                 {
                     T = Left(T, Len(T) - 5);
                 }
-                o = SSpace(ind - spIndent) + "} else if (" + ConvertValue(T) + ") {";
+                o = SSpace(ind - spIndent) + "} else if (" + ModConvertStatements.ConditionValue(T) + ") {";
             }
             else if (t == "Else")
             {
@@ -2560,19 +2663,19 @@ public static class ModConvert
             }
             else if (LMatch(t, "Do While "))
             {
-                o = o + SSpace(ind) + "while(" + ConvertValue(Mid(t, 10)) + ") {";
+                o = o + SSpace(ind) + "while(" + ModConvertStatements.ConditionValue(Mid(t, 10)) + ") {";
                 OpenBreakable("Do");
                 ind = ind + spIndent;
             }
             else if (LMatch(t, "Do Until "))
             {
-                o = o + SSpace(ind) + "while(!(" + ConvertValue(Mid(t, 10)) + ")) {";
+                o = o + SSpace(ind) + "while(!(" + ModConvertStatements.ConditionValue(Mid(t, 10)) + ")) {";
                 OpenBreakable("Do");
                 ind = ind + spIndent;
             }
             else if (LMatch(t, "While "))
             {
-                o = o + SSpace(ind) + "while(" + ConvertValue(Mid(t, 7)) + ") {";
+                o = o + SSpace(ind) + "while(" + ModConvertStatements.ConditionValue(Mid(t, 7)) + ") {";
                 OpenBreakable("While");
                 ind = ind + spIndent;
             }
@@ -2632,12 +2735,12 @@ public static class ModConvert
             else if (LMatch(t, "Loop While "))
             {
                 ind = ind - spIndent;
-                o = o + SSpace(ind) + "} while(" + ConvertValue(Mid(t, 12)) + ");" + CloseBreakable(); // was negated like Loop Until
+                o = o + SSpace(ind) + "} while(" + ModConvertStatements.ConditionValue(Mid(t, 12)) + ");" + CloseBreakable(); // was negated like Loop Until
             }
             else if (LMatch(t, "Loop Until "))
             {
                 ind = ind - spIndent;
-                o = o + SSpace(ind) + "} while(!(" + ConvertValue(Mid(t, 12)) + "));" + CloseBreakable();
+                o = o + SSpace(ind) + "} while(!(" + ModConvertStatements.ConditionValue(Mid(t, 12)) + "));" + CloseBreakable();
             }
             else if (t == "Loop")
             {

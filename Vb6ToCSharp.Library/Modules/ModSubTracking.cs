@@ -24,6 +24,8 @@ public static class ModSubTracking
         public bool used = false;
         public bool assignedBeforeUsed = false;
         public bool usedBeforeAssigned = false;
+        public bool vb6Array = false; // a VB6Array<T> (non-zero lower bound), not a T[]
+        public string fixedLen = ""; // String * n: the length expression
     }
     public class Property
     {
@@ -40,6 +42,7 @@ public static class ModSubTracking
     private static bool lockout = false;
     private static List<Variable> vars = new List<Variable> { }; 
     private static List<Property> props = new List<Property> { }; 
+    private static List<Variable> moduleVars = new List<Variable> { }; // module-level variables of the file being converted
 
 
     public static bool Analyze
@@ -79,11 +82,24 @@ public static class ModSubTracking
         return subParamIndex;
     }
 
+    /// <summary>Forgets the module-level variables (a new file is being converted).</summary>
+    public static void ClearModuleVars()
+    {
+        moduleVars = new List<Variable> { };
+    }
+
+    /// <summary>Declares a module-level variable: procedures see its type and array shape.</summary>
+    public static void ModuleVarDecl(string p, string asType, string asArray)
+    {
+        moduleVars.RemoveAll(v => v.name == p);
+        moduleVars.Add(new Variable { name = p, asType = asType, asArray = asArray });
+    }
+
     public static Variable SubParam(string p)
     {
         var subParam =
             // TODO (not supported): On Error Resume Next
-            SubParamIndex(p) >= 0 ? vars[SubParamIndex(p)] : new Variable();
+            SubParamIndex(p) >= 0 ? vars[SubParamIndex(p)] : moduleVars.Find(v => v.name == p) ?? new Variable(); // locals shadow module variables
         return subParam;
     }
 

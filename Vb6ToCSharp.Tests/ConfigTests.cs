@@ -29,10 +29,10 @@ public class ConfigTests : IClassFixture<ConverterFixture>
         WithSection(ModConfig.iniSectionDataTypes, () =>
         {
             Assert.Equal("MyCs", ModVb6ToCs.ConvertDataType("MyType"));
-            Assert.Equal("double", ModVb6ToCs.ConvertDataType("Double"));
+            Assert.Equal("decimal", ModVb6ToCs.ConvertDataType("Double"));
             Assert.Equal("int", ModVb6ToCs.ConvertDataType("Long"));
-        }, ("MyType", "MyCs"), ("Double", "double"));
-        Assert.Equal("decimal", ModVb6ToCs.ConvertDataType("Double"));
+        }, ("MyType", "MyCs"), ("Double", "decimal"));
+        Assert.Equal("double", ModVb6ToCs.ConvertDataType("Double")); // VB6 Double is a binary double
     }
 
     [Fact]
