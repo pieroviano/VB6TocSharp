@@ -20,7 +20,6 @@
 		<Reference Include="System.Security" />
 		<Reference Include="System.Web" />
 	</ItemGroup>
-
 	<ItemGroup>
 		<PackageReference Include="Net4x.NuGetUtility" Version="$(NuGetUtilityVersion)" PrivateAssets="All" />
 		<PackageReference Include="VisualBasic.PowerPacks.Vs" Version="1.0.0" />

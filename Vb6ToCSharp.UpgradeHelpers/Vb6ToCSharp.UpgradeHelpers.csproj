@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <PackageOutputPath>$(SolutionDir)Packages/</PackageOutputPath>
+        <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+        <Version>$(VersionPrefix).$(VersionSuffix)</Version>
+        <OutputType>Library</OutputType>
+        <TargetFramework>net48</TargetFramework>
+        <RootNamespace>Vb6ToCSharp.UpgradeHelpers</RootNamespace>
+        <Copyright>Copyright 2021</Copyright>
+        <Description>Runtime helpers for VB6 programs converted to C# (WinForms or WPF) by Vb6ToCSharp.</Description>
+        <UseWindowsForms>true</UseWindowsForms>
+        <UseWPF>true</UseWPF>
+        <LangVersion>latest</LangVersion>
+        <PackageId>Net4x.$(MSBuildProjectName)</PackageId>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <NoWarn>$(NoWarn);CS1591</NoWarn>
+	    <PackageId>Net4x.$(MSBuildProjectName)</PackageId>
+    </PropertyGroup>
+    <ItemGroup>
+        <InternalsVisibleTo Include="Vb6ToCSharp.UpgradeHelpers.Tests" />
+    </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="Net4x.NuGetUtility" Version="$(NuGetUtilityVersion)" PrivateAssets="All" />
+	</ItemGroup>
+	<PropertyGroup>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+    </PropertyGroup>
+    <ItemGroup>
+        <Content Include="$(SolutionDir)README.md" Link="README.md" Pack="true" PackagePath="\README.md" Condition="Exists('$(SolutionDir)README.md')" />
+        <Content Include="$(SolutionDir)License.txt" Link="License.txt" Pack="true" PackagePath="\License.txt" Condition="Exists('$(SolutionDir)License.txt')" />
+    </ItemGroup>
+</Project>
