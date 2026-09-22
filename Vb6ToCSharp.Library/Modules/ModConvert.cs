@@ -1630,6 +1630,11 @@ public static class ModConvert
 
             var first = SplitWord(s, 1, ".");
             var second = SplitWord(s, 2, ".");
+            if (ModConvertClasses.IsMethod(SubParam(first).asType, second))
+            { // obj.Method without parentheses calls it (in C# it is a method group, which converts to a delegate)
+                convertElement = Trim(s) + "()";
+                return convertElement;
+            }
             if (IsModuleRef(first) && IsFuncRef(second))
             {
                 if (IsFuncRef(Trim(second)) && s != currSub)

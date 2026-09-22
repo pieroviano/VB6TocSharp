@@ -39,6 +39,8 @@ public static class ModConvertClasses
         public string EnumSource; // the collection whose enumerator NewEnum returns
         public readonly List<string> Events = new List<string>();
         public readonly HashSet<string> ParameterizedSetters = new HashSet<string>();
+        /// <summary>Public / Friend Subs and Functions: "obj.Name" without parentheses calls them.</summary>
+        public readonly HashSet<string> Methods = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         public string Source = "";
 
         public static ClassModel Scan(string name, string source)
@@ -71,6 +73,7 @@ public static class ModConvertClasses
             }
             foreach (Match x in Regex.Matches(src, "(?m)^\\s*(?:Public )?Event\\s+(" + Id + ")")) m.Events.Add(x.Groups[1].Value);
             foreach (Match x in Regex.Matches(src, "(?m)^\\s*(?:Public |Friend )?Property (?:Let|Set)\\s+(" + Id + ")\\s*\\([^)]*,")) m.ParameterizedSetters.Add(x.Groups[1].Value);
+            foreach (Match x in Regex.Matches(src, "(?m)^\\s*(?:Public |Friend )?(?:Static )?(?:Sub|Function)\\s+(" + Id + ")")) m.Methods.Add(x.Groups[1].Value);
             return m;
         }
     }
@@ -133,6 +136,13 @@ public static class ModConvertClasses
     {
         EnsureRegistry();
         return name != null && classes.TryGetValue(name, out var c) && c.HasTerminate;
+    }
+
+    /// <summary>A Sub / Function of the project class (or interface) <paramref name="typeName"/>.</summary>
+    public static bool IsMethod(string typeName, string member)
+    {
+        EnsureRegistry();
+        return typeName != null && classes.TryGetValue(typeName, out var c) && c.Methods.Contains(member);
     }
 
     public static bool IsPredeclared(string name)

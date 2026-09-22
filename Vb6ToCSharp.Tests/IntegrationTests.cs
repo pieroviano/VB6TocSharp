@@ -50,12 +50,15 @@ public class IntegrationTests
         return code == 0 ? path : null;
     }
 
-    /// <summary>Empties <paramref name="folder"/> (creating it when missing).</summary>
+    /// <summary>Empties <paramref name="folder"/> (creating it when missing); .vs (IDE state, locked while the project is open) is kept.</summary>
     private static void Empty(string folder)
     {
         Directory.CreateDirectory(folder);
         foreach (var f in Directory.GetFiles(folder)) File.Delete(f);
-        foreach (var d in Directory.GetDirectories(folder)) Directory.Delete(d, true);
+        foreach (var d in Directory.GetDirectories(folder))
+        {
+            if (!string.Equals(Path.GetFileName(d), ".vs", StringComparison.OrdinalIgnoreCase)) Directory.Delete(d, true);
+        }
     }
 
     [Fact]
@@ -85,6 +88,57 @@ public class IntegrationTests
             : Run("dotnet", $"msbuild \"{project}\" {props}", output, 600000);
         Assert.True(build.Code == 0, "the converted project does not build (" + build.Code + "):\n"
                                      + string.Join("\n", build.Output.Split('\n').Where(l => l.Contains(" error ")).Distinct().Take(50)));
-        Assert.True(File.Exists(Path.Combine(output, "bin", "Debug", "net48", "Showcase.exe")), "no Showcase.exe:\n" + build.Output);
+        var exe = Path.Combine(output, "bin", "Debug", "net48", "Showcase.exe");
+        Assert.True(File.Exists(exe), "no Showcase.exe:\n" + build.Output);
+
+        // run it: the converted code of every module and class (RunAll; Main would also show the form).
+        // Loaded from bytes, so the exe stays deletable for the next run.
+        var assembly = System.Reflection.Assembly.Load(File.ReadAllBytes(exe));
+        object? Call(string module, string procedure, params object[] args)
+        {
+            try
+            {
+                return assembly.GetType(module, true)!.GetMethod(procedure)!.Invoke(null, args);
+            }
+            catch (System.Reflection.TargetInvocationException e)
+            {
+                throw new Xunit.Sdk.XunitException(module + "." + procedure + " failed at run time: " + e.InnerException);
+            }
+        }
+        Assert.Equal(true, Call("modMain", "RunAll"));
+        // results that depend on VB6 semantics being kept
+        Assert.Equal(43, Call("modMain", "Classes")); // events, default member c(1), For Each on the class, interface method, CApp.Version
+        Assert.Equal(40, Call("modMain", "Udts")); // q = p copies the UDT: p.Age stays 36
+        Assert.Equal(23, Call("modMain", "Selects", 3)); // Case 3 To 5, string ranges, Select Case True
+        Assert.Equal(3, Call("modMain", "GoSubs", 3)); // GoSub, On ... GoSub, On ... GoTo
+        Assert.Equal(12, Call("modLegacy", "Legacy")); // Option Compare Text ("abc" = "ABC"), Option Base 1
+        Assert.Equal(42, Call("modLegacy", "Pragmas")); // InsertStatement + ReplaceStatement
+
+        // the form: Form_Load, a click through the real WinForms events, Unload Me
+        Exception? uiError = null;
+        var ui = new System.Threading.Thread(() =>
+        {
+            try
+            {
+                var formType = assembly.GetType("Showcase.Forms.frmMain", true)!;
+                var form = (System.Windows.Forms.Form)formType.GetProperty("instance")!.GetValue(null)!;
+                T Control<T>(string name) => (T)formType.GetField(name, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public)!.GetValue(form)!;
+                form.Show(); // Form_Load
+                Assert.Equal("Showcase", form.Text); // Me.Caption = APP_TITLE
+                Control<System.Windows.Forms.Button>("cmdRun").PerformClick();
+                Assert.Equal("54", Control<System.Windows.Forms.Label>("lblResult").Text); // CStr(Legacy() + Pragmas())
+                Assert.Equal(1, Control<System.Windows.Forms.ListBox>("lstLog").Items.Count); // "Run 1"
+                Control<System.Windows.Forms.Button>("cmdClose").PerformClick(); // Unload Me
+                Assert.False(form.Visible);
+            }
+            catch (Exception e)
+            {
+                uiError = e;
+            }
+        });
+        ui.SetApartmentState(System.Threading.ApartmentState.STA);
+        ui.Start();
+        Assert.True(ui.Join(60000), "the form did not respond");
+        if (uiError != null) throw new Xunit.Sdk.XunitException("the converted form failed: " + uiError);
     }
 }

@@ -75,6 +75,16 @@ public partial class ConverterTests
     }
 
     [Fact]
+    public void MethodWithoutParentheses_OnAClassVariable_IsCalled()
+    {
+        // VB6 "shape.Area" calls the function; in C# "shape.Area" would be a method group (converted to a delegate)
+        ModConvertClasses.Register(ModConvertClasses.ClassModel.Scan("IArea", "Public Function Area() As Double\r\nEnd Function\r\nPublic Property Get Name() As String\r\nEnd Property\r\n"));
+        var cs = Convert(Sub("  Dim s As IArea, d As Double, n As String", "  d = s.Area", "  n = s.Name"));
+        Assert.Contains("d = s.Area();", cs);
+        Assert.Contains("n = s.Name;", cs); // a property is not called
+    }
+
+    [Fact]
     public void PredeclaredClass_HasADefaultInstance()
     {
         var cs = Cls("CApp", "Public Sub Run()\nEnd Sub\n", "Attribute VB_PredeclaredId = True\n");
