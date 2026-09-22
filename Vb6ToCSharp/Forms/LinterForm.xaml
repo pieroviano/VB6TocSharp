@@ -11,8 +11,8 @@
                 <TextBox x:Name="txtResults" Margin="0,129,0,0" Padding="2,2,2,2" Width="471" Height="301" VerticalAlignment="Top" HorizontalAlignment="Center" FontFamily="Calibri" FontSize="10" />
                 <TextBox x:Name="txtVBPFile" Margin="120,34,0,0" Padding="2,2,2,2" Width="360" Height="20" VerticalAlignment="Top" HorizontalAlignment="Left" FontFamily="Calibri" FontSize="10" />
                 <TextBox x:Name="txtFile" Margin="120,60,0,0" Padding="2,2,2,2" Width="360" Height="20" VerticalAlignment="Top" HorizontalAlignment="Left" FontFamily="Calibri" FontSize="10" />
-                <Button x:Name="cmdClose" Margin="243,86,0,0" Padding="2,2,2,2" Width="95" Height="35" VerticalAlignment="Top" HorizontalAlignment="Left" FontFamily="Calibri" FontSize="10" Content="D&amp;one" Click="cmdClose_Click" />
-                <Button x:Name="cmdLint" Margin="140,86,0,0" Padding="2,2,2,2" Width="95" Height="35" VerticalAlignment="Top" HorizontalAlignment="Left" FontFamily="Calibri" FontSize="10" Content="L&amp;int" Click="cmdLint_Click" />
+                <Button x:Name="cmdClose" Margin="243,86,0,0" Padding="2,2,2,2" Width="95" Height="35" VerticalAlignment="Top" HorizontalAlignment="Left" FontFamily="Calibri" FontSize="10" Content="Done" Click="cmdClose_Click" />
+                <Button x:Name="cmdLint" Margin="140,86,0,0" Padding="2,2,2,2" Width="95" Height="35" VerticalAlignment="Top" HorizontalAlignment="Left" FontFamily="Calibri" FontSize="10" Content="Lint" Click="cmdLint_Click" />
                 <Label x:Name="lblSrc" Margin="17,34,0,0" Padding="2,2,2,2" Width="95" Height="18" VerticalAlignment="Top" HorizontalAlignment="Left" FontFamily="Calibri" FontSize="10" Content="Project File:" />
                 <Label x:Name="lblFile" Margin="17,60,0,0" Padding="2,2,2,2" Width="95" Height="18" VerticalAlignment="Top" HorizontalAlignment="Left" FontFamily="Calibri" FontSize="10" Content="Single File:" />
             </Grid>
