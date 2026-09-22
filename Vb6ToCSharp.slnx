@@ -9,6 +9,6 @@
   <Folder Name="/Tests/">
     <Project Path="Vb6ToCSharp.Tests/Vb6ToCSharp.Tests.csproj" Id="40236d1d-7258-4a03-ae4e-56a321772ae1" />
   </Folder>
-  <Project Path="converted/Vb6ToCSharp.csproj" Id="92f75129-0ec1-47ba-85a7-e47f9eb140fd" />
-  <Project Path="extras/Extras.csproj" />
+  <Project Path="Vb6ToCSharp/Vb6ToCSharp.csproj" Id="92f75129-0ec1-47ba-85a7-e47f9eb140fd" />
+  <Project Path="Extras/Extras.csproj" />
 </Solution>
