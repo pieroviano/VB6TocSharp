@@ -59,6 +59,8 @@ When no output folder is set, the output goes to `converted\` under the `.vbp` f
 
 `IntegrationTests` (trait `Category=Integration`) uses the console to convert `VB6\Showcase.vbp` into `Converted\` (ignored
 by git). It then builds the result and runs the converted code (`modMain.RunAll`), checking results that depend on VB6 semantics.
+A second test does the same for the project group `VBG\Group.vbg` (an EXE referencing an ActiveX DLL): it converts the group
+into `ConvertedGroup\`, builds `Group.sln` and runs the EXE's code and form.
 
 ## Limits
 

@@ -1,9 +1,12 @@
-Attribute VB_Name = "modApp"
+Attribute VB_Name = "modExe"
 ' Uses the referenced DLL: qualified and unqualified class names, an interface, a method called without parentheses.
 Option Explicit
 
+Public Const APP_TITLE As String = "Group"
+
 Public Sub Main()
   Debug.Print RunGroup(), Owners()
+  frmMain.Show
 End Sub
 
 Public Function RunGroup() As Double

@@ -11,7 +11,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
-' Interface of the group sample: implemented only by the App project (Implements Lib.IShape).
+' Interface of the group sample: implemented only by the Exe project (Implements Lib.IShape).
 Option Explicit
 
 Public Function Area() As Double

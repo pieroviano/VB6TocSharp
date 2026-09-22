@@ -75,8 +75,8 @@ public class ProjectGroupTests
     [Fact]
     public void Group_ConvertsEveryProject_IntoASolution_WithVb6Visibility()
     {
-        var src = Path.Combine(TestUtil.TempDir(), "VB6Group");
-        CopyDirectory(Path.Combine(RepoRoot(), "VB6Group"), src);
+        var src = Path.Combine(TestUtil.TempDir(), "VBG");
+        CopyDirectory(Path.Combine(RepoRoot(), "VBG"), src);
         var output = TestUtil.TempDir();
 
         string sln = null!;
@@ -88,26 +88,27 @@ public class ProjectGroupTests
         string Read(string rel) => File.ReadAllText(Path.Combine(output, rel));
 
         // one project per .vbp, the startup project first, ProjectReference from the VB6 *\A reference
-        Assert.True(Read("Group.sln").IndexOf("App\\App.csproj", StringComparison.Ordinal) < Read("Group.sln").IndexOf("Lib\\Lib.csproj", StringComparison.Ordinal));
-        Assert.Contains("<ProjectReference Include=\"..\\Lib\\Lib.csproj\" />", Read(@"App\App.csproj"));
+        Assert.True(Read("Group.sln").IndexOf("Exe\\Exe.csproj", StringComparison.Ordinal) < Read("Group.sln").IndexOf("Lib\\Lib.csproj", StringComparison.Ordinal));
+        Assert.Contains("<ProjectReference Include=\"..\\Lib\\Lib.csproj\" />", Read(@"Exe\Exe.csproj"));
         Assert.Contains("<OutputType>Library</OutputType>", Read(@"Lib\Lib.csproj"));
         Assert.Contains("<AssemblyName>Lib</AssemblyName>", Read(@"Lib\Lib.csproj"));
         Assert.False(File.Exists(Path.Combine(output, @"Lib\Program.cs"))); // an ActiveX DLL has no entry point
-        Assert.True(File.Exists(Path.Combine(output, @"App\Program.cs")));
+        Assert.True(File.Exists(Path.Combine(output, @"Exe\Program.cs")));
 
         // VB6 visibility: the DLL exposes only its public classes
         Assert.Contains("internal static class modCommon", Read(@"Lib\Modules\modCommon.cs"));
         Assert.Contains("internal class CHelper", Read(@"Lib\Classes\CHelper.cs"));
         Assert.Contains("public class CCircle", Read(@"Lib\Classes\CCircle.cs"));
-        Assert.Contains("public static class modCommon", Read(@"App\Modules\modCommon.cs")); // a standard EXE keeps everything public
+        Assert.Contains("public static class modCommon", Read(@"Exe\Modules\modCommon.cs")); // a standard EXE keeps everything public
+        Assert.Contains("public partial class frmMain", Read(@"Exe\Forms\frmMain.cs"));
 
-        // implemented only by the App: still an interface in the DLL; the Lib qualifier dropped (global namespace)
+        // implemented only by the Exe: still an interface in the DLL; the Lib qualifier dropped (global namespace)
         Assert.Contains("public interface IShape", Read(@"Lib\Classes\IShape.cs"));
-        Assert.Contains("class CSquare : IShape", Read(@"App\Classes\CSquare.cs"));
-        var app = Read(@"App\Modules\modApp.cs");
-        Assert.Contains("CCircle c = null;", app);
-        Assert.Contains("c = new CCircle();", app);
-        Assert.Contains("c.Area() + s.Area()", app); // the DLL's class is known: obj.Method without parentheses is a call
+        Assert.Contains("class CSquare : IShape", Read(@"Exe\Classes\CSquare.cs"));
+        var exe = Read(@"Exe\Modules\modExe.cs");
+        Assert.Contains("CCircle c = null;", exe);
+        Assert.Contains("c = new CCircle();", exe);
+        Assert.Contains("c.Area() + s.Area()", exe); // the DLL's class is known: obj.Method without parentheses is a call
     }
 
     private static VbpInfo Vbp(string name, string path)

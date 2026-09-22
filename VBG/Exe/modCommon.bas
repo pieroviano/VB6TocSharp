@@ -3,5 +3,5 @@ Attribute VB_Name = "modCommon"
 Option Explicit
 
 Public Function Version() As String
-  Version = "App"
+  Version = "Exe"
 End Function

@@ -21,7 +21,8 @@ Partner's rules. See [README.md](README.md) and the per-project READMEs for user
   project before the integration test if you changed the runtime.
 - `IntegrationTests` converts `VB6\Showcase.vbp` into `Converted\` (git-ignored) through the console exe, builds the result
   with vswhere-located MSBuild, then loads the exe and asserts on `modMain.RunAll` / `modMain.Classes` etc. When adding a
-  VB6 feature, extend the `VB6\` sample and these assertions.
+  VB6 feature, extend the `VB6\` sample and these assertions. The same test for project groups converts `VBG\Group.vbg`
+  (`Exe\` referencing the ActiveX DLL `Lib\`) into `ConvertedGroup\` and builds `Group.sln`.
 - Test parallelization is disabled ([AssemblyInfo.cs](Vb6ToCSharp.Tests/AssemblyInfo.cs)): the converter uses
   process-wide static state.
 

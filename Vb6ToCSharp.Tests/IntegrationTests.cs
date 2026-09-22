@@ -5,8 +5,8 @@ using System.Linq;
 namespace Vb6ToCSharp.Tests;
 
 /// <summary>
-/// End to end: Vb6ToCSharp.Console converts the VB6 sample project (VB6\Showcase.vbp) into Converted\ under the
-/// repository root, and the converted C# project builds.
+/// End to end: Vb6ToCSharp.Console converts the VB6 samples under the repository root (VB6\Showcase.vbp into Converted\,
+/// the project group VBG\Group.vbg into ConvertedGroup\); the result builds and runs.
 /// </summary>
 [Trait("Category", "Integration")]
 public class IntegrationTests
@@ -61,75 +61,69 @@ public class IntegrationTests
         }
     }
 
-    [Fact]
-    public void Showcase_ConvertsWithTheConsole_AndTheConvertedProjectBuilds()
+    /// <summary>Converts <paramref name="source"/> (.vbp or .vbg) into <paramref name="output"/> with the console, using its own settings file.</summary>
+    private static void ConvertWithConsole(string source, string output, string options)
     {
-        var root = RepoRoot();
-        var vbp = Path.Combine(root, "VB6", "Showcase.vbp");
-        var output = Path.Combine(root, "Converted");
-        Assert.True(File.Exists(vbp), vbp);
+        Assert.True(File.Exists(source), source);
         Empty(output);
-
-        // convert with the console (its own settings file: the INI next to the exe stays untouched)
+        // the console's own settings file: the INI next to the exe stays untouched
         var console = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Vb6ToCSharp.Console.exe");
         var ini = Path.Combine(TestUtil.TempDir(), "VB6toCS.INI");
-        var convert = Run(console, $"all --ini \"{ini}\" --vbp \"{vbp}\" --out \"{output}\" --assembly Showcase --ui winforms --quiet", output, 300000);
+        var convert = Run(console, $"all --ini \"{ini}\" --vbp \"{source}\" --out \"{output}\" {options} --ui winforms --quiet", output, 300000);
         Assert.True(convert.Code == 0, "conversion failed (" + convert.Code + "):\n" + convert.Output);
-        var project = Path.Combine(output, "Showcase.csproj");
-        Assert.True(File.Exists(project), "no project generated:\n" + convert.Output);
-        Assert.True(File.Exists(Path.Combine(output, "MigrationReport.md")));
+    }
 
-        // build it: restore only from the repository feed (the runtime package built with this solution), into a fresh folder
+    /// <summary>
+    /// Builds a converted project or solution: restore only from the repository feed (the runtime package built with this
+    /// solution), into a fresh folder.
+    /// </summary>
+    private static void Build(string root, string output, string target)
+    {
         var feed = Path.Combine(root, "Packages");
         var props = $"-restore -nologo -v:m -p:Configuration=Debug \"-p:RestoreSources={feed}\" \"-p:RestorePackagesPath={Path.Combine(output, ".packages")}\"";
         var msbuild = FindMsBuild();
         var build = msbuild != null
-            ? Run(msbuild, $"\"{project}\" {props}", output, 600000)
-            : Run("dotnet", $"msbuild \"{project}\" {props}", output, 600000);
-        Assert.True(build.Code == 0, "the converted project does not build (" + build.Code + "):\n"
+            ? Run(msbuild, $"\"{target}\" {props}", output, 600000)
+            : Run("dotnet", $"msbuild \"{target}\" {props}", output, 600000);
+        Assert.True(build.Code == 0, "the converted code does not build (" + build.Code + "):\n"
                                      + string.Join("\n", build.Output.Split('\n').Where(l => l.Contains(" error ")).Distinct().Take(50)));
-        var exe = Path.Combine(output, "bin", "Debug", "net48", "Showcase.exe");
-        Assert.True(File.Exists(exe), "no Showcase.exe:\n" + build.Output);
+    }
 
-        // run it: the converted code of every module and class (RunAll; Main would also show the form).
-        // Loaded from bytes, so the exe stays deletable for the next run.
-        var assembly = System.Reflection.Assembly.Load(File.ReadAllBytes(exe));
-        object? Call(string module, string procedure, params object[] args)
+    /// <summary>Loads a built assembly from its bytes, so the file stays deletable for the next run.</summary>
+    private static System.Reflection.Assembly LoadFromBytes(string file)
+    {
+        Assert.True(File.Exists(file), "not built: " + file);
+        return System.Reflection.Assembly.Load(File.ReadAllBytes(file));
+    }
+
+    /// <summary>Calls a public static procedure of a converted module.</summary>
+    private static object? Call(System.Reflection.Assembly assembly, string module, string procedure, params object[] args)
+    {
+        try
         {
-            try
-            {
-                return assembly.GetType(module, true)!.GetMethod(procedure)!.Invoke(null, args);
-            }
-            catch (System.Reflection.TargetInvocationException e)
-            {
-                throw new Xunit.Sdk.XunitException(module + "." + procedure + " failed at run time: " + e.InnerException);
-            }
+            return assembly.GetType(module, true)!.GetMethod(procedure)!.Invoke(null, args);
         }
-        Assert.Equal(true, Call("modMain", "RunAll"));
-        // results that depend on VB6 semantics being kept
-        Assert.Equal(43, Call("modMain", "Classes")); // events, default member c(1), For Each on the class, interface method, CApp.Version
-        Assert.Equal(40, Call("modMain", "Udts")); // q = p copies the UDT: p.Age stays 36
-        Assert.Equal(23, Call("modMain", "Selects", 3)); // Case 3 To 5, string ranges, Select Case True
-        Assert.Equal(3, Call("modMain", "GoSubs", 3)); // GoSub, On ... GoSub, On ... GoTo
-        Assert.Equal(12, Call("modLegacy", "Legacy")); // Option Compare Text ("abc" = "ABC"), Option Base 1
-        Assert.Equal(42, Call("modLegacy", "Pragmas")); // InsertStatement + ReplaceStatement
+        catch (System.Reflection.TargetInvocationException e)
+        {
+            throw new Xunit.Sdk.XunitException(module + "." + procedure + " failed at run time: " + e.InnerException);
+        }
+    }
 
-        // the form: Form_Load, a click through the real WinForms events, Unload Me
+    /// <summary>
+    /// Drives a converted WinForms form on an STA thread: <paramref name="test"/> gets the form's default instance and a
+    /// lookup of its controls by name.
+    /// </summary>
+    private static void WithForm(System.Reflection.Assembly assembly, string formType, Action<System.Windows.Forms.Form, Func<string, object>> test)
+    {
         Exception? uiError = null;
         var ui = new System.Threading.Thread(() =>
         {
             try
             {
-                var formType = assembly.GetType("Showcase.Forms.frmMain", true)!;
-                var form = (System.Windows.Forms.Form)formType.GetProperty("instance")!.GetValue(null)!;
-                T Control<T>(string name) => (T)formType.GetField(name, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public)!.GetValue(form)!;
-                form.Show(); // Form_Load
-                Assert.Equal("Showcase", form.Text); // Me.Caption = APP_TITLE
-                Control<System.Windows.Forms.Button>("cmdRun").PerformClick();
-                Assert.Equal("54", Control<System.Windows.Forms.Label>("lblResult").Text); // CStr(Legacy() + Pragmas())
-                Assert.Equal(1, Control<System.Windows.Forms.ListBox>("lstLog").Items.Count); // "Run 1"
-                Control<System.Windows.Forms.Button>("cmdClose").PerformClick(); // Unload Me
-                Assert.False(form.Visible);
+                var type = assembly.GetType(formType, true)!;
+                var form = (System.Windows.Forms.Form)type.GetProperty("instance")!.GetValue(null)!;
+                object Control(string name) => type.GetField(name, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public)!.GetValue(form)!;
+                test(form, Control);
             }
             catch (Exception e)
             {
@@ -143,44 +137,80 @@ public class IntegrationTests
     }
 
     [Fact]
-    public void Group_ConvertsWithTheConsole_AndTheSolutionBuilds()
+    public void Showcase_ConvertsWithTheConsole_AndTheConvertedProjectBuilds()
     {
         var root = RepoRoot();
-        var vbg = Path.Combine(root, "VB6Group", "Group.vbg");
+        var output = Path.Combine(root, "Converted");
+        ConvertWithConsole(Path.Combine(root, "VB6", "Showcase.vbp"), output, "--assembly Showcase");
+        var project = Path.Combine(output, "Showcase.csproj");
+        Assert.True(File.Exists(project), "no project generated");
+        Assert.True(File.Exists(Path.Combine(output, "MigrationReport.md")));
+
+        Build(root, output, project);
+
+        // run it: the converted code of every module and class (RunAll; Main would also show the form)
+        var assembly = LoadFromBytes(Path.Combine(output, "bin", "Debug", "net48", "Showcase.exe"));
+        Assert.Equal(true, Call(assembly, "modMain", "RunAll"));
+        // results that depend on VB6 semantics being kept
+        Assert.Equal(43, Call(assembly, "modMain", "Classes")); // events, default member c(1), For Each on the class, interface method, CApp.Version
+        Assert.Equal(40, Call(assembly, "modMain", "Udts")); // q = p copies the UDT: p.Age stays 36
+        Assert.Equal(23, Call(assembly, "modMain", "Selects", 3)); // Case 3 To 5, string ranges, Select Case True
+        Assert.Equal(3, Call(assembly, "modMain", "GoSubs", 3)); // GoSub, On ... GoSub, On ... GoTo
+        Assert.Equal(12, Call(assembly, "modLegacy", "Legacy")); // Option Compare Text ("abc" = "ABC"), Option Base 1
+        Assert.Equal(42, Call(assembly, "modLegacy", "Pragmas")); // InsertStatement + ReplaceStatement
+
+        // the form: Form_Load, a click through the real WinForms events, Unload Me
+        WithForm(assembly, "Showcase.Forms.frmMain", (form, control) =>
+        {
+            form.Show(); // Form_Load
+            Assert.Equal("Showcase", form.Text); // Me.Caption = APP_TITLE
+            ((System.Windows.Forms.Button)control("cmdRun")).PerformClick();
+            Assert.Equal("54", ((System.Windows.Forms.Label)control("lblResult")).Text); // CStr(Legacy() + Pragmas())
+            Assert.Single(((System.Windows.Forms.ListBox)control("lstLog")).Items); // "Run 1"
+            ((System.Windows.Forms.Button)control("cmdClose")).PerformClick(); // Unload Me
+            Assert.False(form.Visible);
+        });
+    }
+
+    /// <summary>The same end to end for a project group: VBG\Group.vbg (an EXE referencing an ActiveX DLL) into ConvertedGroup\.</summary>
+    [Fact]
+    public void Group_ConvertsWithTheConsole_AndTheConvertedSolutionBuilds()
+    {
+        var root = RepoRoot();
         var output = Path.Combine(root, "ConvertedGroup");
-        Assert.True(File.Exists(vbg), vbg);
-        Empty(output);
-
-        var console = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Vb6ToCSharp.Console.exe");
-        var ini = Path.Combine(TestUtil.TempDir(), "VB6toCS.INI");
-        var convert = Run(console, $"all --ini \"{ini}\" --vbp \"{vbg}\" --out \"{output}\" --ui winforms --quiet", output, 300000);
-        Assert.True(convert.Code == 0, "conversion failed (" + convert.Code + "):\n" + convert.Output);
+        ConvertWithConsole(Path.Combine(root, "VBG", "Group.vbg"), output, "");
         var solution = Path.Combine(output, "Group.sln");
-        Assert.True(File.Exists(solution), "no solution generated:\n" + convert.Output);
+        Assert.True(File.Exists(solution), "no solution generated");
+        foreach (var project in new[] { "Exe", "Lib" })
+        {
+            Assert.True(File.Exists(Path.Combine(output, project, project + ".csproj")), "no project generated: " + project);
+            Assert.True(File.Exists(Path.Combine(output, project, "MigrationReport.md")));
+        }
 
-        // the solution builds: the App references the ActiveX DLL's project
-        var feed = Path.Combine(root, "Packages");
-        var props = $"-restore -nologo -v:m -p:Configuration=Debug \"-p:RestoreSources={feed}\" \"-p:RestorePackagesPath={Path.Combine(output, ".packages")}\"";
-        var msbuild = FindMsBuild();
-        var build = msbuild != null
-            ? Run(msbuild, $"\"{solution}\" {props}", output, 600000)
-            : Run("dotnet", $"msbuild \"{solution}\" {props}", output, 600000);
-        Assert.True(build.Code == 0, "the converted solution does not build (" + build.Code + "):\n"
-                                     + string.Join("\n", build.Output.Split('\n').Where(l => l.Contains(" error ")).Distinct().Take(50)));
+        Build(root, output, solution);
 
-        // run it: loaded from bytes (the files stay deletable); Lib.dll is resolved from the App's output folder
-        var bin = Path.Combine(output, "App", "bin", "Debug", "net48");
+        // run it: Lib.dll comes from the EXE's output folder (loaded from bytes as well)
+        var bin = Path.Combine(output, "Exe", "bin", "Debug", "net48");
         System.Reflection.Assembly? lib = null;
-        ResolveEventHandler resolve = (_, e) => new System.Reflection.AssemblyName(e.Name).Name == "Lib"
-            ? lib ??= System.Reflection.Assembly.Load(File.ReadAllBytes(Path.Combine(bin, "Lib.dll")))
-            : null;
+        ResolveEventHandler resolve = (_, e) => new System.Reflection.AssemblyName(e.Name).Name == "Lib" ? lib ??= LoadFromBytes(Path.Combine(bin, "Lib.dll")) : null;
         AppDomain.CurrentDomain.AssemblyResolve += resolve;
         try
         {
-            var app = System.Reflection.Assembly.Load(File.ReadAllBytes(Path.Combine(bin, "App.exe")));
-            object? Call(string procedure) => app.GetType("modApp", true)!.GetMethod(procedure)!.Invoke(null, null);
-            Assert.Equal(21.566, (double)Call("RunGroup")!, 3); // the DLL's class and interface, used from the EXE
-            Assert.Equal("App+Lib", Call("Owners")); // same-named modules: each project calls its own
+            var assembly = LoadFromBytes(Path.Combine(bin, "Exe.exe"));
+            // results that depend on the projects seeing each other as in VB6
+            Assert.Equal(21.566, (double)Call(assembly, "modExe", "RunGroup")!, 3); // the DLL's class (Lib.CCircle, obj.Method) and interface (Implements Lib.IShape)
+            Assert.Equal("Exe+Lib", Call(assembly, "modExe", "Owners")); // same-named modules: each project calls its own
+
+            // the form: Form_Load, a click that calls into the DLL, Unload Me
+            WithForm(assembly, "Exe.Forms.frmMain", (form, control) =>
+            {
+                form.Show(); // Form_Load
+                Assert.Equal("Group", form.Text); // Me.Caption = APP_TITLE
+                ((System.Windows.Forms.Button)control("cmdRun")).PerformClick();
+                Assert.Equal("Exe+Lib 314", ((System.Windows.Forms.Label)control("lblResult")).Text); // Owners() & " " & CStr(CLng(c.Area)): 314.159
+                ((System.Windows.Forms.Button)control("cmdClose")).PerformClick(); // Unload Me
+                Assert.False(form.Visible);
+            });
         }
         finally
         {
