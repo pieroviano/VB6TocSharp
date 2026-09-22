@@ -13,12 +13,10 @@ using static Vb6ToCSharp.Modules.ModUtils;
 using static Vb6ToCSharp.Modules.ModVb6ToCs;
 using static Vb6ToCSharp.VbExtension;
 
-
 namespace Vb6ToCSharp.Modules;
 
 static class ModRefScan
 {
-    // Option Explicit
     private static string outRes = "";
     private static string cFuncRefName = "";
     private static string cFuncRefValue = "";
@@ -372,7 +370,6 @@ static class ModRefScan
         var tok2 = RegExNMatch(src, patToken, 1);
         var name = tok + "." + tok2;
         var fTok = formName + "." + tok;
-        //If IsInStr(Src, "SetFocus") Then Stop
         if (FuncRef(name) != "" && FuncRefEntity(name) == "Control" || FuncRef(fTok) != "" && FuncRefEntity(fTok) == "Control")
         {
             isControlRef = true;
@@ -425,11 +422,9 @@ static class ModRefScan
             if (k == "")
             {
                 return funcRefDeclArgCnt;
-
             }
             funcRefDeclArgCnt = funcRefDeclArgCnt + 1;
-        } while (true); // VB "Loop While" (was mistranslated as Loop Until)
-        return funcRefDeclArgCnt;
+        } while (true); 
     }
 
     public static string FuncRefArgType(string fName, int n)
@@ -438,7 +433,6 @@ static class ModRefScan
         if (funcRefArgType == "")
         {
             return funcRefArgType;
-
         }
         funcRefArgType = SplitWord(funcRefArgType, 2, " As ");
         return funcRefArgType;

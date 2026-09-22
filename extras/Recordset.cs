@@ -156,8 +156,6 @@ namespace WinCDS.Classes
 
         private void Open()
         {
-            const int maxTries = 5;
-
             if (!System.IO.File.Exists(Database))
             {
                 MessageBox.Show("Database Not Found: " + Database);

@@ -758,7 +758,7 @@ static class ModUtils
     }
 
     /// <summary>Progress sink (the main window by default); hosts and tests can replace it.</summary>
-    public static Action<int, int, string> Progress = (val, max, cap) => Frm.Instance.Prg(val, max, cap);
+    public static Action<int, int, string> Progress = (val, max, cap) => MainForm.Instance.Prg(val, max, cap);
 
     public static void Prg(int val = -1, int max = -1, string cap = "#")
     {

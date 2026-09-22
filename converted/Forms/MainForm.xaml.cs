@@ -1,0 +1,218 @@
+using System.Windows;
+using Vb6ToCSharp.Modules;
+using static Microsoft.VisualBasic.Constants;
+using static Microsoft.VisualBasic.FileSystem;
+using static Microsoft.VisualBasic.Interaction;
+using static Vb6ToCSharp.Modules.ModConfig;
+using static Vb6ToCSharp.Modules.ModConvert;
+using static Vb6ToCSharp.Modules.ModProjectFiles;
+using static Vb6ToCSharp.Modules.ModRefScan;
+using static Vb6ToCSharp.Modules.ModSupportFiles;
+using static Vb6ToCSharp.Modules.ModUtils;
+using static Vb6ToCSharp.VbConstants;
+using static Vb6ToCSharp.VbExtension;
+
+
+namespace Vb6ToCSharp.Forms;
+
+public partial class MainForm : Window
+{
+    private static MainForm _instance;
+    public static MainForm Instance { set => _instance = null;
+        get => _instance ??= new MainForm();
+    }
+    public static void Load() { if (_instance == null) { dynamic a = MainForm.Instance; } }
+    public static void Unload() { if (_instance != null) Instance.Close(); _instance = null; }
+    public MainForm() { InitializeComponent(); }
+
+
+    // Option Explicit //Right Justify
+    public int pMax = 0;
+
+
+    private void cmdAll_Click(object sender, RoutedEventArgs e)
+    {
+        if (!ConfigValid())
+        {
+            return;
+
+        }
+        IsWorking();
+        ConvertProject(txtSrc.Text);
+        IsWorking(true);
+    }
+
+    private void cmdClasses_Click(object sender, RoutedEventArgs e)
+    {
+        if (!ConfigValid())
+        {
+            return;
+
+        }
+        IsWorking();
+        ConvertFileList(FilePath(txtSrc.Text), VbpClasses(txtSrc.Text));
+        IsWorking(true);
+    }
+
+    private void cmdConfig_Click(object sender, RoutedEventArgs e)
+    {
+        ConfigForm.Instance.Show(1);
+        ModConfig.LoadSettings();
+    }
+
+    private void cmdExit_Click(object sender, RoutedEventArgs e) { Unload(); }
+
+    private void cmdFile_Click(object sender, RoutedEventArgs e)
+    {
+        if (txtFile.Text == "")
+        {
+            MsgBox("Enter a file in the box.", vbExclamation, "No File Entered");
+            return;
+
+        }
+        if (!ConfigValid())
+        {
+            return;
+
+        }
+        IsWorking();
+        var success = ConvertFile(txtFile.Text);
+        IsWorking(true);
+        if (success)
+        {
+            MsgBox("Converted " + txtFile.Text + ".");
+        }
+    }
+
+    private void cmdForms_Click(object sender, RoutedEventArgs e)
+    {
+        if (!ConfigValid())
+        {
+            return;
+
+        }
+        IsWorking();
+        ConvertFileList(FilePath(txtSrc.Text), VbpForms(txtSrc.Text));
+        IsWorking(true);
+    }
+
+    private void cmdModules_Click(object sender, RoutedEventArgs e)
+    {
+        if (!ConfigValid())
+        {
+            return;
+
+        }
+        IsWorking();
+        ConvertFileList(FilePath(txtSrc.Text), VbpModules(txtSrc.Text));
+        IsWorking(true);
+    }
+
+    private bool ConfigValid()
+    {
+        ModConfig.LoadSettings();
+
+        if (!ModUtils.FileExists(ModConfig.VbpFile)) // Dir("") matches any file: an unset project passed
+        {
+            MsgBox("Project file not found.  Perhaps do config first?", vbExclamation, "File Not Found");
+            return false;
+
+        }
+        if (Dir(ModConfig.OutputFolder(), vbDirectory) == "")
+        {
+            MsgBox("Ouptut Folder not found.  Perhaps do config first?", vbExclamation, "Directory Not Found");
+            return false;
+
+        }
+        if (ModConfig.AssemblyName() == "")
+        {
+            MsgBox("Assembly name not set.  Perhaps do config first?", vbExclamation, "Setting Not Found");
+            return false;
+
+        }
+
+        return true;
+    }
+
+    private void IsWorking(bool done = false)
+    {
+        txtFile.IsEnabled = done;
+        cmdConfig.IsEnabled = done;
+        cmdLint.IsEnabled = done;
+        cmdFile.IsEnabled = done;
+        cmdAll.IsEnabled = done;
+        cmdClasses.IsEnabled = done;
+        cmdExit.IsEnabled = done;
+        cmdForms.IsEnabled = done;
+        cmdModules.IsEnabled = done;
+        txtSrc.IsEnabled = done;
+        cmdScan.IsEnabled = done;
+        cmdSupport.IsEnabled = done;
+        MousePointer = IIf(done, VbDefault, VbHourglass);
+    }
+
+    public string Prg(int val = -1, int max = -1, string cap = "#")
+    {
+        var prg = "";
+        // TODO (not supported): On Error Resume Next
+        if (max >= 0)
+        {
+            pMax = max;
+        }
+        lblPrg.Content = IIf(prg == "#", "", cap);
+        if (pMax != 0)
+        {
+            shpPrg.Width = (double)val / pMax * shpPrgBack.Width;
+        }
+        shpPrg.Visibility = val >= 0 ? Visibility.Visible : Visibility.Hidden;
+        lblPrg.Visibility = shpPrg.Visibility;
+        return prg;
+    }
+
+    private void cmdLint_Click(object sender, RoutedEventArgs e)
+    {
+        if (!ConfigValid())
+        {
+            return;
+
+        }
+        LinterForm.Instance.Show(VbModal);
+    }
+
+    private void cmdScan_Click(object sender, RoutedEventArgs e)
+    {
+        if (!ConfigValid())
+        {
+            return;
+
+        }
+        IsWorking();
+        ScanRefs();
+        IsWorking(true);
+    }
+
+    private void cmdSupport_Click(object sender, RoutedEventArgs e)
+    {
+        if (!ConfigValid())
+        {
+            return;
+
+        }
+        if (MsgBox("Generate Project files?", vbYesNo) == vbYes)
+        {
+            CreateProjectFile(VbpFile);
+        }
+        if (MsgBox("Generate Support files?", vbYesNo) == vbYes)
+        {
+            CreateProjectSupportFiles();
+        }
+    }
+
+    private void Form_Load(object sender, RoutedEventArgs e)
+    {
+        ModConfig.hush = true;
+        ModConfig.LoadSettings();
+        ModConfig.hush = false;
+        txtSrc.Text = VbpFile;
+    }
+}

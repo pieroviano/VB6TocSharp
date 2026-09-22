@@ -10,6 +10,6 @@ public partial class App : Application
     // VB6 project Startup="frm": show the form's default instance
     private void Application_Startup(object sender, StartupEventArgs e)
     {
-        Forms.Frm.Instance.Show();
+        Forms.MainForm.Instance.Show();
     }
 }
