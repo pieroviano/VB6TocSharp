@@ -62,6 +62,10 @@ public partial class MainForm : Window
 
     private void cmdExit_Click(object sender, RoutedEventArgs e) { Unload(); }
 
+    private void cmdBrowseSrc_Click(object sender, RoutedEventArgs e) { BrowseDialog.BrowseFile(this, txtSrc, BrowseDialog.ProjectFilter); }
+
+    private void cmdBrowseFile_Click(object sender, RoutedEventArgs e) { BrowseDialog.BrowseFile(this, txtFile, BrowseDialog.SourceFilter); }
+
     private void cmdFile_Click(object sender, RoutedEventArgs e)
     {
         if (txtFile.Text == "")
@@ -133,6 +137,8 @@ public partial class MainForm : Window
         cmdForms.IsEnabled = done;
         cmdModules.IsEnabled = done;
         txtSrc.IsEnabled = done;
+        cmdBrowseSrc.IsEnabled = done;
+        cmdBrowseFile.IsEnabled = done;
         cmdScan.IsEnabled = done;
         cmdSupport.IsEnabled = done;
         MousePointer = IIf(done, VbDefault, VbHourglass);

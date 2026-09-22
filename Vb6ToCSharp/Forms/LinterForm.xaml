@@ -9,8 +9,10 @@
         <GroupBox x:Name="fraConfig" Margin="0,9,0,0" Width="502" Height="438" VerticalAlignment="Top" HorizontalAlignment="Center" FontFamily="Calibri" FontSize="10" Header="Configuration:">
             <Grid Margin="0,-15,0,0">
                 <TextBox x:Name="txtResults" Margin="0,129,0,0" Padding="2,2,2,2" Width="471" Height="301" VerticalAlignment="Top" HorizontalAlignment="Center" FontFamily="Calibri" FontSize="10" />
-                <TextBox x:Name="txtVBPFile" Margin="120,34,0,0" Padding="2,2,2,2" Width="360" Height="20" VerticalAlignment="Top" HorizontalAlignment="Left" FontFamily="Calibri" FontSize="10" />
-                <TextBox x:Name="txtFile" Margin="120,60,0,0" Padding="2,2,2,2" Width="360" Height="20" VerticalAlignment="Top" HorizontalAlignment="Left" FontFamily="Calibri" FontSize="10" />
+                <TextBox x:Name="txtVBPFile" Margin="120,34,0,0" Padding="2,2,2,2" Width="336" Height="20" VerticalAlignment="Top" HorizontalAlignment="Left" FontFamily="Calibri" FontSize="10" />
+                <Button x:Name="cmdBrowseVBPFile" Margin="458,34,0,0" Padding="0" Width="22" Height="20" VerticalAlignment="Top" HorizontalAlignment="Left" FontFamily="Calibri" FontSize="10" Content="..." ToolTip="Browse for a VB6 project or group" Click="cmdBrowseVBPFile_Click" />
+                <TextBox x:Name="txtFile" Margin="120,60,0,0" Padding="2,2,2,2" Width="336" Height="20" VerticalAlignment="Top" HorizontalAlignment="Left" FontFamily="Calibri" FontSize="10" />
+                <Button x:Name="cmdBrowseFile" Margin="458,60,0,0" Padding="0" Width="22" Height="20" VerticalAlignment="Top" HorizontalAlignment="Left" FontFamily="Calibri" FontSize="10" Content="..." ToolTip="Browse for a VB6 project or source file" Click="cmdBrowseFile_Click" />
                 <Button x:Name="cmdClose" Margin="243,86,0,0" Padding="2,2,2,2" Width="95" Height="35" VerticalAlignment="Top" HorizontalAlignment="Left" FontFamily="Calibri" FontSize="10" Content="Done" Click="cmdClose_Click" />
                 <Button x:Name="cmdLint" Margin="140,86,0,0" Padding="2,2,2,2" Width="95" Height="35" VerticalAlignment="Top" HorizontalAlignment="Left" FontFamily="Calibri" FontSize="10" Content="Lint" Click="cmdLint_Click" />
                 <Label x:Name="lblSrc" Margin="17,34,0,0" Padding="2,2,2,2" Width="95" Height="18" VerticalAlignment="Top" HorizontalAlignment="Left" FontFamily="Calibri" FontSize="10" Content="Project File:" />

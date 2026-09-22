@@ -26,6 +26,10 @@ public partial class LinterForm : Window
 
     private void cmdClose_Click(object sender, RoutedEventArgs e) { VBCloseFile(null); }
 
+    private void cmdBrowseVBPFile_Click(object sender, RoutedEventArgs e) { BrowseDialog.BrowseFile(this, txtVBPFile, BrowseDialog.ProjectFilter); }
+
+    private void cmdBrowseFile_Click(object sender, RoutedEventArgs e) { BrowseDialog.BrowseFile(this, txtFile, BrowseDialog.LintFilter); }
+
     private void cmdLint_Click(object sender, RoutedEventArgs e)
     {
         fraConfig.IsEnabled = false;

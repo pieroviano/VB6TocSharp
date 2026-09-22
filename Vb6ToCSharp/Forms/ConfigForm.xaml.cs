@@ -28,6 +28,10 @@ public partial class ConfigForm : Window
 
     private void cmdCancel_Click(object sender, RoutedEventArgs e) { Unload(); }
 
+    private void cmdBrowseVBPFile_Click(object sender, RoutedEventArgs e) { BrowseDialog.BrowseFile(this, txtVBPFile, BrowseDialog.ProjectFilter); }
+
+    private void cmdBrowseOutput_Click(object sender, RoutedEventArgs e) { BrowseDialog.BrowseFolder(this, txtOutput); }
+
     private void cmdOK_Click(object sender, RoutedEventArgs e)
     {
         ModConfig.SaveSettings(txtVBPFile.Text, txtOutput.Text, txtAssemblyName.Text);
