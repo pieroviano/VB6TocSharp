@@ -77,7 +77,7 @@ static class ModRefScan
         {
             l = iterL;
             l = Replace(l, ".frm", "");
-            if (l == "")
+            if (string.IsNullOrEmpty(l)) // .NET Strings.Replace returns null (not "") for an empty input
             {
                 goto SkipForm;
             }
@@ -428,7 +428,7 @@ static class ModRefScan
 
             }
             funcRefDeclArgCnt = funcRefDeclArgCnt + 1;
-        } while (!(true));
+        } while (true); // VB "Loop While" (was mistranslated as Loop Until)
         return funcRefDeclArgCnt;
     }
 

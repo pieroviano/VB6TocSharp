@@ -164,7 +164,7 @@ static class ModConvertForm
                         props.Add(pV, pK);
                         // TODO (not supported): On Error GoTo 0
                     }
-                } while (!(true));
+                } while (true); // VB "Loop While" (was mistranslated as Loop Until)
                 k = k + j - 1;
                 r = r + SSpace(I * spIndent) + StartControl(l, props, LMatch(m, "End"), codeSection, out tag) + vbCrLf;
                 I = I + 1;

@@ -380,7 +380,7 @@ static class modLinter
                 return DeSpace;
 
             }
-        } while (!(true));
+        } while (true); // VB "Loop While" (was mistranslated as Loop Until)
         return DeSpace;
     }
 
@@ -542,7 +542,7 @@ static class modLinter
 
             }
             LintModuleFirstLine = LintModuleFirstLine + 1;
-        } while (!(true));
+        } while (true); // VB "Loop While" (was mistranslated as Loop Until)
         return LintModuleFirstLine;
     }
 

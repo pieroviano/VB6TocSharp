@@ -338,7 +338,7 @@ static class ModConvert
                         l = Trim(Mid(l, Len(f) + 2));
                         r = r + ModConvert.SanitizeCode(l);
 
-                    } while (!(false));
+                    } while (false); // VB "Loop While" (was mistranslated as Loop Until)
                 }
             }
             else
@@ -384,7 +384,7 @@ static class ModConvert
                 n = n + 1;
                 f = RegExNMatch(s, p, n);
                 T = RegExNPos(s, p, n);
-            } while (!(!IsInCode(s, T) && f != ""));
+            } while (!IsInCode(s, T) && f != ""); // VB "Loop While" (was mistranslated as Loop Until)
             if (f == "")
             {
                 break;
@@ -407,7 +407,7 @@ static class ModConvert
             {
                 n = n + 1;
                 e = RegExNPos(Mid(s, T), k, n) + Len(k) + T;
-            } while (!(!IsInCode(s, e) && e != 0));
+            } while (!IsInCode(s, e) && e != 0); // VB "Loop While" (was mistranslated as Loop Until)
 
             if (T > 1)
             {
@@ -426,7 +426,7 @@ static class ModConvert
             s = NlTrim(Mid(s, e + 1));
 
             r = r + CommentBlock(pre) + ConvertSub(body, asModule) + vbCrLf;
-        } while (!(true));
+        } while (true); // VB "Loop While" (was mistranslated as Loop Until)
 
         r = ReadOutProperties(asModule) + vbCrLf2 + r;
 
@@ -693,7 +693,7 @@ static class ModConvert
             aArgs = TMid(aArgs, Len(tArg) + 2);
             s = s + IIf(has, ", ", "") + ConvertParameter(tArg, true);
             has = true;
-        } while (!(true));
+        } while (true); // VB "Loop While" (was mistranslated as Loop Until)
         s = s + ");";
 
 
@@ -817,7 +817,7 @@ static class ModConvert
             }
             tArgs = tArgs + IIf(n == 1, "", ", ");
             tArgs = tArgs + ConvertParameter(a, true);
-        } while (!(true));
+        } while (true); // VB "Loop While" (was mistranslated as Loop Until)
 
         var o = vbCrLf;
         var m = "";
@@ -1752,7 +1752,7 @@ static class ModConvert
                         break;
                     }
                     convertCodeLine = convertCodeLine + IIf(n == 1, "", ", ") + ConvertValue(b);
-                } while (!(true));
+                } while (true); // VB "Loop While" (was mistranslated as Loop Until)
                 convertCodeLine = convertCodeLine + ")";
                 //      ConvertCodeLine = ConvertElement(ConvertCodeLine)
             }
@@ -2046,9 +2046,9 @@ static class ModConvert
                         {
                             break;
                         }
-                        T = Trim(Mid(T, Len(u) + 1));
+                        T = Trim(Mid(T, Len(u) + Len(", ") + 1)); // skip the delimiter too (only the first value was emitted)
                         o = o + "case " + ConvertValue(u) + ": ";
-                    } while (!(true));
+                    } while (true); // VB "Loop While" (was mistranslated as Loop Until)
                 }
                 else if (T == "* To *")
                 {
@@ -2068,7 +2068,7 @@ static class ModConvert
                     foreach (var iterLl in Split(T, ","))
                     {
                         dynamic ll = iterLl;
-                        o = o + "case " + ConvertValue(T) + ": ";
+                        o = o + "case " + ConvertValue(Trim(ll)) + ": "; // was ConvertValue(T): the whole list per item
                     }
                 }
                 inCase = inCase + 1;
@@ -2104,13 +2104,14 @@ static class ModConvert
                 l = SplitWord(l, 2, "=");
                 var forStr = SplitWord(l, 1, " To ");
                 var forEnd = SplitWord(l, 2, " To ");
-                o = o + SSpace(ind) + "for(" + ConvertElement(forKey) + "=" + ConvertElement(forStr) + "; " + ConvertElement(forKey) + "<" + ConvertElement(forEnd) + "; " + ConvertElement(forKey) + "++) {";
+                // VB For ... To is inclusive of the end value (was "<")
+                o = o + SSpace(ind) + "for(" + ConvertElement(forKey) + "=" + ConvertElement(forStr) + "; " + ConvertElement(forKey) + "<=" + ConvertElement(forEnd) + "; " + ConvertElement(forKey) + "++) {";
                 ind = ind + spIndent;
             }
             else if (TLeft(l, 11) == "Loop While ")
             {
                 ind = ind - spIndent;
-                o = o + SSpace(ind) + "} while(!(" + ConvertValue(TMid(l, 12)) + "));";
+                o = o + SSpace(ind) + "} while(" + ConvertValue(TMid(l, 12)) + ");"; // was negated like Loop Until
             }
             else if (TLeft(l, 11) == "Loop Until ")
             {
