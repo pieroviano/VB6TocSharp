@@ -46,6 +46,7 @@ public static class ModConvert
         CreateProjectFile(vbpFile);
         CreateProjectSupportFiles();
         ConvertFileList(FilePath(vbpFile), VbpModules(vbpFile) + vbCrLf + VbpClasses(vbpFile) + vbCrLf + VbpForms(vbpFile) + vbCrLf + VbpUserControls(vbpFile));
+        ModMigrationReport.Write(); // what is left to review, per category and file
         Notify("Complete.");
     }
 
