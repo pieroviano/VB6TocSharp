@@ -111,6 +111,9 @@ public static class ModConvertClasses
         }
     }
 
+    /// <summary>Forgets the project classes read so far (a new conversion run: sources may have changed).</summary>
+    public static void ResetCaches() => registryProject = null;
+
     /// <summary>Registers a class (the one being converted, or one known only from a test).</summary>
     public static void Register(ClassModel model)
     {
@@ -123,6 +126,13 @@ public static class ModConvertClasses
     {
         EnsureRegistry();
         return name != null && classes.ContainsKey(name);
+    }
+
+    /// <summary>A project class with Class_Terminate (it is IDisposable).</summary>
+    public static bool HasTerminate(string name)
+    {
+        EnsureRegistry();
+        return name != null && classes.TryGetValue(name, out var c) && c.HasTerminate;
     }
 
     public static bool IsPredeclared(string name)

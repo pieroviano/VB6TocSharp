@@ -156,6 +156,16 @@ public static class ModConvertStatements
         return name != "" && defTypes.TryGetValue(char.ToUpperInvariant(name[0]), out var t) ? t : "Variant";
     }
 
+    /// <summary>Forgets the project-wide facts read so far (UDTs, globals, classes, pragmas): a new conversion run.</summary>
+    public static void ResetProjectCaches()
+    {
+        udtProject = null;
+        udts.Clear();
+        globalsProject = null;
+        ModConvertClasses.ResetCaches();
+        ModConvertPragmas.ResetCaches();
+    }
+
     /// <summary>Registers a user-defined type declared in the file being converted.</summary>
     public static void RegisterUdt(string name) => udts.Add(name);
 
@@ -600,6 +610,7 @@ public static class ModConvertStatements
             defined[name] = on;
         }
         foreach (var d in defined) header.Append((d.Value ? "#define " : "#undef ") + SymbolName(d.Key) + "\r\n");
+        ModConvertPragmas.BeginFile(vbSource); // project / file-level pragmas
         return header.ToString();
     }
 

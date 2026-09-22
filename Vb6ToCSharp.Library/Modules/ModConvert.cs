@@ -41,6 +41,7 @@ public static class ModConvert
     public static void ConvertProject(string vbpFile)
     {
         Prg(0, 1, "Preparing...");
+        ModConvertStatements.ResetProjectCaches(); // sources may have changed since the last run
         ScanRefs();
         CreateProjectFile(vbpFile);
         CreateProjectSupportFiles();
@@ -119,7 +120,7 @@ public static class ModConvert
 
         }
 
-        var s = ReadEntireFile(frmFile);
+        var s = ModConvertPragmas.PreProcess(ReadEntireFile(frmFile));
         var fName = ModuleName(s);
         currentModule = fName;
         var ui = Ui;
@@ -180,7 +181,7 @@ public static class ModConvert
 
             x = DeWs(x);
 
-            convertForm = WriteOut(f, x, frmFile); // was never set: always False
+            convertForm = WriteOut(f, ModConvertPragmas.PostProcess(x), frmFile); // was never set: always False
             return convertForm;
         }
         finally
@@ -257,7 +258,7 @@ public static class ModConvert
             return convertModule;
 
         }
-        var s = ReadEntireFile(basFile);
+        var s = ModConvertPragmas.PreProcess(ReadEntireFile(basFile));
         var fName = ModuleName(s);
         currentModule = fName;
         var f = fName + ".cs";
@@ -285,7 +286,7 @@ public static class ModConvert
 
         x = DeWs(x);
 
-        convertModule = WriteOut(f, x, basFile); // was never set: always False
+        convertModule = WriteOut(f, ModConvertPragmas.PostProcess(x), basFile); // was never set: always False
         return convertModule;
     }
 
@@ -299,7 +300,7 @@ public static class ModConvert
             return convertClass;
 
         }
-        var s = ReadEntireFile(clsFile);
+        var s = ModConvertPragmas.PreProcess(ReadEntireFile(clsFile));
         var fName = ModuleName(s);
         currentModule = fName;
         var f = fName + ".cs";
@@ -315,7 +316,7 @@ public static class ModConvert
         x = DeWs(header + x);
 
         f = fName + ".cs";
-        convertClass = WriteOut(f, x, clsFile); // was never set: always False
+        convertClass = WriteOut(f, ModConvertPragmas.PostProcess(x), clsFile); // was never set: always False
         return convertClass;
     }
 
@@ -733,6 +734,7 @@ public static class ModConvert
                 pType = suffixType != "" ? suffixType : ModConvertStatements.ImplicitType(pName);
             }
 
+            pType = ModConvertPragmas.TypeOverride(pName) ?? pType; // pragma SetType
             var cType = ConvertDataType(pType);
             var asArray = "";
             var vb6Array = false;
@@ -2224,6 +2226,11 @@ public static class ModConvert
                 b = target.fixedLen != "" && !IsInStr(a, "(") ? "FixedLen(" + b + ", " + target.fixedLen + ")" : ModConvertStatements.ImplicitConversion(target.asType, rhs, b);
             }
             convertCodeLine = convertCodeLine + b;
+            if (rhs == "Nothing" && TLeft(s, 4) == "Set " && ModConvertPragmas.AutoDispose != "No"
+                && (ModConvertPragmas.AutoDispose == "Force" || ModConvertClasses.HasTerminate(target.asType)))
+            { // pragma AutoDispose: releasing the reference disposes the object (VB6 Class_Terminate)
+                convertCodeLine = "(" + lhs + " as IDisposable)?.Dispose(); " + convertCodeLine;
+            }
             var setter = System.Text.RegularExpressions.Regex.Match(lhs, "^(.*?)([a-zA-Z_][a-zA-Z_0-9]*)\\((.*)\\)$");
             if (setter.Success && ModConvertClasses.IsParameterizedSetter(setter.Groups[2].Value) && SubParam(setter.Groups[2].Value).asArray == "")
             { // a property with parameters: obj.Name(i) = v -> obj.set_Name(i, v)
@@ -2561,6 +2568,25 @@ public static class ModConvert
         var pp = "^" + ProcModifiers + "(Function |Sub )" + patToken + "[$%&!#@]?[ ]*\\(";
         var pq = "^" + ProcModifiers + "(Property )(Get |Let |Set )" + patToken + "[$%&!#@]?[ ]*\\(";
 
+        // pragmas inside the procedure act from their line to the procedure end
+        var savedForceZero = ModConvertStatements.ForceZeroBounds;
+        var savedAutoNew = ModConvertStatements.AutoNew;
+        var outputOff = false;
+        var parseOff = false;
+        string replaceNext = null;
+
+        void Emit(string text)
+        {
+            if (route != null)
+            {
+                routeBody = routeBody + text + IIf(text == "", "", vbCrLf);
+            }
+            else
+            {
+                res = res + text + IIf(text == "", "", vbCrLf);
+            }
+        }
+
         //If IsInStr(Str, " WinCDSDataPath(") Then Stop
         //If IsInStr(Str, " RunShellExecute(") Then Stop
         //If IsInStr(Str, " ValidateSI(") Then Stop
@@ -2570,6 +2596,51 @@ public static class ModConvert
             //If IsInStr(L, "OrdVoid") Then Stop
             //If IsInStr(L, "MsgBox") Then Stop
             //If IsInStr(L, "And Not IsDoddsLtd Then") Then Stop
+            var pragma = ModConvertPragmas.Parse(l);
+            if (pragma != null)
+            { // VB Migration Partner pragma
+                switch (pragma.Name)
+                {
+                    case "OutputMode":
+                        outputOff = pragma.Args == "Off";
+                        break;
+                    case "ParseMode":
+                        parseOff = pragma.Args == "Off";
+                        break;
+                    case "InsertStatement":
+                        Emit(SSpace(ind) + pragma.Args);
+                        break;
+                    case "ReplaceStatement":
+                        replaceNext = pragma.Args;
+                        break;
+                    case "Note":
+                        Emit(SSpace(ind) + "// NOTE: " + pragma.Args);
+                        break;
+                    default:
+                        if (!ModConvertPragmas.ApplySetting(pragma))
+                        {
+                            Emit(SSpace(ind) + "// TODO: VB Migration Partner pragma not supported: " + pragma.Name + " " + pragma.Args);
+                        }
+                        break;
+                }
+                continue;
+            }
+            var boundary = RegExNMatch(Trim(l), pp) != "" || RegExTest(Trim(l), "^End (Sub|Function|Property)$");
+            if (outputOff && !boundary)
+            { // OutputMode Off: left out of the C# code
+                continue;
+            }
+            if (parseOff && !boundary)
+            { // ParseMode Off: kept as VB6 in a comment
+                Emit(SSpace(ind) + "// VB6: " + Trim(l));
+                continue;
+            }
+            if (replaceNext != null && !boundary && Trim(DeComment(l, true)) != "")
+            { // ReplaceStatement: the next statement is the given code
+                Emit(SSpace(ind) + replaceNext);
+                replaceNext = null;
+                continue;
+            }
             l = DeComment(l);
             l = DeString(l);
             var o = "";
@@ -3019,14 +3090,7 @@ public static class ModConvert
             o = ModProjectSpecific.ProjectSpecificPostCodeLineConvert(o);
 
             o = ReComment(o);
-            if (route != null)
-            {
-                routeBody = routeBody + ReComment(o) + IIf(o == "", "", vbCrLf);
-            }
-            else
-            {
-                res = res + ReComment(o) + IIf(o == "", "", vbCrLf);
-            }
+            Emit(ReComment(o));
             if (isProto)
             {
                 declPos = Len(res);
@@ -3034,6 +3098,8 @@ public static class ModConvert
         }
         EndRoute();
         res = res + LocalFunctions(); // a property body has no End Sub
+        ModConvertStatements.ForceZeroBounds = savedForceZero;
+        ModConvertStatements.AutoNew = savedAutoNew;
 
         if (decls != "")
         {
