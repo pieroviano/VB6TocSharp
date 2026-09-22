@@ -159,7 +159,7 @@ public partial class ConverterTests
     public void OnGoTo_IsAComputedJump()
     {
         var cs = Flat(Segment(Sub("  Dim n As Long", "  On n GoTo 10, Done", "10 n = 1", "Done:")));
-        Assert.Contains("switch (CInt(n)) { case 1: goto L10; case 2: goto Done; }", cs);
+        Assert.Contains("switch (Conversions.ToInteger(n)) { case 1: goto L10; case 2: goto Done; }", cs);
         Assert.Contains("L10:", cs);
     }
 

@@ -30,6 +30,9 @@ public static class ModConvertStatements
 
     // ---------------------------------------------------------------- module options (reset by BeginFile)
 
+    /// <summary>VB6 source of the file being converted (for declarations that depend on its procedures, e.g. WithEvents handlers).</summary>
+    public static string FileSource = "";
+
     /// <summary>Option Base of the file: the default lower bound of arrays.</summary>
     public static int OptionBase;
 
@@ -38,6 +41,40 @@ public static class ModConvertStatements
 
     /// <summary>Arrays with a non-zero lower bound become zero-based T[] sized ub + 1 (pragma ArrayBounds ForceZero).</summary>
     public static bool ForceZeroBounds;
+
+    /// <summary>Option Explicit: without it, names assigned without a declaration are implicit locals.</summary>
+    public static bool OptionExplicit = true;
+
+    /// <summary>Public variables / constants of the project's standard modules (visible everywhere without a qualifier).</summary>
+    private static readonly HashSet<string> projectGlobals = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+    private static string globalsProject;
+
+    /// <summary>A public variable or constant of a standard module of the project.</summary>
+    public static bool IsProjectGlobal(string name)
+    {
+        if (globalsProject != VbpFile)
+        {
+            globalsProject = VbpFile;
+            projectGlobals.Clear();
+            try
+            {
+                var folder = FilePath(VbpFile);
+                foreach (var f in Split(VbpModules(VbpFile), vbCrLf))
+                {
+                    if (Trim(f) == "" || !System.IO.File.Exists(folder + f)) continue;
+                    foreach (Match m in Regex.Matches(System.IO.File.ReadAllText(folder + f), "(?m)^(?:Public|Global)\\s+(?:WithEvents\\s+|Const\\s+)?(" + Id + ")"))
+                    {
+                        projectGlobals.Add(m.Groups[1].Value);
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                // no project
+            }
+        }
+        return projectGlobals.Contains(name);
+    }
 
     /// <summary>Module-level "As New" variables are auto-instancing properties (pragma AutoNew).</summary>
     public static bool AutoNew = true;
@@ -493,6 +530,8 @@ public static class ModConvertStatements
     public static string BeginFile(string vbSource, IDictionary<string, string> projectConstants = null)
     {
         ResetFileOptions();
+        OptionExplicit = string.IsNullOrEmpty(vbSource) || Regex.IsMatch(vbSource, "(?mi)^Option Explicit");
+        FileSource = vbSource ?? "";
         ppConsts = ProjectConstantValues(projectConstants);
         var header = new StringBuilder();
         var defined = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
@@ -854,6 +893,12 @@ public static class ModConvertStatements
         public bool TryOpen;
         public int TryInd;
         public string TryHandler = "";
+        /// <summary>The procedure has line numbers: Erl reports the last one passed (vbErl).</summary>
+        public bool Erl;
+        /// <summary>The GoTo handler resumes (Resume / Resume Next): statements are guarded one by one, the handler is a local function.</summary>
+        public bool Resumable;
+
+        public string ProjectError() => SetProjectError + "(" + CatchVar + (Erl ? ", vbErl" : "") + ");";
 
         public string OpenTry(ref int ind)
         {
@@ -871,7 +916,7 @@ public static class ModConvertStatements
             ind = TryInd;
             var i = SSpace(ind + spIndent);
             return SSpace(ind) + "} catch (Exception " + CatchVar + ") {" + vbCrLf
-                + i + SetProjectError + "(" + CatchVar + ");" + vbCrLf
+                + i + ProjectError() + vbCrLf
                 + i + "goto " + TryHandler + ";" + vbCrLf
                 + SSpace(ind) + "}" + vbCrLf;
         }
@@ -881,13 +926,130 @@ public static class ModConvertStatements
     }
 
     /// <summary>Wraps a statement so a failure sets Err and execution continues (On Error Resume Next).</summary>
-    public static string WrapResumeNext(string stmt, int ind)
+    public static string WrapResumeNext(string stmt, int ind, ErrorScope scope = null)
     {
         var i = SSpace(ind);
         return i + "try {" + vbCrLf
             + SSpace(ind + spIndent) + Trim(stmt) + vbCrLf
-            + i + "} catch (Exception " + CatchVar + ") { " + SetProjectError + "(" + CatchVar + "); }";
+            + i + "} catch (Exception " + CatchVar + ") { " + (scope ?? new ErrorScope()).ProjectError() + " }";
     }
+
+    /// <summary>Name of the local function a resumable error handler becomes.</summary>
+    public static string HandlerFunction(string label) => "vbHandler_" + label;
+
+    /// <summary>
+    /// A statement under a resumable On Error GoTo handler: on failure the handler (a local function) runs and its code
+    /// says how to go on: 0 Resume Next (continue), 1 Resume (retry), -1 leave the procedure, k Resume label k.
+    /// </summary>
+    public static string WrapResumable(string stmt, int ind, ErrorScope scope, ProcedurePlan plan, string exitStatement, ref int retries)
+    {
+        var i = SSpace(ind);
+        var j = SSpace(ind + spIndent);
+        var h = plan.Handlers[scope.Handler];
+        var retry = "";
+        var cases = new List<string> { "case -1: " + exitStatement };
+        if (h.Retry)
+        {
+            retries++;
+            retry = "vbRetry" + retries;
+            cases.Insert(0, "case 1: goto " + retry + ";");
+        }
+        for (var k = 0; k < h.ResumeLabels.Count; k++) cases.Add("case " + (k + 2) + ": goto " + h.ResumeLabels[k] + ";");
+        return (retry == "" ? "" : i + retry + ":" + vbCrLf)
+            + i + "try {" + vbCrLf
+            + j + Trim(stmt) + vbCrLf
+            + i + "} catch (Exception " + CatchVar + ") {" + vbCrLf
+            + j + scope.ProjectError() + vbCrLf
+            + j + "switch (" + HandlerFunction(scope.Handler) + "()) { " + string.Join(" ", cases) + " }" + vbCrLf
+            + i + "}";
+    }
+
+    /// <summary>A resumable error handler: whether it retries (Resume) and the labels it resumes at.</summary>
+    public sealed class HandlerInfo
+    {
+        public bool Retry;
+        public readonly List<string> ResumeLabels = new List<string>();
+    }
+
+    /// <summary>
+    /// What a procedure needs before it is converted line by line: GoSub routines and resumable handlers (converted to
+    /// local functions), jump targets (they end such sections) and line numbers (for Erl).
+    /// </summary>
+    public sealed class ProcedurePlan
+    {
+        public readonly HashSet<string> GoSubTargets = new HashSet<string>();
+        public readonly Dictionary<string, HandlerInfo> Handlers = new Dictionary<string, HandlerInfo>();
+        public readonly HashSet<string> JumpTargets = new HashSet<string>();
+        public bool HasLineNumbers;
+        public bool HasErrorHandling;
+
+        /// <summary>A label whose code becomes a local function (GoSub routine, resumable handler).</summary>
+        public bool IsRouted(string label) => GoSubTargets.Contains(label) || Handlers.ContainsKey(label);
+
+        public static ProcedurePlan Scan(IEnumerable<string> lines)
+        {
+            var plan = new ProcedurePlan();
+            var list = new List<string>();
+            foreach (var raw in lines) list.Add(Trim(StripComment(raw)));
+            var handlerLabels = new HashSet<string>();
+            foreach (var t in list)
+            {
+                Match m;
+                if (Regex.IsMatch(t, "^L[0-9]+:$")) plan.HasLineNumbers = true;
+                if ((m = Regex.Match(t, "^On (Local )?Error GoTo (.+)$")).Success)
+                {
+                    plan.HasErrorHandling = true;
+                    var target = Trim(m.Groups[2].Value);
+                    if (target != "0" && target != "-1") handlerLabels.Add(LabelName(target));
+                }
+                else if (LMatch(t, "On Error ") || LMatch(t, "On Local Error ")) plan.HasErrorHandling = true;
+                else if ((m = Regex.Match(t, "^GoSub (" + Id + "|[0-9]+)$")).Success) plan.GoSubTargets.Add(LabelName(m.Groups[1].Value));
+                else if ((m = Regex.Match(t, "^On .+ GoSub (.+)$")).Success)
+                {
+                    foreach (var l in SplitTopLevel(m.Groups[1].Value)) if (l != "") plan.GoSubTargets.Add(LabelName(l));
+                }
+                if ((m = Regex.Match(t, "^(?:GoTo|Resume) (" + Id + "|[0-9]+)$")).Success && m.Groups[1].Value != "Next" && m.Groups[1].Value != "0")
+                {
+                    plan.JumpTargets.Add(LabelName(m.Groups[1].Value));
+                }
+                if ((m = Regex.Match(t, "^On .+ GoTo (.+)$")).Success && !LMatch(t, "On Error") && !LMatch(t, "On Local Error"))
+                {
+                    foreach (var l in SplitTopLevel(m.Groups[1].Value)) if (l != "") plan.JumpTargets.Add(LabelName(l));
+                }
+            }
+            // a handler section runs from its label to the next jump target / routed label, or the procedure end
+            foreach (var h in handlerLabels)
+            {
+                var start = list.IndexOf(h + ":");
+                if (start < 0) continue;
+                var info = new HandlerInfo();
+                var resumes = false;
+                for (var i = start + 1; i < list.Count; i++)
+                {
+                    var t = list[i];
+                    var label = Regex.Match(t, "^(" + Id + "):$");
+                    if (label.Success && (plan.JumpTargets.Contains(label.Groups[1].Value) || handlerLabels.Contains(label.Groups[1].Value) || plan.GoSubTargets.Contains(label.Groups[1].Value))) break;
+                    if (Regex.IsMatch(t, "^End (Sub|Function|Property)$")) break;
+                    if (t == "Resume" || t == "Resume 0")
+                    {
+                        resumes = true;
+                        info.Retry = true;
+                    }
+                    else if (t == "Resume Next")
+                    {
+                        resumes = true;
+                    }
+                    else if (LMatch(t, "Resume ") && !info.ResumeLabels.Contains(LabelName(Mid(t, 8))))
+                    {
+                        info.ResumeLabels.Add(LabelName(Mid(t, 8)));
+                    }
+                }
+                if (resumes) plan.Handlers[h] = info; // only Resume / Resume Next need the local-function form
+            }
+            return plan;
+        }
+    }
+
 
     /// <summary>On Error ... statement: updates <paramref name="scope"/>, returns the code to emit.</summary>
     public static string ConvertOnError(string t, ErrorScope scope, ref int ind)
@@ -945,13 +1107,13 @@ public static class ModConvertStatements
     {
         var m = Regex.Match(Trim(t), "^On (.+) (GoTo|GoSub) (.+)$");
         if (!m.Success) return null;
-        if (m.Groups[2].Value == "GoSub") return SSpace(ind) + "// TODO: VB6 GoSub not supported: " + Trim(t);
-        var r = SSpace(ind) + "switch (CInt(" + ConvertValue(m.Groups[1].Value) + ")) {";
+        var gosub = m.Groups[2].Value == "GoSub"; // GoSub routines are local functions
+        var r = SSpace(ind) + "switch (Conversions.ToInteger(" + ConvertValue(m.Groups[1].Value) + ")) {";
         var n = 0;
         foreach (var lbl in SplitTopLevel(m.Groups[3].Value))
         {
             n++;
-            if (lbl != "") r = r + " case " + n + ": goto " + LabelName(lbl) + ";";
+            if (lbl != "") r = r + " case " + n + ": " + (gosub ? LabelName(lbl) + "(); break;" : "goto " + LabelName(lbl) + ";");
         }
         return r + " }";
     }

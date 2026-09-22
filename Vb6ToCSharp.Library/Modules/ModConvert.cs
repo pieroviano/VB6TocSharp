@@ -2310,6 +2310,13 @@ public static class ModConvert
         return postConvertCodeLine;
     }
 
+    /// <summary>A name VB6 resolves without a local declaration: procedure, enum, form, module, control, project global, property.</summary>
+    private static bool IsKnownName(string name)
+    {
+        return name == "" || name == "Me" || name == currSub || IsFuncRef(name) || IsEnumRef(name) || IsFormRef(name) || IsModuleRef(name)
+               || IsControlRef(name, formName) || ModConvertStatements.IsProjectGlobal(name) || IsPropertyName(name);
+    }
+
     /// <summary>A loop or Select Case open in the procedure being converted.</summary>
     private sealed class Breakable
     {
@@ -2423,6 +2430,72 @@ public static class ModConvert
             return "break;";
         }
 
+        // GoSub routines and resumable handlers become local functions; line numbers feed Erl
+        var plan = ModConvertStatements.ProcedurePlan.Scan(s);
+        errs.Erl = plan.HasLineNumbers && plan.HasErrorHandling;
+        if (errs.Erl)
+        {
+            decls = decls + SSpace(spIndent) + "int vbErl = 0; // VB6 Erl: the last line number passed" + vbCrLf;
+        }
+        if (scanFirst == vbTriState.vbFalse && !ModConvertStatements.OptionExplicit)
+        { // no Option Explicit: names assigned without a declaration are implicit locals
+            foreach (var name in UnknownAssigned())
+            {
+                if (IsKnownName(name))
+                {
+                    continue;
+                }
+                var implicitType = ModConvertStatements.ImplicitType(name);
+                decls = decls + SSpace(spIndent) + ConvertDataType(implicitType) + " " + name + " = " + ModConvertStatements.DefaultValue(implicitType) + "; // VB6 implicit declaration" + vbCrLf;
+            }
+        }
+        string route = null; // label of the GoSub routine / resumable handler being collected
+        var routeBody = "";
+        var routeSavedInd = 0;
+        var routeSavedMode = ModConvertStatements.ErrorScope.Modes.None;
+        var routeSavedResumable = false;
+        var routes = new System.Collections.Generic.List<string[]>();
+        var retries = 0;
+
+        void StartRoute(string label)
+        {
+            route = label;
+            routeBody = "";
+            routeSavedInd = ind;
+            routeSavedMode = errs.Mode;
+            routeSavedResumable = errs.Resumable;
+            errs.Mode = ModConvertStatements.ErrorScope.Modes.None; // a handler runs unprotected
+            errs.Resumable = false;
+            ind = (hadPrototype ? spIndent : 0) + spIndent;
+        }
+
+        void EndRoute()
+        {
+            if (route == null)
+            {
+                return;
+            }
+            routes.Add(new[] { route, routeBody });
+            route = null;
+            ind = routeSavedInd;
+            errs.Mode = routeSavedMode;
+            errs.Resumable = routeSavedResumable;
+        }
+
+        string LocalFunctions()
+        {
+            var fi = SSpace(hadPrototype ? spIndent : 0);
+            var r = "";
+            foreach (var fn in routes)
+            {
+                var handler = plan.Handlers.ContainsKey(fn[0]);
+                r = r + fi + (handler ? "int " + ModConvertStatements.HandlerFunction(fn[0]) : "void " + fn[0]) + "() {" + vbCrLf + fn[1]
+                    + (handler ? fi + SSpace(spIndent) + "return -1; // end of the handler: leave the procedure" + vbCrLf : "") + fi + "}" + vbCrLf;
+            }
+            routes.Clear();
+            return r;
+        }
+
         var pp = "^" + ProcModifiers + "(Function |Sub )" + patToken + "[$%&!#@]?[ ]*\\(";
         var pq = "^" + ProcModifiers + "(Property )(Get |Let |Set )" + patToken + "[$%&!#@]?[ ]*\\(";
 
@@ -2465,7 +2538,7 @@ public static class ModConvert
                 {
                     pre = pre + errs.CloseTry(ref ind);
                 }
-                else if (errs.Mode == ModConvertStatements.ErrorScope.Modes.GoTo && !errs.TryOpen && IsProtectable(t))
+                else if (errs.Mode == ModConvertStatements.ErrorScope.Modes.GoTo && !errs.Resumable && !errs.TryOpen && IsProtectable(t))
                 {
                     pre = pre + errs.OpenTry(ref ind);
                 }
@@ -2520,13 +2593,33 @@ public static class ModConvert
             }
             else if (t == "End Sub" || t == "End Function")
             {
+                EndRoute();
                 pre = pre + errs.CloseTry(ref ind);
                 if (returnVariable != "")
                 {
                     o = o + SSpace(ind) + "return " + returnVariable + ";" + vbCrLf;
                 }
+                o = o + LocalFunctions();
                 ind = ind - spIndent;
                 o = o + SSpace(ind) + "}";
+            }
+            else if (route != null && (t == "Exit Function" || t == "Exit Sub" || t == "Exit Property"))
+            { // leaving the procedure from a handler: the caller of the handler returns
+                o = SSpace(ind) + (plan.Handlers.ContainsKey(route) ? "return -1;" : "return; // TODO: VB6 " + t + " inside a GoSub routine leaves only the routine here");
+            }
+            else if (route != null && plan.Handlers.ContainsKey(route) && (t == "Resume" || LMatch(t, "Resume ") || LMatch(t, "GoTo ")))
+            { // the handler tells the failed statement how to go on
+                var target = Trim(Mid(t, InStr(t + " ", " ") + 1));
+                var code = target == "Next" ? 0 : target == "" || target == "0" ? 1 : plan.Handlers[route].ResumeLabels.IndexOf(ModConvertStatements.LabelName(target)) + 2;
+                o = SSpace(ind) + (code >= 0 ? "return " + code + "; // VB6 " + t : "// TODO: VB6 " + t);
+            }
+            else if (route != null && plan.GoSubTargets.Contains(route) && t == "Return")
+            {
+                o = SSpace(ind) + "return;";
+            }
+            else if (LMatch(t, "GoSub ") && plan.GoSubTargets.Contains(ModConvertStatements.LabelName(Mid(t, 7))))
+            {
+                o = SSpace(ind) + ModConvertStatements.LabelName(Mid(t, 7)) + "();";
             }
             else if (t == "Exit Function" || t == "Exit Sub")
             {
@@ -2545,15 +2638,31 @@ public static class ModConvert
             }
             else if (RegExTest(t, "^[a-zA-Z_][a-zA-Z_0-9]*:$"))
             { // Goto Label: kept outside the protected block, so the handler (and Resume label) can jump to it
+                var labelName = Left(t, Len(t) - 1);
+                if (route != null && (plan.IsRouted(labelName) || plan.JumpTargets.Contains(labelName)))
+                {
+                    EndRoute();
+                }
                 if (errs.TryOpen && ind <= errs.TryInd + spIndent)
                 {
                     pre = pre + errs.CloseTry(ref ind);
                 }
-                if (errs.Mode == ModConvertStatements.ErrorScope.Modes.GoTo && Left(t, Len(t) - 1) == errs.Handler)
+                if (plan.IsRouted(labelName))
+                { // the routine / handler code is collected into a local function
+                    res = res + pre;
+                    pre = "";
+                    StartRoute(labelName);
+                    continue;
+                }
+                if (errs.Mode == ModConvertStatements.ErrorScope.Modes.GoTo && labelName == errs.Handler)
                 {
                     errs.Mode = ModConvertStatements.ErrorScope.Modes.None; // the handler itself runs unprotected
                 }
                 o = o + t + ";"; // c# requires a trailing ; on goto labels without trailing statements.  Likely a C# bug/oversight, but it's there.
+                if (errs.Erl && RegExTest(labelName, "^L[0-9]+$"))
+                {
+                    o = o + " vbErl = " + Mid(labelName, 2) + ";";
+                }
             }
             else if (LMatch(t, "GoTo "))
             {
@@ -2562,6 +2671,7 @@ public static class ModConvert
             else if (LMatch(t, "On Error ") || LMatch(t, "On Local Error "))
             {
                 o = ModConvertStatements.ConvertOnError(t, errs, ref ind);
+                errs.Resumable = errs.Mode == ModConvertStatements.ErrorScope.Modes.GoTo && plan.Handlers.ContainsKey(errs.Handler);
             }
             else if (LMatch(t, "On ") && (x = ModConvertStatements.ConvertOnGoTo(t, ind)) != null)
             {
@@ -2830,7 +2940,12 @@ public static class ModConvert
 
             if (wrap && errs.Mode == ModConvertStatements.ErrorScope.Modes.ResumeNext && Trim(o) != "")
             {
-                o = ModConvertStatements.WrapResumeNext(o, ind);
+                o = ModConvertStatements.WrapResumeNext(o, ind, errs);
+            }
+            else if (wrap && errs.Mode == ModConvertStatements.ErrorScope.Modes.GoTo && errs.Resumable && Trim(o) != "")
+            {
+                var leave = returnVariable != "" ? "return " + returnVariable + ";" : hadPrototype ? "return;" : ExitPropertyMark;
+                o = ModConvertStatements.WrapResumable(o, ind, errs, plan, leave, ref retries);
             }
             o = pre + o;
             foreach (var st in statics)
@@ -2842,12 +2957,21 @@ public static class ModConvert
             o = ModProjectSpecific.ProjectSpecificPostCodeLineConvert(o);
 
             o = ReComment(o);
-            res = res + ReComment(o) + IIf(o == "", "", vbCrLf);
+            if (route != null)
+            {
+                routeBody = routeBody + ReComment(o) + IIf(o == "", "", vbCrLf);
+            }
+            else
+            {
+                res = res + ReComment(o) + IIf(o == "", "", vbCrLf);
+            }
             if (isProto)
             {
                 declPos = Len(res);
             }
         }
+        EndRoute();
+        res = res + LocalFunctions(); // a property body has no End Sub
 
         if (decls != "")
         {

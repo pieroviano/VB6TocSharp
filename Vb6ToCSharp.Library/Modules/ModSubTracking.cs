@@ -43,6 +43,7 @@ public static class ModSubTracking
     private static List<Variable> vars = new List<Variable> { }; 
     private static List<Property> props = new List<Property> { }; 
     private static List<Variable> moduleVars = new List<Variable> { }; // module-level variables of the file being converted
+    private static List<string> unknownAssigned = new List<string> { }; // names assigned in the procedure without a declaration
 
 
     public static bool Analyze
@@ -63,6 +64,7 @@ public static class ModSubTracking
             var nVars = new List<Variable> { };
 
             vars = nVars;
+            unknownAssigned = new List<string> { };
         }
     }
 
@@ -137,6 +139,22 @@ public static class ModSubTracking
                 vars[k].assignedBeforeUsed = true;
             }
         }
+        else if (p != "" && !moduleVars.Exists(v => v.name == p) && !unknownAssigned.Contains(p))
+        {
+            unknownAssigned.Add(p);
+        }
+    }
+
+    /// <summary>Names the procedure assigns without declaring them (implicit variables when there is no Option Explicit).</summary>
+    public static List<string> UnknownAssigned()
+    {
+        return new List<string>(unknownAssigned);
+    }
+
+    /// <summary>A property of the class being converted.</summary>
+    public static bool IsPropertyName(string p)
+    {
+        return PropIndex(p) >= 0;
     }
 
     public static void SubParamUsed(string p)
