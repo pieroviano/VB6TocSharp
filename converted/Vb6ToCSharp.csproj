@@ -46,9 +46,6 @@
     <ItemGroup>
         <InternalsVisibleTo Include="Vb6ToCSharp.Tests" />
     </ItemGroup>
-    <ItemGroup>
-        <Compile Remove="Modules\modLinter.cs" />
-    </ItemGroup>
     <PropertyGroup>
         <PackageReadmeFile>README.md</PackageReadmeFile>
     </PropertyGroup>
