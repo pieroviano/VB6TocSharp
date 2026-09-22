@@ -4,11 +4,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Data.OleDb;
 using System.Linq;
-using static Functions;
-using static modPath;
-using static modStores;
-using static modSupportForms;
-using static VBExtension;
+using System.Windows.Forms;
 
 namespace WinCDS.Classes
 {
@@ -62,20 +58,20 @@ namespace WinCDS.Classes
         public static void sqlExecutionError(string mSQL, Exception e)
         {
             string T = "";
-            T += "getRecordSet Failed: " + e.Message + vbCrLf1;
-            T += vbCrLf1;
-            T += mSQL + vbCrLf1;
-            T += vbCrLf1;
+            T += "getRecordSet Failed: " + e.Message + "\r\n";
+            T += "\r\n";
+            T += mSQL + "\r\n";
+            T += "\r\n";
             T += "ERROR:" + e.Message;
 
             T = T.Replace("$EDESC", e.Message);
             //ErrMsg = Replace(ErrMsg, "$ENO", Err().Number);
             T = T.Replace("$ESRC", e.Source);
-            MsgBox("Database Error: " + T, 0, "Error");
+            MessageBox.Show("Database Error: " + T, "Error");
             //CheckStandardErrors(); // Bookmark/updateable query
         }
 
-        private string ConnectionString(string file) { return "PROVIDER=Microsoft.Jet.OLEDB.4.0;Data Source=" + file + PasswordProtectedDatabaseString + ";"; }
+        private string ConnectionString(string file) { return "PROVIDER=Microsoft.Jet.OLEDB.4.0;Data Source=" + file + ";"; }
 
         public int AbsolutePosition { get; set; }
         public int Position { get => AbsolutePosition; set => AbsolutePosition = value; }
@@ -116,7 +112,7 @@ namespace WinCDS.Classes
             get => new PropIndexer<dynamic, dynamic>(
                 (k) => Fields[k].Value,
                 (k, v) => { Fields[k].Value = v; }
-                );
+            );
         }
 
         public dynamic this[dynamic field]
@@ -130,7 +126,7 @@ namespace WinCDS.Classes
 
         public List<List<dynamic>> GetRows()
         {
-            var tableEnumerable = table.AsEnumerable();
+            var tableEnumerable = table.Rows.Cast<DataRow>();
             var tableList = tableEnumerable.ToArray().ToList();
             return tableList.ToList().Select((r) => r.ItemArray.ToList()).ToList();
         }
@@ -164,9 +160,9 @@ namespace WinCDS.Classes
         {
             const int maxTries = 5;
 
-            if (!FileExists(Database))
+            if (!System.IO.File.Exists(Database))
             {
-                MsgBox("Database Not Found: " + Database);
+                MessageBox.Show("Database Not Found: " + Database);
                 return;
             }
 

@@ -1,0 +1,24 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net48</TargetFramework>
+		<UseWindowsForms>true</UseWindowsForms>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<Compile Remove="vb.net\**" />
+		<EmbeddedResource Remove="vb.net\**" />
+		<None Remove="vb.net\**" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Reference Include="Microsoft.CSharp" />
+		<Reference Include="Microsoft.VisualBasic.Compatibility" />
+		<Reference Include="System.Security" />
+		<Reference Include="System.Web" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="VisualBasic.PowerPacks.Vs" Version="1.0.0" />
+	</ItemGroup>
+</Project>
