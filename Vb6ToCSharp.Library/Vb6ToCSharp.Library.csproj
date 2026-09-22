@@ -8,9 +8,11 @@
         <TargetFramework>net48</TargetFramework>
         <RootNamespace>Vb6ToCSharp</RootNamespace>
         <DontConvert>False</DontConvert>
-        <Copyright>Copyright 2021</Copyright>
+        <Copyright>Copyright 2026</Copyright>
         <!-- VbExtension is the WPF runtime shim for converted code: it needs the WPF assemblies -->
         <UseWPF>true</UseWPF>
+        <!-- the WinForms back-end writes typed .resx resources (Bitmap/Icon) -->
+        <UseWindowsForms>true</UseWindowsForms>
         <LangVersion>latest</LangVersion>
         <PackageId>Net4x.$(MSBuildProjectName)</PackageId>
     </PropertyGroup>
@@ -40,9 +42,6 @@
             <Isolated>False</Isolated>
             <EmbedInteropTypes>True</EmbedInteropTypes>
         </COMReference>
-    </ItemGroup>
-    <ItemGroup>
-        <PackageReference Include="Net4x.NuGetUtility" Version="$(NuGetUtilityVersion)" PrivateAssets="All" />
     </ItemGroup>
     <ItemGroup>
         <InternalsVisibleTo Include="Vb6ToCSharp.Tests" />

@@ -7,23 +7,23 @@
         <OutputType>Library</OutputType>
         <TargetFramework>net48</TargetFramework>
         <RootNamespace>Vb6ToCSharp.UpgradeHelpers</RootNamespace>
-        <Copyright>Copyright 2021</Copyright>
+        <Copyright>Copyright 2026</Copyright>
         <Description>Runtime helpers for VB6 programs converted to C# (WinForms or WPF) by Vb6ToCSharp.</Description>
         <UseWindowsForms>true</UseWindowsForms>
         <UseWPF>true</UseWPF>
         <LangVersion>latest</LangVersion>
         <PackageId>Net4x.$(MSBuildProjectName)</PackageId>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
-        <NoWarn>$(NoWarn);CS1591</NoWarn>
-	    <PackageId>Net4x.$(MSBuildProjectName)</PackageId>
+        <NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>
+        <PackageId>Net4x.$(MSBuildProjectName)</PackageId>
     </PropertyGroup>
     <ItemGroup>
         <InternalsVisibleTo Include="Vb6ToCSharp.UpgradeHelpers.Tests" />
     </ItemGroup>
-	<ItemGroup>
-		<PackageReference Include="Net4x.NuGetUtility" Version="$(NuGetUtilityVersion)" PrivateAssets="All" />
-	</ItemGroup>
-	<PropertyGroup>
+    <ItemGroup>
+        <PackageReference Include="Net4x.NuGetUtility" Version="$(NuGetUtilityVersion)" PrivateAssets="All" />
+    </ItemGroup>
+    <PropertyGroup>
         <PackageReadmeFile>README.md</PackageReadmeFile>
     </PropertyGroup>
     <ItemGroup>

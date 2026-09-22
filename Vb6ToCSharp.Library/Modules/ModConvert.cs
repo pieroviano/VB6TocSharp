@@ -1,4 +1,5 @@
 using System;
+using Vb6ToCSharp.FormConversion;
 using static Microsoft.VisualBasic.Constants;
 using static Microsoft.VisualBasic.Conversion;
 using static Microsoft.VisualBasic.Information;
@@ -41,7 +42,7 @@ public static class ModConvert
         ScanRefs();
         CreateProjectFile(vbpFile);
         CreateProjectSupportFiles();
-        ConvertFileList(FilePath(vbpFile), VbpModules(vbpFile) + vbCrLf + VbpClasses(vbpFile) + vbCrLf + VbpForms(vbpFile)); //& vbCrLf & VBPUserControls(vbpFile)
+        ConvertFileList(FilePath(vbpFile), VbpModules(vbpFile) + vbCrLf + VbpClasses(vbpFile) + vbCrLf + VbpForms(vbpFile) + vbCrLf + VbpUserControls(vbpFile));
         Notify("Complete.");
     }
 
@@ -93,9 +94,9 @@ public static class ModConvert
                 convertFile = ConvertClass(someFile);
                 break;
             case ".frm":
+            case ".ctl":
                 formName = FileBaseName(someFile);
                 convertFile = ConvertForm(someFile, uiOnly);
-                //      Case ".ctl": ConvertModule  someFile
                 break;
             default:
                 Notify("UNKNOWN VB TYPE: " + someFile);
@@ -119,7 +120,8 @@ public static class ModConvert
         var s = ReadEntireFile(frmFile);
         var fName = ModuleName(s);
         currentModule = fName;
-        var f = fName + ".xaml.cs";
+        var ui = Ui;
+        var f = fName + (ui == UiTarget.WinForms ? ".cs" : ".xaml.cs");
         if (IsConverted(f, frmFile))
         {
             Console.WriteLine("Form Already Converted: " + f);
@@ -127,46 +129,119 @@ public static class ModConvert
 
         }
 
-        var j = CodeSectionLoc(s);
-        var preamble = Left(s, j - 1);
-        var code = Mid(s, j);
-
-        var x = ConvertFormUi(preamble, code);
-        f = fName + ".xaml";
-        convertForm = WriteOut(f, x, frmFile);
-        if (uiOnly)
+        var model = FrmParser.Parse(s);
+        model.Path = frmFile;
+        var isUserControl = model.IsUserControl || model.Root?.Type == "VB.PropertyPage";
+        var ctx = new FormContext(model, ui, ProjectInfo());
+        var ns = AssemblyName() + (isUserControl ? ".UserControls" : ".Forms");
+        FormContext.Current = ctx;
+        try
         {
+            EmitResult designer;
+            if (ui == UiTarget.WinForms)
+            {
+                designer = WinFormsEmitter.Generate(ctx, ns);
+                convertForm = WriteOut(fName + ".Designer.cs", designer.Designer, frmFile);
+                if (designer.Resources.Count > 0) ResxWriter.Write(OutputFolder(frmFile) + fName + ".resx", designer.Resources);
+            }
+            else
+            {
+                designer = WpfEmitter.Generate(ctx, AssemblyName());
+                convertForm = WriteOut(fName + ".xaml", designer.Designer, frmFile);
+                ResxWriter.WriteFiles(OutputFolder(), designer.Resources);
+            }
+            if (uiOnly)
+            {
+                return convertForm;
+
+            }
+
+            var j = CodeSectionLoc(s);
+            var preamble = Left(s, j - 1);
+            var code = Mid(s, j);
+            j = CodeSectionGlobalEndLoc(code);
+            var globals = ConvertGlobals(Left(code, j));
+            InitLocalFuncs(FormControls(fName, preamble) + ScanRefsFileToString(frmFile));
+            var functions = ConvertCodeSegment(Mid(code, j));
+
+            var x = "";
+            x = x + UsingEverything(fName) + vbCrLf;
+            x = x + vbCrLf;
+            x = x + "namespace " + ns + vbCrLf;
+            x = x + "{" + vbCrLf;
+            x = x + FormClassHeader(ctx, designer) + vbCrLf;
+            x = x + vbCrLf;
+            x = x + globals + vbCrLf + vbCrLf + functions;
+            x = x + vbCrLf + "}";
+            x = x + vbCrLf + "}";
+
+            x = DeWs(x);
+
+            convertForm = WriteOut(f, x, frmFile); // was never set: always False
             return convertForm;
-
         }
+        finally
+        {
+            FormContext.Current = null;
+        }
+    }
 
-        j = CodeSectionGlobalEndLoc(code);
-        var globals = ConvertGlobals(Left(code, j));
-        InitLocalFuncs(FormControls(fName, preamble) + ScanRefsFileToString(frmFile));
-        var functions = ConvertCodeSegment(Mid(code, j));
+    private static VbpInfo projectInfo;
 
-        x = "";
-        x = x + UsingEverything(fName) + vbCrLf;
-        x = x + vbCrLf;
-        x = x + "namespace " + AssemblyName() + ".Forms" + vbCrLf;
-        x = x + "{" + vbCrLf;
-        x = x + "public partial class " + fName + " : Window {" + vbCrLf;
-        x = x + "  private static " + fName + " _instance;" + vbCrLf;
-        x = x + "  public static " + fName + " instance { set { _instance = null; } get { return _instance ?? (_instance = new " + fName + "()); }}";
-        x = x + "  public static void Load() { if (_instance == null) { dynamic A = " + fName + ".instance; } }";
-        x = x + "  public static void Unload() { if (_instance != null) instance.Close(); _instance = null; }";
-        x = x + "  public " + fName + "() { InitializeComponent(); }" + vbCrLf;
-        x = x + vbCrLf;
-        x = x + vbCrLf;
-        x = x + globals + vbCrLf + vbCrLf + functions;
-        x = x + vbCrLf + "}";
-        x = x + vbCrLf + "}";
+    /// <summary>Facts of the configured .vbp (re-read when the project changes).</summary>
+    public static VbpInfo ProjectInfo()
+    {
+        if (projectInfo == null || !string.Equals(projectInfo.Path, VbpFile, StringComparison.OrdinalIgnoreCase)) projectInfo = VbpInfo.Load(VbpFile);
+        return projectInfo;
+    }
 
-        x = DeWs(x);
-
-        f = fName + ".xaml.cs";
-        convertForm = WriteOut(f, x, frmFile); // was never set: always False
-        return convertForm;
+    /// <summary>Class declaration, VB6 default instance and constructor of a converted form / user control.</summary>
+    public static string FormClassHeader(FormContext ctx, EmitResult designer)
+    {
+        var fName = ctx.ClassName;
+        var file = ctx.File;
+        var winForms = ctx.Ui == UiTarget.WinForms;
+        var isUserControl = file.IsUserControl || file.Root?.Type == "VB.PropertyPage";
+        var baseType = isUserControl ? (winForms ? "System.Windows.Forms.UserControl" : "System.Windows.Controls.UserControl") : winForms ? "System.Windows.Forms.Form" : "Window";
+        var n = vbCrLf;
+        var x = "public partial class " + fName + " : " + baseType + " {" + n;
+        if (!isUserControl)
+        {
+            var alive = winForms ? "_instance == null || _instance.IsDisposed" : "_instance == null";
+            x = x + "  private static " + fName + " _instance;" + n;
+            x = x + "  /// <summary>VB6 default instance: recreated after the form is unloaded.</summary>" + n;
+            x = x + "  public static " + fName + " instance { set { _instance = null; } get { if (" + alive + ") _instance = new " + fName + "(); return _instance; } }" + n;
+            x = x + "  public static void LoadForm() { if (" + alive + ") { var f = instance; " + (winForms ? "f.CreateControl(); " : "") + "} }" + n;
+            x = x + "  public static void UnloadForm() { if (_instance != null) _instance.Close(); _instance = null; }" + n;
+            if (!winForms)
+            {
+                x = x + "  public static void Load() { LoadForm(); }" + n;
+                x = x + "  public static void Unload() { UnloadForm(); }" + n;
+            }
+        }
+        x = x + "  public " + fName + "() {" + n;
+        x = x + "    InitializeComponent();" + n;
+        if (winForms) x = x + "    InitializeComponentExtras();" + n;
+        if (designer.ConstructorCode != "") x = x + "    " + Replace(designer.ConstructorCode, n, n + "    ") + n;
+        if (!isUserControl) x = x + "    " + (winForms ? "FormClosed" : "Closed") + " += (s, e) => { if (_instance == this) _instance = null; };" + n;
+        if (file.IsMdiChild)
+        {
+            var mdi = ctx.Project?.MdiFormName ?? "";
+            if (winForms && mdi != "") x = x + "    MdiParent = " + mdi + ".instance;" + n;
+            else x = x + "    // TODO: VB6 MDI child" + (mdi != "" ? " of " + mdi : "") + (winForms ? "" : " (WPF has no MDI)") + n;
+        }
+        var init = ctx.RootPrefix + "_Initialize";
+        if (ctx.Handlers.Contains(init)) x = x + "    " + ctx.ExactHandler(init) + "();" + n;
+        x = x + "  }" + n;
+        if (isUserControl)
+        {
+            var pb = "Vb6ToCSharp.UpgradeHelpers.PropertyBag";
+            if (!ctx.Handlers.Contains(ctx.RootPrefix + "_InitProperties")) x = x + "  public void InitProperties() { }" + n;
+            if (!ctx.Handlers.Contains(ctx.RootPrefix + "_ReadProperties")) x = x + "  public void ReadProperties(" + pb + " bag) { }" + n;
+            if (!ctx.Handlers.Contains(ctx.RootPrefix + "_WriteProperties")) x = x + "  public void WriteProperties(" + pb + " bag) { }" + n;
+        }
+        if (designer.CodeMembers != "") x = x + designer.CodeMembers;
+        return x;
     }
 
     public static bool ConvertModule(string basFile)
@@ -1146,10 +1221,7 @@ public static class ModConvert
             SubParamDecl(returnVariable, retType, "False", false, true); // VB6 passed False to the String asArray parameter
         }
 
-        if (IsEvent(asName))
-        {
-            res = EventStub(asName) + res;
-        }
+        res = EventAdapters.Build(asName, res) + res; // .NET-signature adapter forwarding to the VB6-signature handler
         var convertPrototype = Trim(res);
         return convertPrototype;
     }

@@ -95,8 +95,15 @@ public sealed class VbControl
         byName[p.Name] = p;
     }
 
-    public bool Has(string name) => byName.ContainsKey(name);
-    public VbProperty Get(string name) => byName.TryGetValue(name, out var p) ? p : null;
+    public bool Has(string name) => Get(name) != null;
+
+    /// <summary>Property by name; <c>A.B.Width</c> also finds <c>A.B.Object.Width</c> (VB6 prefixes names that clash with the extender).</summary>
+    public VbProperty Get(string name)
+    {
+        if (byName.TryGetValue(name, out var p)) return p;
+        var dot = name.LastIndexOf('.');
+        return byName.TryGetValue(dot < 0 ? "Object." + name : name.Substring(0, dot) + ".Object" + name.Substring(dot), out p) ? p : null;
+    }
     public string Text(string name, string def = "") => Get(name)?.Text ?? def;
     public double Num(string name, double def = 0) => Get(name)?.Number(def) ?? def;
     public bool Bool(string name, bool def = false) => Get(name)?.Bool(def) ?? def;

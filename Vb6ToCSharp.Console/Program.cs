@@ -17,12 +17,13 @@ Commands:
   forms                Convert the project's forms
   modules              Convert the project's modules
   classes              Convert the project's classes
-  file <file>          Convert one .bas/.cls/.frm (a bare name is taken from the project folder)
+  usercontrols         Convert the project's user controls (.ctl)
+  file <file>          Convert one .bas/.cls/.frm/.ctl (a bare name is taken from the project folder)
   scan                 Scan the project's references
   support [project|files]
                        Generate the project file and/or the support files (default: both)
   lint [file]          Lint one file (bare name: project folder) or the whole project
-  config               Show the settings; with --vbp/--out/--assembly, save them to the INI
+  config               Show the settings; with --vbp/--out/--assembly/--ui, save them to the INI
   help                 Show this help
 
 Options:
@@ -30,6 +31,7 @@ Options:
   --vbp <file>         Project file         (overrides the INI for this run)
   --out <folder>       Output folder        (overrides the INI for this run)
   --assembly <name>    Assembly name        (overrides the INI for this run)
+  --ui <wpf|winforms>  UI of converted forms (overrides the INI for this run; default WPF)
   --quiet              No progress output";
 
     [STAThread]
@@ -57,6 +59,7 @@ Options:
     {
         var positional = new List<string>();
         string ini = null, vbp = null, output = null, assembly = null;
+        UiTarget? ui = null;
         var quiet = false;
         for (var i = 0; i < args.Length; i++)
         {
@@ -66,6 +69,10 @@ Options:
                 case "--vbp": vbp = FullPath(Value(args, ref i)); break;
                 case "--out": output = FullPath(Value(args, ref i)); break;
                 case "--assembly": assembly = Value(args, ref i); break;
+                case "--ui":
+                    var u = Value(args, ref i);
+                    ui = ModConfig.ParseUiTarget(u) ?? throw new UsageException("Unknown UI target: " + u + " (use wpf or winforms).");
+                    break;
                 case "--quiet": quiet = true; break;
                 case "-h": case "--help": case "/?": positional.Insert(0, "help"); break;
                 default:
@@ -91,9 +98,9 @@ Options:
 
         if (command == "config")
         {
-            return Config(vbp, output, assembly);
+            return Config(vbp, output, assembly, ui);
         }
-        ModConfig.OverrideSettings(vbp, output, assembly);
+        ModConfig.OverrideSettings(vbp, output, assembly, ui);
 
         switch (command)
         {
@@ -107,6 +114,8 @@ Options:
                 return ConvertList(ModProjectFiles.VbpModules(ModConfig.VbpFile));
             case "classes":
                 return ConvertList(ModProjectFiles.VbpClasses(ModConfig.VbpFile));
+            case "usercontrols":
+                return ConvertList(ModProjectFiles.VbpUserControls(ModConfig.VbpFile));
             case "file":
                 if (argument == "") throw new UsageException("Enter a file to convert.");
                 if (!ConfigValid()) return ExitFailed;
@@ -130,16 +139,17 @@ Options:
         }
     }
 
-    private static int Config(string vbp, string output, string assembly)
+    private static int Config(string vbp, string output, string assembly, UiTarget? ui)
     {
-        if (vbp != null || output != null || assembly != null)
+        if (vbp != null || output != null || assembly != null || ui != null)
         {
-            ModConfig.SaveSettings(vbp, output, assembly);
+            ModConfig.SaveSettings(vbp, output, assembly, ui);
         }
         Console.WriteLine("Settings file:  " + ModConfig.IniFile());
         Console.WriteLine("Project file:   " + ModConfig.VbpFile);
         Console.WriteLine("Output folder:  " + ModConfig.OutputFolder());
         Console.WriteLine("Assembly name:  " + ModConfig.AssemblyName());
+        Console.WriteLine("UI target:      " + ModConfig.Ui);
         return ExitOk;
     }
 

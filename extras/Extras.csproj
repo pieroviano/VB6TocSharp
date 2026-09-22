@@ -1,27 +1,33 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-
-	<PropertyGroup>
-		<TargetFramework>net48</TargetFramework>
-		<UseWindowsForms>true</UseWindowsForms>
-		<PackageId>Net4x.$(MSBuildProjectName)</PackageId>
-		<PackageOutputPath>$(SolutionDir)Packages\</PackageOutputPath>
-		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-	</PropertyGroup>
-
-	<ItemGroup>
-		<Compile Remove="vb.net\**" />
-		<EmbeddedResource Remove="vb.net\**" />
-		<None Remove="vb.net\**" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<Reference Include="Microsoft.CSharp" />
-		<Reference Include="Microsoft.VisualBasic.Compatibility" />
-		<Reference Include="System.Security" />
-		<Reference Include="System.Web" />
-	</ItemGroup>
-	<ItemGroup>
-		<PackageReference Include="Net4x.NuGetUtility" Version="$(NuGetUtilityVersion)" PrivateAssets="All" />
-		<PackageReference Include="VisualBasic.PowerPacks.Vs" Version="1.0.0" />
-	</ItemGroup>
+<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <Version>$(VersionPrefix).$(VersionSuffix)</Version>
+        <TargetFramework>net48</TargetFramework>
+        <UseWindowsForms>true</UseWindowsForms>
+        <PackageId>Net4x.$(MSBuildProjectName)</PackageId>
+        <PackageOutputPath>$(SolutionDir)Packages\</PackageOutputPath>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    </PropertyGroup>
+    <ItemGroup>
+        <Compile Remove="vb.net\**" />
+        <EmbeddedResource Remove="vb.net\**" />
+        <None Remove="vb.net\**" />
+    </ItemGroup>
+    <ItemGroup>
+        <Reference Include="Microsoft.CSharp" />
+        <Reference Include="Microsoft.VisualBasic.Compatibility" />
+        <Reference Include="System.Security" />
+        <Reference Include="System.Web" />
+    </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="Net4x.NuGetUtility" Version="$(NuGetUtilityVersion)" PrivateAssets="All" />
+        <PackageReference Include="VisualBasic.PowerPacks.Vs" Version="1.0.0" />
+    </ItemGroup>
+    <PropertyGroup>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+    </PropertyGroup>
+    <ItemGroup>
+        <Content Include="README.md" Link="README.md" Pack="true" PackagePath="\README.md" />
+        <Content Include="$(SolutionDir)License.txt" Link="License.txt" Pack="true" PackagePath="\License.txt" Condition="Exists('$(SolutionDir)License.txt')" />
+    </ItemGroup>
 </Project>

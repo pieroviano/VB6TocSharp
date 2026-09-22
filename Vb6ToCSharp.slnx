@@ -2,16 +2,17 @@
   <Folder Name="/Libraries/">
     <Project Path="Extras/Extras.csproj" />
     <Project Path="Vb6ToCSharp.Library/Vb6ToCSharp.Library.csproj" />
+    <Project Path="Vb6ToCSharp.UpgradeHelpers/Vb6ToCSharp.UpgradeHelpers.csproj" />
   </Folder>
   <Folder Name="/Solution Items/">
     <File Path=".gitignore" />
     <File Path="Directory.Build.Props" />
     <File Path="Directory.Nuget.Props" />
     <File Path="NuGet.Config" />
-    <File Path="README.md" />
   </Folder>
   <Folder Name="/Tests/">
     <Project Path="Vb6ToCSharp.Tests/Vb6ToCSharp.Tests.csproj" Id="40236d1d-7258-4a03-ae4e-56a321772ae1" />
+    <Project Path="Vb6ToCSharp.UpgradeHelpers.Tests/Vb6ToCSharp.UpgradeHelpers.Tests.csproj" />
   </Folder>
   <Project Path="Vb6ToCSharp/Vb6ToCSharp.csproj" Id="92f75129-0ec1-47ba-85a7-e47f9eb140fd" />
   <Project Path="Vb6ToCSharp.Console/Vb6ToCSharp.Console.csproj" />

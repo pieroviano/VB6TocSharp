@@ -13,6 +13,7 @@ public static class ModUsingEverything
 {
     // Option Explicit
     private static string everything = "";
+    private static UiTarget everythingUi;
     private const string vb6Compat = "Microsoft.VisualBasic.Compatibility.VB6";
 
 
@@ -33,8 +34,9 @@ public static class ModUsingEverything
             r = r + n + "";
         }
 
-        if (everything == "")
+        if (everything == "" || everythingUi != Ui)
         {
+            everythingUi = Ui;
             e = e + m + "using VB6 = " + vb6Compat + ";";
             e = e + n + "using System.Runtime.InteropServices;";
             e = e + n + "using static VBExtension;";
@@ -42,8 +44,6 @@ public static class ModUsingEverything
             e = e + n + "using Microsoft.VisualBasic;";
 
             e = e + n + "using System;";
-            e = e + n + "using System.Windows;";
-            e = e + n + "using System.Windows.Controls;";
             e = e + n + "using static System.DateTime;";
             e = e + n + "using static System.Math;";
 
@@ -77,18 +77,35 @@ public static class ModUsingEverything
             e = e + n + "using System.Linq;";
             e = e + n + "using System.Text;";
             e = e + n + "using System.Threading.Tasks;";
-            e = e + n + "using System.Windows;";
-            e = e + n + "using System.Windows.Controls;";
-            e = e + n + "using System.Windows.Data;";
-            e = e + n + "using System.Windows.Documents;";
-            e = e + n + "using System.Windows.Input;";
-            e = e + n + "using System.Windows.Media;";
-            e = e + n + "using System.Windows.Media.Imaging;";
-            e = e + n + "using System.Windows.Shapes;";
+            if (Ui == UiTarget.WinForms)
+            {
+                // WPF namespaces would make Button, TextBox, Label, Application… ambiguous
+                e = e + n + "using System.Drawing;";
+                e = e + n + "using System.Windows.Forms;";
+                e = e + n + "using Vb6ToCSharp.UpgradeHelpers;";
+                e = e + n + "using Vb6ToCSharp.UpgradeHelpers.WinForms;";
+            }
+            else
+            {
+                e = e + n + "using System.Windows;";
+                e = e + n + "using System.Windows.Controls;";
+                e = e + n + "using System.Windows.Data;";
+                e = e + n + "using System.Windows.Documents;";
+                e = e + n + "using System.Windows.Input;";
+                e = e + n + "using System.Windows.Media;";
+                e = e + n + "using System.Windows.Media.Imaging;";
+                e = e + n + "using System.Windows.Shapes;";
+                e = e + n + "using Vb6ToCSharp.UpgradeHelpers;";
+                e = e + n + "using Vb6ToCSharp.UpgradeHelpers.Wpf;";
+            }
 
             e = e + n;
 
             e = e + n + "using " + AssemblyName() + ".Forms;";
+            if (VbpUserControls(VbpFile) != "")
+            {
+                e = e + n + "using " + AssemblyName() + ".UserControls;";
+            }
 
             var path = FilePath(VbpFile);
             foreach (var iterL in Split(VbpModules(VbpFile), vbCrLf))

@@ -10,7 +10,7 @@
         <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
         <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
         <DontConvert>False</DontConvert>
-        <Copyright>Copyright 2021</Copyright>
+        <Copyright>Copyright 2026</Copyright>
         <UseWPF>true</UseWPF>
         <LangVersion>latest</LangVersion>
     </PropertyGroup>

@@ -9,6 +9,9 @@ using static Vb6ToCSharp.Modules.ModUtils;
 
 namespace Vb6ToCSharp.Modules;
 
+/// <summary>UI back-end of converted forms.</summary>
+public enum UiTarget { Wpf, WinForms }
+
 public static class ModConfig
 {
     // Option Explicit
@@ -21,18 +24,22 @@ public static class ModConfig
     private static string mVbpFile = "";
     private static string mOutputFolder = "";
     private static string mAssemblyName = "";
+    private static UiTarget mUiTarget = UiTarget.Wpf;
     private static bool loaded = false;
     private static string oVbpFile, oOutputFolder, oAssemblyName; // in-memory overrides of the INI values (null = use INI)
+    private static UiTarget? oUiTarget;
     public static bool hush = false;
     public const string iniSectionSettings = "Settings";
     public const string iniKeyVbpFile = "VBPFile";
     public const string iniKeyOutputFolder = "OutputFolder";
     public const string iniKeyAssemblyName = "AssemblyName";
+    public const string iniKeyUiTarget = "UITarget";           // WPF (default) | WinForms
 
     // Project-specific conversion rules (all optional, empty by default)
     public const string iniSectionFormRenames = "FormRenames";   // <vbp Form= entry>=<new name>
     public const string iniSectionDataTypes = "DataTypes";       // <VB type>=<C# type>
     public const string iniSectionControls = "Controls";         // <VB control type>=<WPF type>[;<container 0|1>;<default property>;<features>]
+    public const string iniSectionWinFormsControls = "WinFormsControls"; // <VB control type>=<WinForms type>[;<container 0|1>;<default property>]
     public const string iniSectionPostCodeLine = "PostCodeLine"; // <n>=<rule>, see ModProjectSpecific
     private static readonly Dictionary<string, List<KeyValuePair<string, string>>> sections = new Dictionary<string, List<KeyValuePair<string, string>>>();
 
@@ -72,21 +79,44 @@ public static class ModConfig
     }
 
     /// <summary>Overrides the INI settings for this process only (null keeps the INI value); reloads settings.</summary>
-    public static void OverrideSettings(string vbpFile = null, string outputFolder = null, string assemblyName = null)
+    public static void OverrideSettings(string vbpFile = null, string outputFolder = null, string assemblyName = null, UiTarget? uiTarget = null)
     {
         oVbpFile = vbpFile;
         oOutputFolder = outputFolder;
         oAssemblyName = assemblyName;
+        oUiTarget = uiTarget;
         LoadSettings(true);
     }
 
     /// <summary>Writes the settings to the INI file (null leaves a key unchanged) and reloads them.</summary>
-    public static void SaveSettings(string vbpFile, string outputFolder, string assemblyName)
+    public static void SaveSettings(string vbpFile, string outputFolder, string assemblyName, UiTarget? uiTarget = null)
     {
         if (vbpFile != null) ModIni.IniWrite(iniSectionSettings, iniKeyVbpFile, vbpFile, IniFile());
         if (outputFolder != null) ModIni.IniWrite(iniSectionSettings, iniKeyOutputFolder, outputFolder, IniFile());
         if (assemblyName != null) ModIni.IniWrite(iniSectionSettings, iniKeyAssemblyName, assemblyName, IniFile());
+        if (uiTarget != null) ModIni.IniWrite(iniSectionSettings, iniKeyUiTarget, uiTarget.ToString(), IniFile());
         LoadSettings(true);
+    }
+
+    /// <summary>Parses a UI target name (WPF / WinForms, case-insensitive); null when unknown.</summary>
+    public static UiTarget? ParseUiTarget(string s)
+    {
+        switch ((s ?? "").Trim().ToLowerInvariant())
+        {
+            case "wpf": return UiTarget.Wpf;
+            case "winforms": case "windowsforms": case "forms": return UiTarget.WinForms;
+            default: return null;
+        }
+    }
+
+    /// <summary>UI back-end converted forms are emitted for.</summary>
+    public static UiTarget Ui
+    {
+        get
+        {
+            LoadSettings();
+            return mUiTarget;
+        }
     }
 
     /// <summary>Checks the settings a conversion needs; returns the problem, or "" when valid.</summary>
@@ -120,6 +150,7 @@ public static class ModConfig
         mVbpFile = ModIni.IniRead(iniSectionSettings, iniKeyVbpFile, IniFile());
         mOutputFolder = ModIni.IniRead(iniSectionSettings, iniKeyOutputFolder, IniFile());
         mAssemblyName = ModIni.IniRead(iniSectionSettings, iniKeyAssemblyName, IniFile());
+        mUiTarget = oUiTarget ?? ParseUiTarget(ModIni.IniRead(iniSectionSettings, iniKeyUiTarget, IniFile())) ?? UiTarget.Wpf;
         mVbpFile = oVbpFile ?? mVbpFile;
         mOutputFolder = oOutputFolder ?? mOutputFolder;
         mAssemblyName = oAssemblyName ?? mAssemblyName;
@@ -205,6 +236,9 @@ public static class ModConfig
                 break;
             case ".frm":
                 outputSubFolder = "Forms\\";
+                break;
+            case ".ctl":
+                outputSubFolder = "UserControls\\";
                 break;
             default:
                 outputSubFolder = "";

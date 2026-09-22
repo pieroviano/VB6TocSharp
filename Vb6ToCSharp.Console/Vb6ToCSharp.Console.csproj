@@ -6,7 +6,7 @@
         <TargetFramework>net48</TargetFramework>
         <RootNamespace>Vb6ToCSharp.ConsoleApp</RootNamespace>
         <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
-        <Copyright>Copyright 2021</Copyright>
+        <Copyright>Copyright 2026</Copyright>
         <LangVersion>latest</LangVersion>
         <IsPackable>false</IsPackable>
     </PropertyGroup>
