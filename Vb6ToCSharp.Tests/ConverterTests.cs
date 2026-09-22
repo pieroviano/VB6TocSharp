@@ -216,7 +216,7 @@ public class ConverterTests : IClassFixture<ConverterFixture>
         Assert.True(ok);
         Assert.Empty(notes);
         var cs = File.ReadAllText(Out(fixture, @"Modules\modA.cs"));
-        Assert.Contains("static class modA", cs);
+        Assert.Contains("public static class modA", cs);
         Assert.Contains("Twice(", cs);
         Assert.Contains("Add2(", cs);
     }

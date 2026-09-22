@@ -9,7 +9,7 @@ using static Vb6ToCSharp.Modules.ModUtils;
 
 namespace Vb6ToCSharp.Modules;
 
-static class ModConfig
+public static class ModConfig
 {
     // Option Explicit
     public const int spIndent = 2;

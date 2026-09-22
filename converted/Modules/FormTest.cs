@@ -4,7 +4,7 @@ using static Vb6ToCSharp.Modules.ModConvert;
 
 namespace Vb6ToCSharp.Modules;
 
-static class FormTest
+public static class FormTest
 {
     // Option Explicit
 

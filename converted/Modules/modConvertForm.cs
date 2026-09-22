@@ -13,7 +13,7 @@ using static Vb6ToCSharp.VbExtension;
 
 namespace Vb6ToCSharp.Modules;
 
-static class ModConvertForm
+public static class ModConvertForm
 {
     public static string eventStubs = "";
 

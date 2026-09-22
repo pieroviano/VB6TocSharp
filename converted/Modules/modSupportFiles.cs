@@ -11,7 +11,7 @@ using static Vb6ToCSharp.Modules.ModUtils;
 
 namespace Vb6ToCSharp.Modules;
 
-static class ModSupportFiles
+public static class ModSupportFiles
 {
     // Option Explicit
 

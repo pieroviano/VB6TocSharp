@@ -14,7 +14,7 @@ using static Vb6ToCSharp.VbExtension;
 
 namespace Vb6ToCSharp.Modules;
 
-static class ModQuickLint
+public static class ModQuickLint
 {
     // Option Explicit
     private const int idnt = 2;

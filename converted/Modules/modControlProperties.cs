@@ -1,6 +1,6 @@
 namespace Vb6ToCSharp.Modules;
 
-static class ModControlProperties
+public static class ModControlProperties
 {
     // Option Explicit
 

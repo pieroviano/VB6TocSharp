@@ -15,7 +15,7 @@ using static Vb6ToCSharp.VbExtension;
 
 namespace Vb6ToCSharp.Modules;
 
-static class ModShell
+public static class ModShell
 {
     // Option Explicit
     public const int swHide = 0;

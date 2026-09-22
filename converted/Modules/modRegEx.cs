@@ -4,7 +4,7 @@ using static Vb6ToCSharp.VbExtension;
 
 namespace Vb6ToCSharp.Modules;
 
-static class ModRegEx
+public static class ModRegEx
 {
     // Option Explicit
     private static dynamic mRegEx = null;

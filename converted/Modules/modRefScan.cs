@@ -15,7 +15,7 @@ using static Vb6ToCSharp.VbExtension;
 
 namespace Vb6ToCSharp.Modules;
 
-static class ModRefScan
+public static class ModRefScan
 {
     private static string outRes = "";
     private static string cFuncRefName = "";

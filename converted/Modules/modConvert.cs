@@ -21,7 +21,7 @@ using static Vb6ToCSharp.VbExtension;
 
 namespace Vb6ToCSharp.Modules;
 
-static class ModConvert
+public static class ModConvert
 {
     // Option Explicit
     public const string withMark = "_WithVar_";
@@ -200,7 +200,7 @@ static class ModConvert
         var x = "";
         x = x + UsingEverything(fName) + vbCrLf;
         x = x + vbCrLf;
-        x = x + "static class " + fName + " {" + vbCrLf;
+        x = x + "public static class " + fName + " {" + vbCrLf;
         x = x + NlTrim(globals + vbCrLf + vbCrLf + functions);
         x = x + vbCrLf + "}";
 

@@ -5,7 +5,7 @@ using static Microsoft.VisualBasic.FileSystem;
 
 namespace Vb6ToCSharp.Modules;
 
-static class ModDirStack
+public static class ModDirStack
 {
     // Option Explicit
     private static Collection dirStack = null; // PushDir creates it with its "n" counter (an empty one made PushDir throw)

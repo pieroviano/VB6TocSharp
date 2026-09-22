@@ -6,7 +6,7 @@ using static Vb6ToCSharp.VbExtension;
 
 namespace Vb6ToCSharp.Modules;
 
-static class ModConvertUtils
+public static class ModConvertUtils
 {
     // Option Explicit
     private static string eolComment = "";

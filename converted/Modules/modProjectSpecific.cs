@@ -8,7 +8,7 @@ using static Vb6ToCSharp.VbExtension;
 
 namespace Vb6ToCSharp.Modules;
 
-static class ModProjectSpecific
+public static class ModProjectSpecific
 {
     // Option Explicit
 

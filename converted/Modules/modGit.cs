@@ -10,7 +10,7 @@ using static Vb6ToCSharp.Modules.ModUtils;
 
 namespace Vb6ToCSharp.Modules;
 
-static class ModGit
+public static class ModGit
 {
     // Option Explicit
     public const string status = "status ";

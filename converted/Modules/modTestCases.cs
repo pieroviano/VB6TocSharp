@@ -4,7 +4,7 @@ using static Vb6ToCSharp.Modules.ModGit;
 
 namespace Vb6ToCSharp.Modules;
 
-static class ModTestCases
+public static class ModTestCases
 {
     // Option Explicit
     // This module exists solely to list test conversion caess to make sure the converter can convert itself containing them.

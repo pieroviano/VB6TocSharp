@@ -9,7 +9,7 @@ using static Vb6ToCSharp.VbExtension;
 
 namespace Vb6ToCSharp.Modules;
 
-static class ModTextFiles
+public static class ModTextFiles
 {
     // Option Explicit
     //@NO-LINT-DEPR

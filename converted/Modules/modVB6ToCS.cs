@@ -12,7 +12,7 @@ using static Vb6ToCSharp.VbExtension;
 
 namespace Vb6ToCSharp.Modules;
 
-static class ModVb6ToCs
+public static class ModVb6ToCs
 {
     // Option Explicit
 

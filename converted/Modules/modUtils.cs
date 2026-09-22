@@ -15,7 +15,7 @@ using static Vb6ToCSharp.VbExtension;
 
 namespace Vb6ToCSharp.Modules;
 
-static class ModUtils
+public static class ModUtils
 {
     // Option Explicit
     public const string patToken = "([a-zA-Z_][a-zA-Z_0-9]*)";

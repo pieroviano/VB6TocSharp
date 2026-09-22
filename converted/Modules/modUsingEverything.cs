@@ -9,7 +9,7 @@ using static Vb6ToCSharp.Modules.ModUtils;
 
 namespace Vb6ToCSharp.Modules;
 
-static class ModUsingEverything
+public static class ModUsingEverything
 {
     // Option Explicit
     private static string everything = "";

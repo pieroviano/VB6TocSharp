@@ -10,7 +10,7 @@ using static Vb6ToCSharp.VbExtension;
 
 namespace Vb6ToCSharp.Modules;
 
-static class ModSubTracking
+public static class ModSubTracking
 {
     // Option Explicit
     public class Variable
