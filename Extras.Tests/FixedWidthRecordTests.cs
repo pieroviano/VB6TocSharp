@@ -83,4 +83,20 @@ public class FixedWidthRecordTests
         r.fromString(line);
         Assert.Equal(line, r.ToString());
     }
+
+    [Fact]
+    public void RecordField_WrittenAsAFieldInitializer_StillSetsTheWidth()
+    {
+        // [RecordField(max = 4)] is the form the documentation uses.
+        Assert.Equal("0426HD", new DocumentedFixedRecord { Word = "0426", Cycle = "HD" }.ToString());
+    }
+
+    [Fact]
+    public void FromString_StripsTheStartAndTerminatorItWrote()
+    {
+        var r = new WrappedFixedRecord();
+        r.fromString("<ab >");
+        Assert.Equal("ab ", r.Abc);
+        Assert.Equal("<ab >", r.ToString());
+    }
 }

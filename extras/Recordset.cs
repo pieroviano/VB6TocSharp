@@ -22,8 +22,17 @@ public class RecordSet
     OleDbConnection connection;
     OleDbDataAdapter adapter;
     DataTable table;
-    DataTable filteredTable;
+    // The rows the Filter selects, or null when no filter is active. They are the table's own rows,
+    // so writing through Fields still reaches the table.
+    DataRow[] filteredRows;
     string mFilter;
+
+    private IEnumerable<DataRow> Rows()
+    {
+        if (filteredRows != null) return filteredRows;
+        if (table?.Rows == null) return new DataRow[0];
+        return table.Rows.Cast<DataRow>();
+    }
 
     public RecordSet() { }
 
@@ -53,7 +62,8 @@ public class RecordSet
         connection = null;
         adapter = null;
         table = null;
-        filteredTable = null;
+        filteredRows = null;
+        mFilter = null;
     }
 
     public static void sqlExecutionError(string mSQL, Exception e)
@@ -76,7 +86,7 @@ public class RecordSet
 
     public int AbsolutePosition { get; set; }
     public int Position { get => AbsolutePosition; set => AbsolutePosition = value; }
-    public int RecordCount => table == null ? 0 : table.Rows == null ? 0 : table.Rows.Count;
+    public int RecordCount => filteredRows != null ? filteredRows.Length : table?.Rows?.Count ?? 0;
     public bool EOF => AbsolutePosition >= RecordCount;
     public bool BOF => AbsolutePosition == 0;
 
@@ -86,13 +96,14 @@ public class RecordSet
     public int MoveFirst() { return AbsolutePosition = 0; }
     public int MoveNext() { return ++AbsolutePosition < RecordCount ? AbsolutePosition : AbsolutePosition = RecordCount; }
     public int MovePrevious() { return --AbsolutePosition >= 0 ? AbsolutePosition : AbsolutePosition = 0; }
-    public int MoveLast() { return AbsolutePosition = RecordCount - 1; }
+    public int MoveLast() { return AbsolutePosition = RecordCount == 0 ? 0 : RecordCount - 1; }
 
     public RecordsetFields Fields
     {
         get
         {
-            if (AbsolutePosition >= 0 && AbsolutePosition < RecordCount) return new RecordsetFields(table.Rows[AbsolutePosition]);
+            if (AbsolutePosition >= 0 && AbsolutePosition < RecordCount)
+                return new RecordsetFields(filteredRows != null ? filteredRows[AbsolutePosition] : table.Rows[AbsolutePosition]);
             throw new ArgumentOutOfRangeException("Either EOF or BOF is true.");
         }
     }
@@ -125,9 +136,7 @@ public class RecordSet
 
     public List<List<dynamic>> GetRows()
     {
-        var tableEnumerable = table.Rows.Cast<DataRow>();
-        var tableList = tableEnumerable.ToArray().ToList();
-        return tableList.ToList().Select((r) => r.ItemArray.ToList()).ToList();
+        return Rows().Select(r => r.ItemArray.ToList()).ToList();
     }
 
     public string Filter
@@ -135,24 +144,27 @@ public class RecordSet
         get => mFilter;
         set
         {
+            // Changing the filter changes what the recordset sees, so it starts again on the first
+            // record of the new view.
             mFilter = value;
-            if (string.IsNullOrEmpty(value))
-            {
-                filteredTable = null;
-                return;
-            }
-
-            filteredTable = table.Select(mFilter).CopyToDataTable();
+            filteredRows = string.IsNullOrEmpty(value) || table == null ? null : table.Select(value);
+            AbsolutePosition = 0;
         }
     }
 
-    internal bool Find(string v)
+    // Positions on the first record matching the criteria, searching only what the Filter shows.
+    internal bool Find(string criteria)
     {
-        var temp = table.Select(mFilter).CopyToDataTable();
-        if (temp.Rows.Count == 0) return false;
-        var x = table.Rows.IndexOf(temp.Rows[0]);
-        AbsolutePosition = x;
-        return true;
+        if (table == null) return false;
+        var view = Rows().ToList();
+        foreach (var match in table.Select(criteria))
+        {
+            var x = view.IndexOf(match);
+            if (x < 0) continue;
+            AbsolutePosition = x;
+            return true;
+        }
+        return false;
     }
 
     private void Open()
@@ -166,11 +178,12 @@ public class RecordSet
         var result = new DataSet();
         connection = new OleDbConnection(ConnectionString(Database));
         var command = new OleDbCommand(Source, connection);
-        foreach (var key in Parameters.Keys)
+        foreach (var key in Parameters?.Keys ?? Enumerable.Empty<dynamic>())
         {
             var param = command.CreateParameter();
             param.ParameterName = key;
             param.Value = Parameters[key];
+            command.Parameters.Add(param);
         }
         adapter = new OleDbDataAdapter(command);
         try
@@ -210,6 +223,9 @@ public class RecordSet
 
     public void AddNew()
     {
+        // The new row goes into the table itself: drop any filter, which would hide it.
+        mFilter = null;
+        filteredRows = null;
         var newRow = table.NewRow();
         table.Rows.InsertAt(newRow, table.Rows.Count);
         AbsolutePosition = table.Rows.Count - 1;

@@ -160,4 +160,12 @@ public class CsvRecordTests
         Assert.Equal("Ann", read[0].Name);
         Assert.Equal("Bob, B", read[1].Name);
     }
+
+    [Fact]
+    public void ToString_RendersTheCsvLine()
+    {
+        // CsvRecord.md documents record.ToString() as the way to render a record.
+        object r = Sample();
+        Assert.Equal("Ann,NY,1", r.ToString());
+    }
 }

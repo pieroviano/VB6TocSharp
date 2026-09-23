@@ -59,3 +59,10 @@ public class SampleCsvRecord : CsvRecord
     public List<string> ExtraValues => extraFields;
     public int DeclaredCount() => FieldInfoListCount();
 }
+
+/// <summary>Uses the attribute form the docs show: <c>[RecordField(max = 4)]</c>.</summary>
+public class DocumentedFixedRecord : FixedWidthRecord
+{
+    [RecordField(max = 4)] public string Word = "";
+    [RecordField(max = 2)] public string Cycle = "";
+}

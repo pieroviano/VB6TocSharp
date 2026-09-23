@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using static Extras.CsvHandler;
 
@@ -23,6 +24,7 @@ public abstract class CsvRecord : FieldInfoListSource
 
     protected string getFieldByIndex(int i)
     {
+        if (i < 0) throw new ArgumentOutOfRangeException(nameof(i), i, "A field index cannot be negative.");
         var f = thisField(i);
         if (f != null) return "" + f.GetValue(this);
         var extraIdx = i - FieldInfoListCount();
@@ -32,6 +34,7 @@ public abstract class CsvRecord : FieldInfoListSource
 
     protected void setFieldByIndex(int i, string value)
     {
+        if (i < 0) throw new ArgumentOutOfRangeException(nameof(i), i, "A field index cannot be negative.");
         var f = thisField(i);
         if (f != null)
             f.SetValue(this, value);
@@ -43,12 +46,6 @@ public abstract class CsvRecord : FieldInfoListSource
         }
     }
 
-    new public string this[string i]
-    {
-        get => "" + thisField(i).GetValue(this);
-        set => thisField(i).SetValue(this, value);
-    }
-
     new public string this[int i]
     {
         get => getFieldByIndex(i);
@@ -56,24 +53,36 @@ public abstract class CsvRecord : FieldInfoListSource
     }
 
 
+    // The documented way to render a record (CsvRecord.md).
+    public override string ToString() { return ToLine(); }
+
     public string ToLine()
-    { return CsvLine(FieldInfoList().Select(f => f.GetValue(this).ToString()).Concat(extraFields).ToArray()); }
+    { return CsvLine(FieldInfoList().Select(f => "" + f.GetValue(this)).Concat(extraFields).ToArray()); }
 
     public void FromLine(string line)
     {
         var i = 0;
         foreach (var f in FieldInfoList()) f.SetValue(this, CsvField(line, i++));
         extraFields = new List<string>();
-        for (i = 0; i < CsvFieldCount(line) - FieldInfoListCount(); i++) extraFields.Add("");
+        // Undeclared trailing fields keep their values, so ToLine can write them back unchanged.
+        for (i = FieldInfoListCount(); i < CsvFieldCount(line); i++) extraFields.Add(CsvField(line, i));
     }
 
     public static List<T> FromCsvFile<T>(string csvContents) where T : CsvRecord, new()
     {
         var res = new List<T>();
+        var header = new T().HeaderLine();
+        var firstDataLine = true;
         foreach (var l in csvContents.Replace("\r", "").Split('\n'))
         {
             if (l == "") continue;
             if (l[0] == '#') continue;
+            // A leading line that is exactly this record's header - as ToCsvFile writes it - is not data.
+            if (firstDataLine)
+            {
+                firstDataLine = false;
+                if (l == header) continue;
+            }
             var item = new T();
             item.FromLine(l);
             res.Add(item);

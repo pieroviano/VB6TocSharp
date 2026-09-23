@@ -9,6 +9,9 @@
         <LangVersion>latest</LangVersion>
     </PropertyGroup>
     <ItemGroup>
+        <InternalsVisibleTo Include="Extras.Tests" />
+    </ItemGroup>
+    <ItemGroup>
         <PackageReference Include="Microsoft.CSharp" Version="4.7.0.$(VersionBuildSuffix)" />
         <PackageReference Include="Net4x.BaseTypes" Version="$(Net4xBaseTypesVersion).$(VersionBuildSuffix)" />
         <PackageReference Include="Net4x.NuGetUtility" Version="$(NuGetUtilityVersion)" PrivateAssets="All" />
