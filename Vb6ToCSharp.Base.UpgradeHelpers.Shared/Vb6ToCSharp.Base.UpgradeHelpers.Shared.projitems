@@ -1,0 +1,32 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+    <HasSharedItems>true</HasSharedItems>
+    <SharedGUID>{df55cd17-3fc6-4b6d-81fa-0be4ec680a5b}</SharedGUID>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration">
+    <!-- namespaces are shared with the UI packages: they stay Vb6ToCSharp.UpgradeHelpers.* -->
+    <Import_RootNamespace>Vb6ToCSharp.UpgradeHelpers</Import_RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)Arrays\ControlArrayBase.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Arrays\ControlArrayException.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Arrays\IndexedProperty.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Arrays\VB6Array.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)IVbUiBridge.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Internal\FileSystemListing.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Internal\PropertyCloner.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Internal\SystemColorTable.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Internal\VbCompare.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Interop\IOcxValueConverter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Interop\OcxHelper.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Interop\PropertyBag.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Model\FlexAlign.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Model\Twips.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Model\UnloadMode.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Model\Vb6Color.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Model\Vb6Keys.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)VbRuntime.cs" />
+  </ItemGroup>
+</Project>
