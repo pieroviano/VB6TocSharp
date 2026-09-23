@@ -1,6 +1,7 @@
 using System;
 using System.Data;
 using System.IO;
+using System.Linq;
 
 namespace Extras.Tests;
 
@@ -62,13 +63,14 @@ public class RecordSetTests
     }
 
     [Fact]
-    public void MovePrevious_StopsOnTheFirstRecord()
+    public void MovePrevious_StopsOneBeforeTheFirstRecord()
     {
         var rs = Open();
         rs.MoveLast();
         Assert.Equal(1, rs.MovePrevious());
         Assert.Equal(0, rs.MovePrevious());
-        Assert.Equal(0, rs.MovePrevious());
+        Assert.Equal(-1, rs.MovePrevious());
+        Assert.Equal(-1, rs.MovePrevious());
     }
 
     [Fact]
@@ -91,11 +93,32 @@ public class RecordSetTests
     public void Eof_IsTrueForAnEmptyRecordset() => Assert.True(Open(Empty()).EOF);
 
     [Fact]
-    public void Bof_IsTrueBeforeMovingOffTheFirstRecord()
+    public void Bof_IsTrueOnlyBeforeTheFirstRecord()
     {
         var rs = Open();
-        Assert.True(rs.BOF);
+        Assert.False(rs.BOF);
         rs.MoveNext();
+        Assert.False(rs.BOF);
+        rs.MoveFirst();
+        Assert.False(rs.BOF);
+        rs.MovePrevious();
+        Assert.True(rs.BOF);
+    }
+
+    [Fact]
+    public void Bof_AndEof_AreBothTrueForAnEmptyRecordset()
+    {
+        var rs = Open(Empty());
+        Assert.True(rs.BOF);
+        Assert.True(rs.EOF);
+    }
+
+    [Fact]
+    public void Bof_IsLeftBehindByMoveNext()
+    {
+        var rs = Open();
+        rs.MovePrevious();
+        Assert.Equal(0, rs.MoveNext());
         Assert.False(rs.BOF);
     }
 
@@ -112,6 +135,9 @@ public class RecordSetTests
     public void FieldNames_ListsTheColumnsInOrder() => Assert.Equal(new[] { "Id", "Name" }, Open().FieldNames);
 
     [Fact]
+    public void FieldNames_WithoutATable_IsEmpty() => Assert.Empty(new RecordSet().FieldNames);
+
+    [Fact]
     public void Fields_ReadsTheCurrentRow()
     {
         var rs = Open();
@@ -124,6 +150,14 @@ public class RecordSetTests
     {
         var rs = Open();
         rs.MoveNext(); rs.MoveNext(); rs.MoveNext();
+        Assert.Throws<ArgumentOutOfRangeException>(() => rs.Fields);
+    }
+
+    [Fact]
+    public void Fields_WhenBeforeTheFirstRecord_Throws()
+    {
+        var rs = Open();
+        rs.MovePrevious();
         Assert.Throws<ArgumentOutOfRangeException>(() => rs.Fields);
     }
 
@@ -312,4 +346,51 @@ public class RecordSetTests
         }
         finally { File.Delete(file); }
     }
+
+    [Fact]
+    public void Update_OnARecordsetWithNoAdapter_KeepsTheTableEdits()
+    {
+        var t = People();
+        var rs = Open(t);
+        rs.AddNew();
+        rs["Name"] = "Dot";
+        rs.Update();
+        Assert.False(rs.AddingRow);
+        Assert.Equal(4, t.Rows.Count);
+        Assert.Equal("Dot", t.Rows[3]["Name"]);
+    }
+
+    [Fact]
+    public void Delete_RemovesTheCurrentRecord()
+    {
+        var t = People();
+        var rs = Open(t);
+        rs.MoveNext();
+        rs.Delete();
+        Assert.Equal(2, rs.RecordCount);
+        Assert.Equal(new[] { "Ann", "Cid" }, t.Rows.Cast<DataRow>().Select(r => (string)r["Name"]));
+    }
+
+    [Fact]
+    public void Delete_WithAFilterActive_DropsTheRowFromBothViews()
+    {
+        var t = People();
+        var rs = Open(t);
+        rs.Filter = "Id > 1";
+        rs.Delete();
+        Assert.Equal(1, rs.RecordCount);
+        Assert.Equal("Cid", (string)rs["Name"]);
+        Assert.Equal(2, t.Rows.Count);
+    }
+
+    [Fact]
+    public void Delete_WhenPastTheLastRecord_Throws()
+    {
+        var rs = Open();
+        rs.MoveNext(); rs.MoveNext(); rs.MoveNext();
+        Assert.Throws<ArgumentOutOfRangeException>(() => rs.Delete());
+    }
+
+    [Fact]
+    public void Delete_OnAnEmptyRecordset_Throws() => Assert.Throws<ArgumentOutOfRangeException>(() => Open(Empty()).Delete());
 }

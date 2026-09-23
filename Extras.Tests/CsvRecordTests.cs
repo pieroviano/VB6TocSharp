@@ -168,4 +168,55 @@ public class CsvRecordTests
         object r = Sample();
         Assert.Equal("Ann,NY,1", r.ToString());
     }
+
+    [Fact]
+    public void HeaderLine_UsesTheNameTheAttributeDeclares()
+        => Assert.Equal("Total Amount,Due Date", new NamedFieldRecord().HeaderLine());
+
+    [Fact]
+    public void Indexer_FindsAFieldByItsDeclaredNameAndByItsMemberName()
+    {
+        var r = new NamedFieldRecord();
+        r["total amount"] = "10";
+        Assert.Equal("10", r.Total);
+        Assert.Equal("10", r["Total"]);
+    }
+
+    [Fact]
+    public void ARecordWithoutFieldDefinitions_IsAddressedByPosition()
+    {
+        // The usage CsvRecord.md documents under "Without Field Definitions".
+        var record = new CsvRecord();
+        record[0] = "field1";
+        record[1] = "field2 \"with quotes\"";
+        record[3] = "Field4";
+        Assert.Equal("field1,\"field2 \"\"with quotes\"\"\",,Field4", record.ToString());
+    }
+
+    [Fact]
+    public void ARecordWithoutFieldDefinitions_ReadsBackEveryField()
+    {
+        var record = new CsvRecord();
+        record.FromLine("a,b,c");
+        Assert.Equal("b", record[1]);
+        Assert.Equal("a,b,c", record.ToLine());
+    }
+
+    [Fact]
+    public void FromCsvFile_KeepsANewlineInsideAQuotedField()
+    {
+        var list = CsvRecord.FromCsvFile<SampleCsvRecord>("\"Ann\nA\",NY,1\r\nBob,LA,2\r\n");
+        Assert.Equal(2, list.Count);
+        Assert.Equal("Ann\nA", list[0].Name);
+        Assert.Equal("Bob", list[1].Name);
+    }
+
+    [Fact]
+    public void ToCsvFile_ThenFromCsvFile_RoundTripsAValueWithANewline()
+    {
+        var written = CsvRecord.ToCsvFile(new List<SampleCsvRecord> { new SampleCsvRecord { Name = "Ann\r\nA", City = "NY", Code = "1" } });
+        var read = CsvRecord.FromCsvFile<SampleCsvRecord>(written);
+        Assert.Single(read);
+        Assert.Equal("Ann\r\nA", read[0].Name);
+    }
 }

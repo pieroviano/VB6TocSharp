@@ -5,7 +5,9 @@ using static Extras.CsvHandler;
 
 namespace Extras;
 
-public abstract class CsvRecord : FieldInfoListSource
+// Concrete on purpose: a plain CsvRecord declares no fields and is addressed by position
+// (see CsvRecord.md), while a subclass declares its fields with [RecordField].
+public class CsvRecord : FieldInfoListSource
 {
     protected List<string> extraFields = new List<string>();
 
@@ -16,7 +18,7 @@ public abstract class CsvRecord : FieldInfoListSource
     {
         var S = "";
         if (Commented) S += "# ";
-        foreach (var f in FieldInfoList()) S += ProtectCsv(f.Name) + ",";
+        foreach (var f in FieldInfoList()) S += ProtectCsv(recordName(f)) + ",";
         if (S.Length > 0 && S[S.Length - 1] == ',') S = S.Substring(0, S.Length - 1);
         if (addNL) S += "\n";
         return S;
@@ -73,7 +75,7 @@ public abstract class CsvRecord : FieldInfoListSource
         var res = new List<T>();
         var header = new T().HeaderLine();
         var firstDataLine = true;
-        foreach (var l in csvContents.Replace("\r", "").Split('\n'))
+        foreach (var l in CsvRecords(csvContents))
         {
             if (l == "") continue;
             if (l[0] == '#') continue;

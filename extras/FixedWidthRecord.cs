@@ -1,5 +1,7 @@
 ﻿
 using System;
+using System.Reflection;
+using Extras.Model;
 
 namespace Extras;
 
@@ -13,7 +15,7 @@ public abstract class FixedWidthRecord : FieldInfoListSource
         var s = RecordStart;
         foreach (var f in FieldInfoList())
         {
-            var r = thisFieldMod(f.Name);
+            var r = f.GetCustomAttribute<RecordField>();
             var w = r.max;
             // An unset field is as good as an empty one: pad it, do not throw.
             s += ("" + f.GetValue(this) + new string(' ', w)).Substring(0, w);
@@ -31,7 +33,7 @@ public abstract class FixedWidthRecord : FieldInfoListSource
 
         foreach (var f in FieldInfoList())
         {
-            var r = thisFieldMod(f.Name);
+            var r = f.GetCustomAttribute<RecordField>();
             var w = r.max;
             // A line shorter than the record leaves the remaining fields blank rather than throwing,
             // and each field is assigned its own slice - not what is left of the line.

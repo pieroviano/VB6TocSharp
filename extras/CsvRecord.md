@@ -79,26 +79,35 @@ public string RDP = "";
 
 ## Operations
 
-### With Field Definitions
+### With field definitions
 
-```
-PayComm record = new PayComm()
+```c#
+PayComm record = new PayComm();
 record.Salesman = "field1";
 record["Lease"] = "field2 \"with quotes\"";
 record.Style = "Field4";
-string CsvLine = record.ToString(); // ==> field1,"field2 ""withquotes""",,field4 // ...
-PayComm recordCopy = new PayComm(record.ToString());
+string CsvLine = record.ToString();       // ==> field1,"field2 ""with quotes""",,Field4, ...
 
-List<PayComm> fileContents = CsvRecord.FromCsvFile(csvFileContents); // static method call.  File IO is up to you.
-String newCsvFileContents = ToCsvFile(fileContents); // Renders list of records as a string.  File IO is up to you.
+PayComm recordCopy = new PayComm();
+recordCopy.FromLine(CsvLine);
+
+// File IO is up to you.
+List<PayComm> fileContents = CsvRecord.FromCsvFile<PayComm>(csvFileContents);
+string newCsvFileContents = CsvRecord.ToCsvFile(fileContents, addHeader: true);
 ```
 
-### Without Field Definitions
+- `ToString()` and `ToLine()` render the record; `FromLine()` reads one back.
+- `HeaderLine()` lists the field names - the `name` the attribute declares, else the member name.
+  `FromCsvFile` skips a leading header line and any line starting with `#`.
+- Fields beyond the declared ones are kept as they were read, and written back unchanged.
+- A newline inside a quoted field is part of the field, on the way out and on the way back in.
 
-```
-CsvRecord record = new CsvRecord()
+### Without field definitions
+
+```c#
+CsvRecord record = new CsvRecord();
 record[0] = "field1";
 record[1] = "field2 \"with quotes\"";
 record[3] = "Field4";
-string CsvLine = record.ToString(); // ==> field1,"field2 ""withquotes""",,field4 // ...
+string CsvLine = record.ToString();       // ==> field1,"field2 ""with quotes""",,Field4
 ```

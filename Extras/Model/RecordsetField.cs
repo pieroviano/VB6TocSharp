@@ -32,7 +32,9 @@ public class RecordsetField
 
     private DataRow Row = null;
     public dynamic Name = "";
-    public int Size = 0;
+
+    // The column's defined size, as DataColumn reports it: -1 when it is not capped.
+    public int Size => Row.Table.Columns[Name].MaxLength;
 
 
     public RecordsetField(DataRow Row, dynamic Name)

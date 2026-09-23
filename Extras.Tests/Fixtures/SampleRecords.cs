@@ -66,3 +66,10 @@ public class DocumentedFixedRecord : FixedWidthRecord
     [RecordField(max = 4)] public string Word = "";
     [RecordField(max = 2)] public string Cycle = "";
 }
+
+/// <summary>Record whose fields carry names of their own, as [RecordField(name = "...")] allows.</summary>
+public class NamedFieldRecord : CsvRecord
+{
+    [RecordField(name = "Total Amount", max = 5)] public string Total = "";
+    [RecordField(name = "Due Date", max = 8)] public string Due = "";
+}

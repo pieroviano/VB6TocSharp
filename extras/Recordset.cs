@@ -34,6 +34,14 @@ public class RecordSet
         return table.Rows.Cast<DataRow>();
     }
 
+    private DataRow RowAt(int i) { return filteredRows != null ? filteredRows[i] : table.Rows[i]; }
+
+    // The filter selects rows, so it has to be re-run whenever the table gains or loses one.
+    private void ReapplyFilter()
+    {
+        filteredRows = string.IsNullOrEmpty(mFilter) || table == null ? null : table.Select(mFilter);
+    }
+
     public RecordSet() { }
 
     public RecordSet(DataTable table, OleDbDataAdapter adapter, OleDbConnection connection)
@@ -88,22 +96,23 @@ public class RecordSet
     public int Position { get => AbsolutePosition; set => AbsolutePosition = value; }
     public int RecordCount => filteredRows != null ? filteredRows.Length : table?.Rows?.Count ?? 0;
     public bool EOF => AbsolutePosition >= RecordCount;
-    public bool BOF => AbsolutePosition == 0;
+    // As in ADO: before the first record, and true together with EOF when there are no records.
+    public bool BOF => AbsolutePosition < 0 || RecordCount == 0;
 
     public bool FieldExists(string F) { return table?.Columns?.Contains(F) ?? false; }
 
 
     public int MoveFirst() { return AbsolutePosition = 0; }
     public int MoveNext() { return ++AbsolutePosition < RecordCount ? AbsolutePosition : AbsolutePosition = RecordCount; }
-    public int MovePrevious() { return --AbsolutePosition >= 0 ? AbsolutePosition : AbsolutePosition = 0; }
+    // Stops one before the first record, the mirror of MoveNext stopping one past the last.
+    public int MovePrevious() { return --AbsolutePosition >= -1 ? AbsolutePosition : AbsolutePosition = -1; }
     public int MoveLast() { return AbsolutePosition = RecordCount == 0 ? 0 : RecordCount - 1; }
 
     public RecordsetFields Fields
     {
         get
         {
-            if (AbsolutePosition >= 0 && AbsolutePosition < RecordCount)
-                return new RecordsetFields(filteredRows != null ? filteredRows[AbsolutePosition] : table.Rows[AbsolutePosition]);
+            if (AbsolutePosition >= 0 && AbsolutePosition < RecordCount) return new RecordsetFields(RowAt(AbsolutePosition));
             throw new ArgumentOutOfRangeException("Either EOF or BOF is true.");
         }
     }
@@ -112,8 +121,8 @@ public class RecordSet
     {
         get
         {
-            if (table == null) return null;
             var result = new List<string>();
+            if (table == null) return result;
             foreach (DataColumn item in table.Columns) result.Add(item.ColumnName);
             return result;
         }
@@ -147,13 +156,13 @@ public class RecordSet
             // Changing the filter changes what the recordset sees, so it starts again on the first
             // record of the new view.
             mFilter = value;
-            filteredRows = string.IsNullOrEmpty(value) || table == null ? null : table.Select(value);
+            ReapplyFilter();
             AbsolutePosition = 0;
         }
     }
 
     // Positions on the first record matching the criteria, searching only what the Filter shows.
-    internal bool Find(string criteria)
+    public bool Find(string criteria)
     {
         if (table == null) return false;
         var view = Rows().ToList();
@@ -203,6 +212,14 @@ public class RecordSet
 
     public void Update()
     {
+        // A recordset that was handed its table has nowhere to write back to: the edits are already
+        // in the table, so there is nothing left to do.
+        if (adapter == null || connection == null)
+        {
+            mAddingRow = false;
+            return;
+        }
+
         var cb = new OleDbCommandBuilder(adapter);
         cb.QuotePrefix = "[";
         cb.QuoteSuffix = "]";
@@ -214,7 +231,7 @@ public class RecordSet
         }
         catch (Exception e)
         {
-            if (!QuietErrors) sqlExecutionError(adapter.DeleteCommand.ToString(), e);
+            if (!QuietErrors) sqlExecutionError(adapter.UpdateCommand?.ToString() ?? Source, e);
         }
         finally { connection.Close(); }
 
@@ -232,8 +249,25 @@ public class RecordSet
         mAddingRow = true;
     }
 
+    // As in ADO, deletes the current record.
     public void Delete()
     {
+        if (AbsolutePosition < 0 || AbsolutePosition >= RecordCount)
+            throw new ArgumentOutOfRangeException("Either EOF or BOF is true.");
+
+        var row = RowAt(AbsolutePosition);
+
+        if (adapter == null || connection == null)
+        {
+            // Nothing to write back to: drop the row from the table.
+            table.Rows.Remove(row);
+            ReapplyFilter();
+            mAddingRow = false;
+            return;
+        }
+
+        row.Delete();
+
         var cb = new OleDbCommandBuilder(adapter);
         try
         {
@@ -243,8 +277,11 @@ public class RecordSet
         }
         catch (Exception e)
         {
-            if (!QuietErrors) sqlExecutionError(adapter.UpdateCommand.ToString(), e);
+            if (!QuietErrors) sqlExecutionError(adapter.DeleteCommand?.ToString() ?? Source, e);
         }
         finally { connection.Close(); }
+
+        ReapplyFilter();
+        mAddingRow = false;
     }
 }

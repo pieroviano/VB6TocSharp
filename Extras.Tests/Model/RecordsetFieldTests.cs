@@ -38,4 +38,16 @@ public class RecordsetFieldTests
 
     [Fact]
     public void Name_KeepsWhatTheCallerAskedFor() => Assert.Equal("Name", (string)new RecordsetField(Row(), "Name").Name);
+
+    [Fact]
+    public void Size_IsTheColumnsDefinedSize()
+    {
+        var t = new DataTable("T");
+        t.Columns.Add("Short", typeof(string)).MaxLength = 10;
+        t.Columns.Add("Any", typeof(string));
+        t.Rows.Add("abc", "def");
+
+        Assert.Equal(10, new RecordsetField(t.Rows[0], "Short").Size);
+        Assert.Equal(-1, new RecordsetField(t.Rows[0], "Any").Size);
+    }
 }

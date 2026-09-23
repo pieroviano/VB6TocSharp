@@ -87,4 +87,33 @@ public class CsvHandlerTests
         Assert.Equal("before", CsvField(line, 0));
         Assert.Equal("after", CsvField(line, 2));
     }
+
+    [Fact]
+    public void CsvRecords_SplitsOnLineBreaks()
+        => Assert.Equal(new[] { "a,b", "c,d" }, CsvRecords("a,b\r\nc,d\r\n"));
+
+    [Fact]
+    public void CsvRecords_AcceptsAnyLineEnding()
+        => Assert.Equal(new[] { "a", "b", "c" }, CsvRecords("a\nb\rc"));
+
+    [Fact]
+    public void CsvRecords_KeepsANewlineThatBelongsToAQuotedField()
+        => Assert.Equal(new[] { "\"multi\nline\",x", "next" }, CsvRecords("\"multi\nline\",x\nnext"));
+
+    [Fact]
+    public void CsvRecords_KeepsACarriageReturnPairInsideAQuotedField()
+        => Assert.Single(CsvRecords("\"multi\r\nline\",x"));
+
+    [Fact]
+    public void CsvRecords_IsNotConfusedByAnEscapedQuote()
+        => Assert.Equal(new[] { "\"a\"\"b\"", "next" }, CsvRecords("\"a\"\"b\"\nnext"));
+
+    [Fact]
+    public void CsvRecords_KeepsEmptyRecordsForEmptyLines()
+        => Assert.Equal(new[] { "a", "", "b" }, CsvRecords("a\n\nb"));
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    public void CsvRecords_WithNothingToSplit_IsEmpty(string contents) => Assert.Empty(CsvRecords(contents));
 }

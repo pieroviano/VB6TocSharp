@@ -31,9 +31,19 @@ public abstract class FieldInfoListSource
     }
     protected FieldInfo thisField(string i)
     {
+        // [RecordField(name = "...")] renames the field for the record; the member name keeps working.
+        foreach (var f in FieldInfoList())
+            if (recordName(f).Equals(i, StringComparison.OrdinalIgnoreCase)) return f;
         foreach (var f in FieldInfoList())
             if (f.Name.Equals(i, StringComparison.OrdinalIgnoreCase)) return f;
         return null;
+    }
+
+    // The name this field carries in the record: the one the attribute declares, else the member name.
+    protected static string recordName(FieldInfo f)
+    {
+        var r = f.GetCustomAttribute<RecordField>();
+        return r == null || r.name == "" ? f.Name : r.name;
     }
 
     protected RecordField thisFieldMod(int i) { return thisField(i)?.GetCustomAttribute<RecordField>(); }

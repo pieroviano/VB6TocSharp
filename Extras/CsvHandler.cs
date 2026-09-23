@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Text;
 
 // Minimal Csv helper functions used by CsvRecord
@@ -15,6 +16,41 @@ public static class CsvHandler
         var outStr = s.Replace("\"", "\"\"");
         if (needQuotes) outStr = "\"" + outStr + "\"";
         return outStr;
+    }
+
+    // Splits a Csv file into its records. A newline inside a quoted field belongs to the field, so
+    // the file cannot simply be split on '\n'.
+    public static List<string> CsvRecords(string contents)
+    {
+        var res = new List<string>();
+        if (string.IsNullOrEmpty(contents)) return res;
+
+        var cur = new StringBuilder();
+        var inQuotes = false;
+        for (var i = 0; i < contents.Length; i++)
+        {
+            var c = contents[i];
+            if (c == '"')
+            {
+                // An escaped "" flips this twice, which leaves it where it was.
+                inQuotes = !inQuotes;
+                cur.Append(c);
+                continue;
+            }
+
+            if (!inQuotes && (c == '\n' || c == '\r'))
+            {
+                if (c == '\r' && i + 1 < contents.Length && contents[i + 1] == '\n') i++;
+                res.Add(cur.ToString());
+                cur.Length = 0;
+                continue;
+            }
+
+            cur.Append(c);
+        }
+
+        if (cur.Length > 0) res.Add(cur.ToString());
+        return res;
     }
 
     public static string CsvLine(string[] fields)
