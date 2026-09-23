@@ -69,7 +69,14 @@ public static class UsingEverything
                 e = e + n + "using System.Drawing;";
                 e = e + n + "using System.Windows.Forms;";
                 e = e + n + "using Vb6ToCSharp.UpgradeHelpers;";
-                e = e + n + "using Vb6ToCSharp.UpgradeHelpers.WinForms;";
+                e = e + n + "using Vb6ToCSharp.UpgradeHelpers.Arrays;";
+                e = e + n + "using Vb6ToCSharp.UpgradeHelpers.Dialogs;";
+                e = e + n + "using Vb6ToCSharp.UpgradeHelpers.Interop;";
+                e = e + n + "using Vb6ToCSharp.UpgradeHelpers.Model;";
+                e = e + n + "using Vb6ToCSharp.UpgradeHelpers.WinForms.Controls;";
+                e = e + n + "using Vb6ToCSharp.UpgradeHelpers.WinForms.Helpers;";
+                // CommonDialog also exists in System.Windows.Forms: in converted code it is the VB6 one
+                e = e + n + "using CommonDialog = Vb6ToCSharp.UpgradeHelpers.Dialogs.CommonDialog;";
             }
             else
             {
@@ -82,7 +89,14 @@ public static class UsingEverything
                 e = e + n + "using System.Windows.Media.Imaging;";
                 e = e + n + "using System.Windows.Shapes;";
                 e = e + n + "using Vb6ToCSharp.UpgradeHelpers;";
-                e = e + n + "using Vb6ToCSharp.UpgradeHelpers.Wpf;";
+                e = e + n + "using Vb6ToCSharp.UpgradeHelpers.Arrays;";
+                e = e + n + "using Vb6ToCSharp.UpgradeHelpers.Dialogs;";
+                e = e + n + "using Vb6ToCSharp.UpgradeHelpers.Interop;";
+                e = e + n + "using Vb6ToCSharp.UpgradeHelpers.Model;";
+                e = e + n + "using Vb6ToCSharp.UpgradeHelpers.Wpf.Controls;";
+                e = e + n + "using Vb6ToCSharp.UpgradeHelpers.Wpf.Helpers;";
+                // Model and Wpf.Helpers both declare Vb6Color: in a WPF project it is the Media one
+                e = e + n + "using Vb6Color = Vb6ToCSharp.UpgradeHelpers.Wpf.Helpers.Vb6Color;";
             }
 
             e = e + n;

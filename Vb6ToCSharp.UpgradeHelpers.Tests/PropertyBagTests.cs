@@ -1,3 +1,4 @@
+using Vb6ToCSharp.UpgradeHelpers.Interop;
 namespace Vb6ToCSharp.UpgradeHelpers.Tests;
 
 public class PropertyBagTests

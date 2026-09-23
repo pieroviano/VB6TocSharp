@@ -3,6 +3,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Vb6ToCSharp.CodeConversion;
 using Vb6ToCSharp.Tests.Infrastructure;
+using Vb6ToCSharp.UpgradeHelpers;
 
 namespace Vb6ToCSharp.Tests;
 
@@ -13,7 +14,11 @@ public partial class ConverterTests
         "using System;\r\nusing System.Runtime.InteropServices;\r\nusing Microsoft.VisualBasic;\r\nusing Microsoft.VisualBasic.CompilerServices;\r\n" +
         "using static Microsoft.VisualBasic.Strings;\r\nusing static Microsoft.VisualBasic.Information;\r\nusing static Microsoft.VisualBasic.Interaction;\r\n" +
         "using static Microsoft.VisualBasic.Conversion;\r\nusing static Microsoft.VisualBasic.FileSystem;\r\nusing static Microsoft.VisualBasic.DateAndTime;\r\n" +
-        "using static System.Math;\r\nusing Vb6ToCSharp.UpgradeHelpers;\r\nusing static Vb6ToCSharp.UpgradeHelpers.VbRuntime;\r\n";
+        "using static System.Math;\r\nusing Vb6ToCSharp.UpgradeHelpers;\r\n" +
+        // the same UpgradeHelpers namespaces UsingEverything emits into every converted file
+        "using Vb6ToCSharp.UpgradeHelpers.Arrays;\r\nusing Vb6ToCSharp.UpgradeHelpers.Dialogs;\r\n" +
+        "using Vb6ToCSharp.UpgradeHelpers.Interop;\r\nusing Vb6ToCSharp.UpgradeHelpers.Model;\r\n" +
+        "using static Vb6ToCSharp.UpgradeHelpers.VbRuntime;\r\n";
 
     /// <summary>The generated members compile (types and conversions, not only syntax) against the VB runtime and the helpers.</summary>
     private static void AssertCompiles(string members) => AssertCompilesTop("public static class M {\r\n" + members + "\r\n}");

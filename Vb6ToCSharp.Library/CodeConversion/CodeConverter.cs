@@ -258,7 +258,7 @@ public static class CodeConverter
         x = x + "  }" + n;
         if (isUserControl)
         {
-            var pb = "Vb6ToCSharp.UpgradeHelpers.PropertyBag";
+            var pb = "Vb6ToCSharp.UpgradeHelpers.Interop.PropertyBag";
             if (!ctx.Handlers.Contains(ctx.RootPrefix + "_InitProperties")) x = x + "  public void InitProperties() { }" + n;
             if (!ctx.Handlers.Contains(ctx.RootPrefix + "_ReadProperties")) x = x + "  public void ReadProperties(" + pb + " bag) { }" + n;
             if (!ctx.Handlers.Contains(ctx.RootPrefix + "_WriteProperties")) x = x + "  public void WriteProperties(" + pb + " bag) { }" + n;

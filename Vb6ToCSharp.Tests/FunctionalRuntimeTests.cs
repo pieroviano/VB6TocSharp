@@ -1,6 +1,7 @@
 using System.Linq;
 using Vb6ToCSharp.CodeConversion;
 using Vb6ToCSharp.Tests.Model;
+using Vb6ToCSharp.UpgradeHelpers.Arrays;
 using Vb6ToCSharp.UpgradeHelpers;
 
 namespace Vb6ToCSharp.Tests;

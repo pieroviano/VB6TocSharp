@@ -1,5 +1,5 @@
+using Vb6ToCSharp.UpgradeHelpers.Wpf.Controls;
 using Vb6ToCSharp.UpgradeHelpers.Tests.Infrastructure;
-using Vb6ToCSharp.UpgradeHelpers.Wpf;
 
 namespace Vb6ToCSharp.UpgradeHelpers.Tests.Wpf;
 

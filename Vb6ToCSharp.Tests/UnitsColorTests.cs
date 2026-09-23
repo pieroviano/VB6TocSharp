@@ -1,6 +1,7 @@
 using Vb6ToCSharp.FormConversion;
 using Vb6ToCSharp.Parsing;
 using Vb6ToCSharp.Parsing.Model;
+using Vb6ToCSharp.UpgradeHelpers.Model;
 
 namespace Vb6ToCSharp.Tests;
 

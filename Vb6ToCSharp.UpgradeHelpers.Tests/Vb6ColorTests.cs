@@ -1,5 +1,6 @@
 using System.Drawing;
 using Vb6ToCSharp.UpgradeHelpers.Internal;
+using Vb6ToCSharp.UpgradeHelpers.Model;
 
 namespace Vb6ToCSharp.UpgradeHelpers.Tests;
 

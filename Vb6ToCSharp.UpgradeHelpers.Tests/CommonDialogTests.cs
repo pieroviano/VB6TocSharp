@@ -1,8 +1,10 @@
 using System.Drawing;
 using System.Drawing.Printing;
 using System.Windows.Forms;
+using Vb6ToCSharp.UpgradeHelpers.Dialogs;
+using CommonDialog = Vb6ToCSharp.UpgradeHelpers.Dialogs.CommonDialog;
+using static Vb6ToCSharp.UpgradeHelpers.Dialogs.CommonDialogConstants;
 using Vb6ToCSharp.UpgradeHelpers.Tests.Infrastructure;
-using static Vb6ToCSharp.UpgradeHelpers.CommonDialogConstants;
 
 namespace Vb6ToCSharp.UpgradeHelpers.Tests;
 

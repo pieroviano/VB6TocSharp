@@ -75,11 +75,15 @@ Partner's rules. See [README.md](README.md) and the per-project READMEs for user
 - **Output support.** `SupportFiles` writes the `.csproj`, `Program.cs` and `AssemblyInfo.cs`; `ProjectGroup` writes the
   `.sln` and project references for a `.vbg`. `MigrationReport.Write()` collects every `// TODO:` in the output into
   `MigrationReport.md`.
-- **Runtime ([Vb6ToCSharp.UpgradeHelpers](Vb6ToCSharp.UpgradeHelpers/)).** This is what converted code calls (`VbRuntime`,
-  `VB6Array<T>`, `IVbStruct`, control arrays, FlexGrid, CommonDialog), with parallel `WinForms/` and `Wpf/` namespaces.
-  It is distinct from `Vb6ToCSharp.Library`'s own `Runtime` namespace, which serves the converter's machine-converted
-  code. VB6 semantics that can't be expressed inline belong here, not in generated boilerplate. A new runtime API needs
-  matching emission in the library.
+- **Runtime ([Vb6ToCSharp.UpgradeHelpers](Vb6ToCSharp.UpgradeHelpers/)).** This is what converted code calls. Namespaces
+  mirror folders here too: the root (`VbRuntime`, `IVbStruct`), `.Arrays`, `.Dialogs`, `.Interop`, `.Model`, `.Internal`,
+  and the parallel `.WinForms.Controls`/`.WinForms.Helpers` and `.Wpf.Controls`/`.Wpf.Helpers`. It is distinct from
+  `Vb6ToCSharp.Library`'s own `Runtime` namespace, which serves the converter's machine-converted code. VB6 semantics
+  that can't be expressed inline belong here, not in generated boilerplate.
+  **These namespaces are the package's public API and are emitted into every converted file.** Renaming or moving a type
+  means updating, together: the `using` block in `CodeGeneration/UsingEverything.cs`, the `Helpers*` prefix constants in
+  `FormConversion/ControlCatalog.cs` (used by both emitters), the XAML `clr-namespace` in `FormConversion/WpfEmitter.cs`,
+  and `CompileUsings` in `Vb6ToCSharp.Tests/ConverterTypeTests.cs`. A new runtime API needs matching emission in the library.
 - **Extras** is an independent optional package (`Recordset`, `FixedWidthRecord`, `CsvRecord`). The converter doesn't use it.
 
 ## Conventions

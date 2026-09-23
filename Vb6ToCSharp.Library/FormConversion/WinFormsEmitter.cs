@@ -18,6 +18,7 @@ public sealed class WinFormsEmitter
     private const string D = "System.Drawing.";
     private const string PP = ControlCatalog.PowerPacks;
     private const string HW = ControlCatalog.HelpersWinForms;
+    private const string HS = ControlCatalog.HelpersWinFormsSupport;
 
     private readonly FormContext ctx;
     private readonly FormControlFile controlFile;
@@ -405,7 +406,7 @@ public sealed class WinFormsEmitter
         var data = ItemDataOf(controlFile, c, "ItemData");
         for (var i = 0; i < data.Count && i < list.Count; i++)
         {
-            if (data[i] != 0) extras.Add(HW + "ListHelper.SetItemData(" + me + ", " + i + ", " + data[i] + ");");
+            if (data[i] != 0) extras.Add(HS + "ListHelper.SetItemData(" + me + ", " + i + ", " + data[i] + ");");
         }
     }
 
@@ -550,7 +551,7 @@ public sealed class WinFormsEmitter
                 var persisted = c.Properties.Where(p => !IsExtenderProperty(p.Name) && p.Frx == null).ToList();
                 if (persisted.Count > 0)
                 {
-                    extras.Add(me + ".ReadProperties(" + ControlCatalog.HelpersRoot + "PropertyBag.FromPairs(" +
+                    extras.Add(me + ".ReadProperties(" + ControlCatalog.HelpersInterop + "PropertyBag.FromPairs(" +
                                string.Join(", ", persisted.Select(p => Lit(p.Name) + ", " + ValueLiteral(p))) + "));");
                 }
                 else
@@ -595,7 +596,7 @@ public sealed class WinFormsEmitter
                 {
                     var pre = "ColumnHeaders." + g + ".";
                     var al = (int)c.Num(pre + "Alignment");
-                    extras.Add(HW + "ListViewHelper.AddColumn(" + me + ", null, " + Lit(c.Text(pre + "Key")) + ", " + Lit(c.Text(pre + "Text")) + ", " +
+                    extras.Add(HS + "ListViewHelper.AddColumn(" + me + ", null, " + Lit(c.Text(pre + "Key")) + ", " + Lit(c.Text(pre + "Text")) + ", " +
                                N(Units.SizeTwips(c, pre + "Width", 1440)) + ", " + al + ");");
                 }
                 return;
@@ -945,7 +946,7 @@ public sealed class WinFormsEmitter
                 ocx.Add("// TODO: " + c.MemberName + "." + p.Name + " is stored in the .frx (binary OCX state) and was not converted");
                 continue;
             }
-            ocx.Add(ControlCatalog.HelpersRoot + "OcxHelper.SetProperty(" + me + ", " + Lit(p.Name) + ", " + ValueLiteral(p) + ");");
+            ocx.Add(ControlCatalog.HelpersInterop + "OcxHelper.SetProperty(" + me + ", " + Lit(p.Name) + ", " + ValueLiteral(p) + ");");
         }
     }
 

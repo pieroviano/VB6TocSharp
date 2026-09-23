@@ -1,8 +1,9 @@
 using System.Drawing;
 using System.Windows.Forms;
+using Vb6ToCSharp.UpgradeHelpers.WinForms.Controls;
 using Vb6ToCSharp.UpgradeHelpers.Tests.Infrastructure;
-using Vb6ToCSharp.UpgradeHelpers.WinForms;
-using static Vb6ToCSharp.UpgradeHelpers.FlexAlign;
+using Vb6ToCSharp.UpgradeHelpers.Model;
+using static Vb6ToCSharp.UpgradeHelpers.Model.FlexAlign;
 
 namespace Vb6ToCSharp.UpgradeHelpers.Tests.WinForms;
 

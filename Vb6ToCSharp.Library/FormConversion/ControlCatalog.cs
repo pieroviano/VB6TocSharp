@@ -12,8 +12,15 @@ namespace Vb6ToCSharp.FormConversion;
 public static class ControlCatalog
 {
     public const string WinFormsNs = "System.Windows.Forms.";
-    public const string HelpersWinForms = "Vb6ToCSharp.UpgradeHelpers.WinForms.";
+    public const string HelpersWinForms = "Vb6ToCSharp.UpgradeHelpers.WinForms.Controls.";
+    public const string HelpersWinFormsSupport = "Vb6ToCSharp.UpgradeHelpers.WinForms.Helpers.";
+    public const string HelpersWpf = "Vb6ToCSharp.UpgradeHelpers.Wpf.Controls.";
+    public const string HelpersWpfSupport = "Vb6ToCSharp.UpgradeHelpers.Wpf.Helpers.";
     public const string HelpersRoot = "Vb6ToCSharp.UpgradeHelpers.";
+    public const string HelpersArrays = "Vb6ToCSharp.UpgradeHelpers.Arrays.";
+    public const string HelpersDialogs = "Vb6ToCSharp.UpgradeHelpers.Dialogs.";
+    public const string HelpersInterop = "Vb6ToCSharp.UpgradeHelpers.Interop.";
+    public const string HelpersModel = "Vb6ToCSharp.UpgradeHelpers.Model.";
     public const string PowerPacks = "Microsoft.VisualBasic.PowerPacks.";
     /// <summary>XAML prefix of the WPF helpers (<c>xmlns:vb6</c>).</summary>
     public const string WpfHelpersPrefix = "vb6:";
@@ -78,7 +85,7 @@ public static class ControlCatalog
         Add("MSHierarchicalFlexGridLib.MSHFlexGrid", S, H + "FlexGrid", V + "FlexGrid", "Text");
         Add("TabDlg.SSTab", ControlKind.TabbedContainer, W + "TabControl", "TabControl", "Tab");
         Add("RichTextLib.RichTextBox", S, W + "RichTextBox", "RichTextBox", "Text");
-        Add("MSComDlg.CommonDialog", N, HelpersRoot + "CommonDialog", HelpersRoot + "CommonDialog", "Action");
+        Add("MSComDlg.CommonDialog", N, HelpersDialogs + "CommonDialog", HelpersDialogs + "CommonDialog", "Action");
     }
 
     /// <summary>
@@ -132,7 +139,7 @@ public static class ControlCatalog
         if (map.TryGetValue(t, out var c) && c.Kind != ControlKind.Root)
         {
             var name = c.Type(ui);
-            if (ui == UiTarget.Wpf && name.StartsWith(WpfHelpersPrefix, StringComparison.Ordinal)) name = "Vb6ToCSharp.UpgradeHelpers.Wpf." + name.Substring(WpfHelpersPrefix.Length);
+            if (ui == UiTarget.Wpf && name.StartsWith(WpfHelpersPrefix, StringComparison.Ordinal)) name = HelpersWpf + name.Substring(WpfHelpersPrefix.Length);
             return name;
         }
         var winForms = ui == UiTarget.WinForms;
@@ -153,7 +160,7 @@ public static class ControlCatalog
             case "ListImage": return winForms ? "System.Drawing.Image" : "System.Windows.Media.ImageSource";
             case "StdPicture": case "Picture": case "IPictureDisp": return winForms ? "System.Drawing.Image" : "System.Windows.Media.ImageSource";
             case "StdFont": case "Font": return winForms ? "System.Drawing.Font" : "System.Windows.Media.FontFamily";
-            case "PropertyBag": return HelpersRoot + "PropertyBag";
+            case "PropertyBag": return HelpersInterop + "PropertyBag";
         }
         return null;
     }

@@ -13,6 +13,8 @@ namespace Vb6ToCSharp.FormConversion;
 public static class EventAdapters
 {
     private const string H = "Vb6ToCSharp.UpgradeHelpers.";
+    private const string HI = ControlCatalog.HelpersInterop;
+    private const string HM = ControlCatalog.HelpersModel;
 
     /// <summary>Parameters of a converted prototype (<c>private void X(ref int Index, int KeyAscii) {</c>).</summary>
     public static List<Parameter> ParseParams(string prototype)
@@ -85,7 +87,7 @@ public static class EventAdapters
             case "ReadProperties":
             case "WriteProperties":
                 var mod = ps.Count > 0 && ps[0].Modifier != "" ? ps[0].Modifier + " " : "";
-                return "public void " + b.Special + "(" + H + "PropertyBag bag) { var v0 = bag; " + method + "(" + mod + "v0); }\r\n";
+                return "public void " + b.Special + "(" + HI + "PropertyBag bag) { var v0 = bag; " + method + "(" + mod + "v0); }\r\n";
         }
 
         var sb = new StringBuilder();
@@ -112,7 +114,7 @@ public static class EventAdapters
     private static string In(ArgumentRole role, FormContext ctx, ControlWithType ctl)
     {
         var wf = ctx.Ui == UiTarget.WinForms;
-        var fh = wf ? H + "WinForms.FormsHelper." : H + "Wpf.FormsHelper.";
+        var fh = wf ? ControlCatalog.HelpersWinFormsSupport + "FormsHelper." : ControlCatalog.HelpersWpfSupport + "FormsHelper.";
         switch (role)
         {
             case ArgumentRole.KeyAscii: return wf ? "(int)e.KeyChar" : "e.Text.Length > 0 ? (int)e.Text[0] : 0";
@@ -158,7 +160,7 @@ public static class EventAdapters
         if (ctx.Ui == UiTarget.WinForms)
         {
             if (Math.Abs(factor - Units.TwipsPerPixel) < 1e-9) return y ? "e.Y" : "e.X";
-            var twips = H + "Twips.FromPixels" + (y ? "Y(e.Y)" : "X(e.X)");
+            var twips = HM + "Twips.FromPixels" + (y ? "Y(e.Y)" : "X(e.X)");
             return Math.Abs(factor - 1) < 1e-9 ? twips : twips + " / " + factor.ToString("R", inv);
         }
         var dip = "e.GetPosition((System.Windows.IInputElement)sender)." + (y ? "Y" : "X");

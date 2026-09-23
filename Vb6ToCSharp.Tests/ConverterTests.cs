@@ -7,6 +7,7 @@ using Vb6ToCSharp.CodeConversion;
 using Vb6ToCSharp.Infrastructure;
 using Vb6ToCSharp.Parsing;
 using Vb6ToCSharp.Tests.Infrastructure;
+using Vb6ToCSharp.UpgradeHelpers;
 
 namespace Vb6ToCSharp.Tests;
 

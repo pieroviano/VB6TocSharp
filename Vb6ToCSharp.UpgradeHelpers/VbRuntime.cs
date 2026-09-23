@@ -1,4 +1,5 @@
 using System;
+using Vb6ToCSharp.UpgradeHelpers.Arrays;
 
 namespace Vb6ToCSharp.UpgradeHelpers;
 

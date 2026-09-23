@@ -15,8 +15,8 @@ namespace Vb6ToCSharp.FormConversion;
 /// <summary>Emits WPF XAML (+ code-behind members) for a VB6 form / user control.</summary>
 public sealed class WpfEmitter
 {
-    private const string HP = "Vb6ToCSharp.UpgradeHelpers.Wpf.";
-    private const string HR = ControlCatalog.HelpersRoot;
+    private const string HP = ControlCatalog.HelpersWpf;
+    private const string HR = ControlCatalog.HelpersInterop;
 
     private readonly FormContext ctx;
     private readonly FormControlFile controlFile;
@@ -75,7 +75,7 @@ public sealed class WpfEmitter
             "xmlns:mc=\"http://schemas.openxmlformats.org/markup-compatibility/2006\"",
             "xmlns:local=" + Xml("clr-namespace:" + ns),
             "xmlns:usercontrols=" + Xml("clr-namespace:" + assembly + ".UserControls"),
-            "xmlns:vb6=\"clr-namespace:Vb6ToCSharp.UpgradeHelpers.Wpf;assembly=Vb6ToCSharp.UpgradeHelpers\"",
+            "xmlns:vb6=\"clr-namespace:Vb6ToCSharp.UpgradeHelpers.Wpf.Controls;assembly=Vb6ToCSharp.UpgradeHelpers\"",
         };
         // the generated partial class must match the code-behind's accessibility (a form of an ActiveX project is internal)
         if (ProjectGroup.TypeModifier(ProjectGroup.IsExposed(controlFile)) == "internal") a.Insert(1, "x:ClassModifier=\"internal\"");

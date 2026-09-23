@@ -1,8 +1,8 @@
 using System.Windows;
 using System.Windows.Controls;
+using Vb6ToCSharp.UpgradeHelpers.Wpf.Controls;
 using Vb6ToCSharp.UpgradeHelpers.Tests.Infrastructure;
-using Vb6ToCSharp.UpgradeHelpers.Wpf;
-using static Vb6ToCSharp.UpgradeHelpers.FlexAlign;
+using static Vb6ToCSharp.UpgradeHelpers.Model.FlexAlign;
 
 namespace Vb6ToCSharp.UpgradeHelpers.Tests.Wpf;
 

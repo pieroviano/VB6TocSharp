@@ -1,10 +1,11 @@
 using System.Drawing;
 using System.Windows.Media;
-using Vb6ToCSharp.UpgradeHelpers.Tests.Infrastructure;
-using Vb6ToCSharp.UpgradeHelpers.Tests.Model;
+using Vb6ToCSharp.UpgradeHelpers.Interop;
 // Fill is a WPF brush (OcxHelper converts OLE colors to it)
 using Color = System.Drawing.Color;
 using SystemColors = System.Drawing.SystemColors;
+using Vb6ToCSharp.UpgradeHelpers.Tests.Infrastructure;
+using Vb6ToCSharp.UpgradeHelpers.Tests.Model;
 
 namespace Vb6ToCSharp.UpgradeHelpers.Tests;
 
