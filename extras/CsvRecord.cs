@@ -1,7 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using Microsoft.VisualBasic;
-using static Extras.ModCsv;
+using static Extras.CsvHandler;
 
 namespace Extras;
 
@@ -16,8 +15,8 @@ public abstract class CsvRecord : FieldInfoListSource
     {
         var S = "";
         if (Commented) S += "# ";
-        foreach (var f in FieldInfoList()) S += ProtectCSV(f.Name) + ",";
-        if (Strings.Right(S, 1) == ",") S = Strings.Left(S, S.Length - 1);
+        foreach (var f in FieldInfoList()) S += ProtectCsv(f.Name) + ",";
+        if (S.Length > 0 && S[S.Length - 1] == ',') S = S.Substring(0, S.Length - 1);
         if (addNL) S += "\n";
         return S;
     }
@@ -58,14 +57,14 @@ public abstract class CsvRecord : FieldInfoListSource
 
 
     public string ToLine()
-    { return CSVLine(FieldInfoList().Select(f => f.GetValue(this).ToString()).Concat(extraFields).ToArray()); }
+    { return CsvLine(FieldInfoList().Select(f => f.GetValue(this).ToString()).Concat(extraFields).ToArray()); }
 
     public void FromLine(string line)
     {
         var i = 0;
-        foreach (var f in FieldInfoList()) f.SetValue(this, CSVField(line, i++));
+        foreach (var f in FieldInfoList()) f.SetValue(this, CsvField(line, i++));
         extraFields = new List<string>();
-        for (i = 0; i < CSVFieldCount(line) - FieldInfoListCount(); i++) extraFields.Add("");
+        for (i = 0; i < CsvFieldCount(line) - FieldInfoListCount(); i++) extraFields.Add("");
     }
 
     public static List<T> FromCsvFile<T>(string csvContents) where T : CsvRecord, new()
@@ -74,7 +73,7 @@ public abstract class CsvRecord : FieldInfoListSource
         foreach (var l in csvContents.Replace("\r", "").Split('\n'))
         {
             if (l == "") continue;
-            if (Strings.Left(l, 1) == "#") continue;
+            if (l[0] == '#') continue;
             var item = new T();
             item.FromLine(l);
             res.Add(item);

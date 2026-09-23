@@ -1,6 +1,6 @@
-# CSV Record Class
+# Csv Record Class
 
-A convenience handler for processing CSV Records.
+A convenience handler for processing Csv Records.
 
 See Also:  
 

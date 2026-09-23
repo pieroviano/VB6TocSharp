@@ -1,11 +1,11 @@
 using System.Text;
 
-// Minimal CSV helper functions used by CsvRecord
+// Minimal Csv helper functions used by CsvRecord
 namespace Extras;
 
-public static class ModCsv
+public static class CsvHandler
 {
-    public static string ProtectCSV(string s)
+    public static string ProtectCsv(string s)
     {
         if (s == null) return "";
         var needQuotes = false;
@@ -17,19 +17,19 @@ public static class ModCsv
         return outStr;
     }
 
-    public static string CSVLine(string[] fields)
+    public static string CsvLine(string[] fields)
     {
         if (fields == null || fields.Length == 0) return string.Empty;
         var sb = new StringBuilder();
         for (var i = 0; i < fields.Length; i++)
         {
             if (i > 0) sb.Append(',');
-            sb.Append(ProtectCSV(fields[i] ?? string.Empty));
+            sb.Append(ProtectCsv(fields[i] ?? string.Empty));
         }
         return sb.ToString();
     }
 
-    public static string CSVField(string line, int index)
+    public static string CsvField(string line, int index)
     {
         if (string.IsNullOrEmpty(line)) return string.Empty;
         var len = line.Length;
@@ -95,7 +95,7 @@ public static class ModCsv
         return string.Empty;
     }
 
-    public static int CSVFieldCount(string line)
+    public static int CsvFieldCount(string line)
     {
         if (string.IsNullOrEmpty(line)) return 0;
         var len = line.Length;

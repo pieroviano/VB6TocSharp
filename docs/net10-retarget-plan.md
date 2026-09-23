@@ -26,7 +26,7 @@ target `net10.0-windows`.
 | 4 | `Vb6ToCSharp.UpgradeHelpers` → **`net10.0-windows` only** | Projects converted earlier (`net48`) cannot take a newer helpers version; they must be retargeted |
 | 5 | The PowerPacks `Printer` members of `RuntimeExtension` are **deleted** (no callers, package is net4x-only) | `Printers`, `Printer`, `Box`, `BoxStep`, `Circle`, `Line`, `LineStep`, `PaintPicture(Printer…)`, `PrintNNL`, `PrintPicture` go; `PackageImage`/`getImage` keep working (WPF `BitmapImage`) |
 | 6 | Package ids keep the **`Net4x.`** prefix | No change to `NuGet.Config`, the `Packages\` feed, the emitted `PackageReference` or the READMEs |
-| 7 | `Extras` stays `net48` | Not part of this pass (`Microsoft.VisualBasic.Compatibility` + PowerPacks have no .NET 10 equivalent); it is referenced by nothing |
+| 7 | `Extras` stays `netstandard2.0` | Not part of this pass; PowerPacks is gone from it (the two `Strings.Left/Right` calls are plain string code, the `System.Windows.Forms` using was dead); it is referenced by nothing |
 
 ## Target layout
 

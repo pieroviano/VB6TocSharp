@@ -3,8 +3,9 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.OleDb;
+using System.Diagnostics;
 using System.Linq;
-using System.Windows.Forms;
+using System.Reflection;
 
 namespace Extras;
 
@@ -67,7 +68,7 @@ public class RecordSet
         T = T.Replace("$EDESC", e.Message);
         //ErrMsg = Replace(ErrMsg, "$ENO", Err().Number);
         T = T.Replace("$ESRC", e.Source);
-        MessageBox.Show("Database Error: " + T, "Error");
+        LoggerFactoryContainer.Instance.LoggerFactory.GetLogger().Log(DiagnosticLevel.Error, null, "Database Error: " + T, "Error");
         //CheckStandardErrors(); // Bookmark/updateable query
     }
 
@@ -158,14 +159,14 @@ public class RecordSet
     {
         if (!System.IO.File.Exists(Database))
         {
-            MessageBox.Show("Database Not Found: " + Database);
+            LoggerFactoryContainer.Instance.LoggerFactory.GetLogger().Log(DiagnosticLevel.Error, null, "Database Not Found: " + Database, Assembly.GetExecutingAssembly().FullName);
             return;
         }
 
         var result = new DataSet();
         connection = new OleDbConnection(ConnectionString(Database));
         var command = new OleDbCommand(Source, connection);
-        foreach(var key in Parameters.Keys)
+        foreach (var key in Parameters.Keys)
         {
             var param = command.CreateParameter();
             param.ParameterName = key;

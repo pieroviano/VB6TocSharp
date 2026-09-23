@@ -2,27 +2,17 @@
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
         <Version>$(VersionPrefix).$(VersionSuffix)</Version>
-        <TargetFramework>net48</TargetFramework>
-        <UseWindowsForms>true</UseWindowsForms>
+        <TargetFramework>netstandard2.0</TargetFramework>
         <PackageId>Net4x.$(MSBuildProjectName)</PackageId>
         <PackageOutputPath>$(SolutionDir)Packages\</PackageOutputPath>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
         <LangVersion>latest</LangVersion>
     </PropertyGroup>
     <ItemGroup>
-        <Compile Remove="vb.net\**" />
-        <EmbeddedResource Remove="vb.net\**" />
-        <None Remove="vb.net\**" />
-    </ItemGroup>
-    <ItemGroup>
-        <Reference Include="Microsoft.CSharp" />
-        <Reference Include="Microsoft.VisualBasic.Compatibility" />
-        <Reference Include="System.Security" />
-        <Reference Include="System.Web" />
-    </ItemGroup>
-    <ItemGroup>
+        <PackageReference Include="Microsoft.CSharp" Version="4.7.0.$(VersionBuildSuffix)" />
+        <PackageReference Include="Net4x.BaseTypes" Version="$(Net4xBaseTypesVersion).$(VersionBuildSuffix)" />
         <PackageReference Include="Net4x.NuGetUtility" Version="$(NuGetUtilityVersion)" PrivateAssets="All" />
-        <PackageReference Include="VisualBasic.PowerPacks.Vs" Version="1.0.0" />
+        <PackageReference Include="System.Data.OleDb" Version="10.0.12" />
     </ItemGroup>
     <PropertyGroup>
         <PackageReadmeFile>README.md</PackageReadmeFile>
