@@ -111,7 +111,24 @@ public class CodeConverterTests : IClassFixture<ConverterFixture>
     [InlineData("Resume 100", "goto L100;")]
     [InlineData("Error 53", "Err().Raise(53);")]
     [InlineData("On Error GoTo -1", "Err().Clear();")]
+    // Err is a method in Microsoft.VisualBasic, so a member access on it needs the call - in the name of a
+    // statement call just as much as in an expression
+    [InlineData("Err.Raise 5", "Err().Raise(5);")]
+    [InlineData("Err.Raise Err.Number, Err.Source", "Err().Raise(Err().Number, Err().Source);")]
+    [InlineData("Err.Clear", "Err().Clear();")]
     public void ErrorStatements(string vb, string expected) => Assert.Contains(expected, Convert(Sub("  " + vb)));
+
+    [Theory]
+    [InlineData("n = Err.Number", "Err().Number")]
+    [InlineData("Err.Raise 5", "Err().Raise(5)")]
+    public void Err_IsCalledAsAMethod(string vb, string expected) =>
+        Assert.Contains(expected, Convert(Sub("  Dim n As Long", "  " + vb)));
+
+    [Theory]
+    [InlineData("myErr.Raise 5", "myErr.Raise(5)")]
+    [InlineData("o.Err.Raise 5", "o.Err.Raise(5)")]
+    public void Err_OnlyTheIntrinsicIsRewritten(string vb, string expected) =>
+        Assert.Contains(expected, Convert(Sub("  " + vb)));
 
     // ---------------------------------------------------------------- control flow
 
@@ -286,6 +303,11 @@ public class CodeConverterTests : IClassFixture<ConverterFixture>
 
     [Theory]
     [InlineData("Open P For Input As #1", "FileOpen(1, P, OpenMode.Input);")]
+    [InlineData("Open P For Output As #f", "FileOpen(f, P, OpenMode.Output);")]
+    [InlineData("Open P For Append As #f", "FileOpen(f, P, OpenMode.Append);")]
+    [InlineData("Open P For Random As #f Len = 128", "FileOpen(f, P, OpenMode.Random, OpenAccess.Default, OpenShare.Default, 128);")]
+    [InlineData("Open P For Input Access Read Shared As #f", "FileOpen(f, P, OpenMode.Input, OpenAccess.Read, OpenShare.Shared);")]
+    [InlineData("Open P For Binary Access Read Write As #f", "FileOpen(f, P, OpenMode.Binary, OpenAccess.ReadWrite, OpenShare.Default);")]
     [InlineData("Open P For Binary Access Read Lock Write As #f Len = 128", "FileOpen(f, P, OpenMode.Binary, OpenAccess.Read, OpenShare.LockWrite, 128);")]
     [InlineData("Close", "FileClose();")]
     [InlineData("Close #1, #f", "FileClose(1, f);")]
@@ -299,6 +321,8 @@ public class CodeConverterTests : IClassFixture<ConverterFixture>
     [InlineData("Put #f, 3, n", "FilePut(f, n, 3);")]
     [InlineData("Seek #f, 10", "Seek(f, 10);")]
     [InlineData("Lock #f, 1 To 5", "Lock(f, 1, 5);")]
+    [InlineData("Unlock #f, 1", "Unlock(f, 1);")]
+    [InlineData("Reset", "Reset();")]
     [InlineData("Name P As \"b\"", "Rename(P, ")]
     [InlineData("Kill P", "Kill(P);")]
     public void FileStatements(string vb, string expected)

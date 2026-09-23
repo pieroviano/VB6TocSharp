@@ -1175,6 +1175,15 @@ public static class StatementsConverter
     }
 
 
+    /// <summary>
+    /// VB6's <c>Err</c> object is a parameterless method in Microsoft.VisualBasic, so a member access on it needs the
+    /// call: <c>Err.Number</c> → <c>Err().Number</c>, <c>Err.Raise 5</c> → <c>Err().Raise(5)</c>. Applies wherever a
+    /// member of <c>Err</c> is referenced — in an expression and in the name of a statement call alike. Only a
+    /// standalone <c>Err</c> is rewritten, never the tail of another name (<c>myErr.Text</c>, <c>obj.Err.X</c>).
+    /// </summary>
+    public static string IntrinsicMember(string s) =>
+        s == "" ? s : Regex.Replace(s, @"(?<![A-Za-z0-9_.])Err\.", "Err().");
+
     /// <summary>On Error ... statement: updates <paramref name="scope"/>, returns the code to emit.</summary>
     public static string ConvertOnError(string t, ErrorScope scope, ref int ind)
     {

@@ -1755,7 +1755,7 @@ public static class CodeConverter
         convertElement = Replace(convertElement, " Or ", " || ");
         convertElement = Replace(convertElement, " And ", " && ");
         convertElement = Replace(convertElement, " Mod ", " % ");
-        convertElement = Replace(convertElement, "Err.", "Err().");
+        convertElement = StatementsConverter.IntrinsicMember(convertElement);
         convertElement = Replace(convertElement, "Debug.Print", "Console.WriteLine");
 
         convertElement = Replace(convertElement, "NullDate", "NullDate");
@@ -2311,7 +2311,8 @@ public static class CodeConverter
             else if (StrQCnt(firstWord, "(") == 0)
             {
                 convertCodeLine = "";
-                convertCodeLine = convertCodeLine + firstWord + "(";
+                // the callee needs the same intrinsic-object mapping an expression gets: Err.Raise 5 -> Err().Raise(5)
+                convertCodeLine = convertCodeLine + StatementsConverter.IntrinsicMember(firstWord) + "(";
                 var n = 0;
                 do
                 {

@@ -177,7 +177,16 @@ Public Function Errors() As Long
   If Err.Number <> 0 Then n = -Err.Number
   Err.Clear
   On Error GoTo 0
-  Errors = n + Tolerant() + Retrying()
+  Errors = n + Tolerant() + Retrying() + Raised()
+End Function
+
+Public Function Raised() As Long
+  On Error GoTo EH
+  Err.Raise 5, "Raised", "raised on purpose"
+  Raised = -1
+  Exit Function
+EH:
+  Raised = Err.Number
 End Function
 
 Private Function Tolerant() As Long
@@ -254,6 +263,9 @@ Public Function Files() As Long
   Open path For Output As #f
   Print #f, "line one"
   Write #f, 1, "two"
+  Close #f
+  Open path For Append As #f
+  Print #f, "a"; "b"
   Close #f
   Open path For Input As #f
   Line Input #f, s

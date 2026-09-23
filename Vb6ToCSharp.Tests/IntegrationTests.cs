@@ -157,6 +157,9 @@ public class IntegrationTests
         Assert.Equal(40, Call(assembly, "modMain", "Udts")); // q = p copies the UDT: p.Age stays 36
         Assert.Equal(23, Call(assembly, "modMain", "Selects", 3)); // Case 3 To 5, string ranges, Select Case True
         Assert.Equal(3, Call(assembly, "modMain", "GoSubs", 3)); // GoSub, On ... GoSub, On ... GoTo
+        Assert.Equal(4, Call(assembly, "modMain", "Files")); // Open Output/Append/Input, Print with ';', Write, Line Input, EOF, Close
+        Assert.Equal(5, Call(assembly, "modMain", "Raised")); // Err.Raise reaches the handler, which reads Err.Number
+        Assert.Equal(9, Call(assembly, "modMain", "Errors")); // On Error Resume Next / GoTo 0 / GoTo label, Resume, Resume label, Err.Raise
         Assert.Equal(12, Call(assembly, "modLegacy", "Legacy")); // Option Compare Text ("abc" = "ABC"), Option Base 1
         Assert.Equal(42, Call(assembly, "modLegacy", "Pragmas")); // InsertStatement + ReplaceStatement
 

@@ -104,4 +104,41 @@ public class StatementsConverterProcedureTests : IClassFixture<ConverterFixture>
 
     [Fact]
     public void OptionExplicit_DeclaresNothingImplicitly() => Assert.DoesNotContain("implicit declaration", Segment("Public Sub T()\n  total = 5\nEnd Sub\n"));
+
+    /// <summary>
+    /// Sequential file I/O guarded by an error handler that raises: the combination the converter has to get right for
+    /// real VB6 code, and one that only fails at compile time (Err is a method, so Err.Raise needs the call).
+    /// </summary>
+    [Fact]
+    public void FileIoUnderAnErrorHandler_Compiles()
+    {
+        var cs = Segment("Public Function Dump(ByVal strFilename As String) As Long\n" +
+                         "  Dim iFile As Integer\n" +
+                         "  Dim sLine As String\n" +
+                         "  On Error GoTo Failed\n" +
+                         "  iFile = FreeFile\n" +
+                         "  Open strFilename For Output As #iFile\n" +
+                         "  Print #iFile, \"Something\"\n" +
+                         "  Print #iFile, \"a\"; \"b\"\n" +
+                         "  Print #iFile, \"c\", \"d\"\n" +
+                         "  Close #iFile\n" +
+                         "  Open strFilename For Input As #iFile\n" +
+                         "  Do While Not EOF(iFile)\n" +
+                         "    Line Input #iFile, sLine\n" +
+                         "    Dump = Dump + 1\n" +
+                         "  Loop\n" +
+                         "  Close #iFile\n" +
+                         "  Exit Function\n" +
+                         "Failed:\n" +
+                         "  Err.Raise Err.Number, \"Dump\", Err.Description\n" +
+                         "End Function\n");
+        Assert.Contains("FileOpen(iFile, strFilename, OpenMode.Output);", cs);
+        Assert.Contains("PrintLine(iFile, \"Something\");", cs);
+        Assert.Contains("PrintLine(iFile, string.Concat(\"a\", \"b\"));", cs); // ';' writes with no separator
+        Assert.Contains("PrintLine(iFile, \"c\", \"d\");", cs);               // ',' writes in print zones
+        Assert.Contains("sLine = LineInput(iFile);", cs);
+        Assert.Contains("FileClose(iFile);", cs);
+        Assert.Contains("Err().Raise(Err().Number, \"Dump\", Err().Description);", cs);
+        AssertCompiles(cs);
+    }
 }
