@@ -1,13 +1,7 @@
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Vb6ToCSharp.CodeConversion;
-using Vb6ToCSharp.Infrastructure;
 using Vb6ToCSharp.Parsing.Model;
-using Vb6ToCSharp.Tests.Fixtures;
-
 using Vb6ToCSharp.Tests.Fixtures;
 using static Vb6ToCSharp.Tests.Fixtures.ConverterTestHelpers;
 

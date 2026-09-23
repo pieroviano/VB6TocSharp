@@ -7,7 +7,7 @@
         <OutputType>Library</OutputType>
         <TargetFramework>net48</TargetFramework>
         <RootNamespace>Vb6ToCSharp.UpgradeHelpers</RootNamespace>
-        <Copyright>Copyright 2026</Copyright>
+        <Copyright>Copyright (c) Piero Viano 2026. All rights reserved.</Copyright>
         <Description>Runtime helpers for VB6 programs converted to C# (WinForms or WPF) by Vb6ToCSharp.</Description>
         <UseWindowsForms>true</UseWindowsForms>
         <UseWPF>true</UseWPF>

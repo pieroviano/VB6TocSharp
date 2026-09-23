@@ -1,8 +1,6 @@
 using Vb6ToCSharp.CodeConversion;
 using Vb6ToCSharp.Parsing.Model;
 using Vb6ToCSharp.Tests.Fixtures;
-
-using Vb6ToCSharp.Tests.Fixtures;
 using static Vb6ToCSharp.Tests.Fixtures.ConverterTestHelpers;
 
 namespace Vb6ToCSharp.Tests.CodeConversion;

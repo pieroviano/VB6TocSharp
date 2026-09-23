@@ -6,7 +6,7 @@
         <TargetFramework>net48</TargetFramework>
         <RootNamespace>Vb6ToCSharp.ConsoleApp</RootNamespace>
         <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
-        <Copyright>Copyright 2026</Copyright>
+        <Copyright>Copyright (c) Piero Viano 2026. All rights reserved.</Copyright>
         <LangVersion>latest</LangVersion>
         <IsPackable>false</IsPackable>
     </PropertyGroup>

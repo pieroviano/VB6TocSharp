@@ -51,16 +51,23 @@ Partner's rules. See [README.md](README.md) and the per-project READMEs for user
   | `Vb6ToCSharp.CodeGeneration` (`.Model`) | the output project: `.csproj`, `Program.cs`, `.sln` for a group, migration report |
   | `Vb6ToCSharp.Linting` | `QuickLint`, the pre-conversion VB6 linter |
   | `Vb6ToCSharp.Infrastructure` | host plumbing: text files, INI, shell, git, directory stack, regex |
-  | `Vb6ToCSharp.Runtime` (`.Model`) | VB6 shim **for the converter's own code**, plus the VB6 constant enums |
+  | `Vb6ToCSharp.Runtime` (`.Model`) | VB6 shim **for the converter's own code**: `VbStrings`/`VbConstants`/`VbConversion`/`VbInformation`/`VbFileSystem`/`VbInteraction`/`VbOperators`, `RuntimeExtension`, and the VB6 enums plus `VbCollection` in `.Model` |
   | `Vb6ToCSharp.UI` | WPF/MVVM plumbing the front end binds to (`CommandBase`, `PropertyIndexer`) |
 
-  Do not name a library namespace after a `Microsoft.VisualBasic` class (`Conversion`, `Strings`, `Interaction`,
-  `Information`, `FileSystem`): this code calls them unqualified, and the namespace would shadow them.
+  Do not name a library namespace after a VB6 function class (`Conversion`, `Strings`, `Interaction`, `Information`,
+  `FileSystem`): this code calls those members unqualified, and the namespace would shadow them.
 - **The converter itself was machine-converted from VB6.** Code lives in static classes with mutable static state.
-  It leans heavily on `using static Microsoft.VisualBasic.*` (`Mid`, `InStr`, `Split`...) and on VB-style string handling.
-  Match this style when editing. `Runtime/RuntimeExtension.cs` and `Runtime/Model/` are shims for that code, not for
-  converted output. `Vb6ToCSharp.Tests/Tests/FormTest.cs` is a conversion fixture left over from self-conversion, not a
-  runnable test.
+  It leans heavily on `using static Vb6ToCSharp.Runtime.Vb*` (`Mid`, `InStr`, `Split`, `vbCrLf`...) and on VB-style
+  string handling. Match this style when editing. `Runtime/` holds that shim - plain C#, no `Microsoft.VisualBasic`
+  anywhere in the library or the app - and each `Vb*` class mirrors its VB counterpart **signature for signature**
+  (same parameter types, same optional tail): keep it that way, or overload resolution against `RuntimeExtension`'s
+  competing members shifts. VB semantics that differ from the BCL are preserved and pinned by
+  `Vb6ToCSharp.Tests/Runtime/Vb*Tests.cs`, whose expectations come from the VB runtime itself (`Trim` leaves tabs,
+  `InStr` is 1-based, `Replace("")` is `null`...). `Runtime/RuntimeExtension.cs` and `Runtime/Model/` are shims for
+  this code, not for converted output. **Converted output still uses `Microsoft.VisualBasic`**: the `using` block in
+  `CodeGeneration/UsingEverything.cs`, the assembly reference in `SupportFiles`, the PowerPacks prefix in
+  `ControlCatalog` and `CompileUsings` in the tests are emitted text - do not "clean" them up.
+  `Vb6ToCSharp.Tests/Tests/FormTest.cs` is a conversion fixture left over from self-conversion, not a runnable test.
 - **State and config.** `ProjectConfigurationParser` loads `VB6toCS.INI` (`IniFilePath`, `OverrideSettings`, `UiTarget`).
   Front ends inject UI through the delegates `ConversionUtility.Notify` / `ConversionUtility.Progress`. The library must
   never show UI directly.

@@ -7,6 +7,7 @@
         <PackageOutputPath>$(SolutionDir)Packages\</PackageOutputPath>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
         <LangVersion>latest</LangVersion>
+        <NoWarn>$(NoWarn);NU5118</NoWarn>
     </PropertyGroup>
     <ItemGroup>
         <InternalsVisibleTo Include="Extras.Tests" />

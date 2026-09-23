@@ -4,24 +4,14 @@
         <PackageOutputPath>$(SolutionDir)Packages/</PackageOutputPath>
         <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
         <Version>$(VersionPrefix).$(VersionSuffix)</Version>
-        <ProjectGuid>{92F75129-0EC1-47BA-85A7-E47F9EB140FD}</ProjectGuid>
         <OutputType>WinExe</OutputType>
         <TargetFramework>net48</TargetFramework>
-        <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
         <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
         <DontConvert>False</DontConvert>
-        <Copyright>Copyright 2026</Copyright>
+        <Copyright>Copyright (c) Piero Viano 2026. All rights reserved.</Copyright>
         <UseWPF>true</UseWPF>
         <LangVersion>latest</LangVersion>
     </PropertyGroup>
-    <ItemGroup>
-        <Reference Include="Microsoft.VisualBasic" />
-        <Reference Include="Microsoft.CSharp" />
-        <Reference Include="System.Xaml" />
-        <Reference Include="WindowsBase" />
-        <Reference Include="PresentationCore" />
-        <Reference Include="PresentationFramework" />
-    </ItemGroup>
     <ItemGroup>
         <ProjectReference Include="..\Vb6ToCSharp.Library\Vb6ToCSharp.Library.csproj" />
     </ItemGroup>
