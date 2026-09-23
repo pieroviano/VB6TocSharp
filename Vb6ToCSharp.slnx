@@ -12,6 +12,7 @@
     <File Path="NuGet.Config" />
   </Folder>
   <Folder Name="/Tests/">
+    <Project Path="Extras.Tests/Extras.Tests.csproj" Id="80928e1c-7e3c-4c7b-8ccf-1351fc34a1b2" />
     <Project Path="Vb6ToCSharp.Tests/Vb6ToCSharp.Tests.csproj" Id="40236d1d-7258-4a03-ae4e-56a321772ae1" />
     <Project Path="Vb6ToCSharp.UpgradeHelpers.Tests/Vb6ToCSharp.UpgradeHelpers.Tests.csproj" />
   </Folder>
