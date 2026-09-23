@@ -8,8 +8,8 @@ target `net10.0-windows`.
 
 | # | Check | Result |
 |---|---|---|
-| 1 | `netstandard2.0` VB runtime surface | ❌ **verified, rejected**: `Microsoft.VisualBasic` 10.3.0 `netstandard2.0` has `Constants`, `CompilerServices`, `VBMath`, `Financial`, `Collection` — but **no** `Strings.Mid/Left/Right/Trim/Replace/Split/Join/InStr/Len` (~1300 call sites) and no `FileSystem`, `Interaction`, `Information`, `DateAndTime`, `Conversion` (~34). Core targets `net10.0` instead (decision 1) |
-| 2 | `net10.0` VB runtime surface | ✔ every member the core uses compiles from the shared framework, no package; only `CA1416` on `FileSystem.Dir` (suppress, or it disappears under `net10.0-windows`) |
+| 1 | `netstandard2.0` VB runtime surface | ⬜ **moot since [79b1fcb]**: the core no longer references `Microsoft.VisualBasic` at all. Its VB6 semantics are plain C# in `Vb6ToCSharp.Library/Runtime/Vb*.cs` (+ `Model/VbCollection`), pinned by `Vb6ToCSharp.Tests/Runtime/Vb*Tests.cs`. `netstandard2.0` is therefore open again, and decision 1 is free of this constraint |
+| 2 | `net10.0` VB runtime surface | ⬜ moot, same reason. `VbFileSystem.Dir` is `System.IO`, so the `CA1416` note is gone too. What remains Windows-only in the shim is `VbInteraction.MsgBox` (WPF `MessageBox`, one caller: `GitInteraction.gitPull`) — it moves with the WPF half under decision 2, or goes through `ConversionUtility.Notify` |
 | 3 | ADODB `COMReference` used by library code? | ✔ **no** — only emitted as text ([Vb6ToCsConverter.cs:120](../Vb6ToCSharp.Library/CodeConversion/Vb6ToCsConverter.cs#L120), [SupportFiles.cs:79](../Vb6ToCSharp.Library/CodeGeneration/SupportFiles.cs#L79)). Removed it and both VS MSBuild and `dotnet build` succeed (this also removes the MSB4803 note in [CLAUDE.md](../CLAUDE.md)) |
 | 4 | `VisualBasic.PowerPacks.Vs` on `net10.0-windows` | ❌ package ships a bare `lib/*.dll` (.NET Framework). The `Printer` members that need it have **no callers** → dropped (decision 5) |
 | 5 | .NET 10 SDK + `net10.0-windows` targeting pack | ✔ 10.0.301, probe project builds |
@@ -24,7 +24,7 @@ target `net10.0-windows`.
 | 2 | New project **`Vb6ToCSharp.Library.Windows`** (`net10.0-windows`, packed as `Net4x.Vb6ToCSharp.Library.Windows`) | Holds the WPF shim, `ScreenMetrics`, `Timer`, `UI/*`. The app and tests reference it |
 | 3 | `ResxWriter` stays in the core and **emits the `.resx` XML directly** (base64 FRX bytes + TypeConverter mimetype) | No `System.Drawing` in the core, no `BinaryFormatter`; the WinForms emitter stays whole. Format verified by check 6 |
 | 4 | `Vb6ToCSharp.UpgradeHelpers` → **`net10.0-windows` only** | Projects converted earlier (`net48`) cannot take a newer helpers version; they must be retargeted |
-| 5 | The PowerPacks `Printer` members of `RuntimeExtension` are **deleted** (no callers, package is net4x-only) | `Printers`, `Printer`, `Box`, `BoxStep`, `Circle`, `Line`, `LineStep`, `PaintPicture(Printer…)`, `PrintNNL`, `PrintPicture` go; `PackageImage`/`getImage` keep working (WPF `BitmapImage`) |
+| 5 | The PowerPacks `Printer` members of `RuntimeExtension` are **deleted** (no callers, package is net4x-only) | ✔ **done in [79b1fcb]**, together with `PrinterName`/`ResetPrinters` and the `VisualBasic.PowerPacks.Vs` reference; `PackageImage`/`getImage` keep working (WPF `BitmapImage`) |
 | 6 | Package ids keep the **`Net4x.`** prefix | No change to `NuGet.Config`, the `Packages\` feed, the emitted `PackageReference` or the READMEs |
 | 7 | `Extras` stays `netstandard2.0` | Not part of this pass; PowerPacks is gone from it (the two `Strings.Left/Right` calls are plain string code, the `System.Windows.Forms` using was dead); it is referenced by nothing |
 
@@ -62,11 +62,11 @@ Namespaces: the new project uses root namespace `Vb6ToCSharp.Windows`, folders m
         <PackageReference Include="Net4x.NuGetUtility" Version="$(NuGetUtilityVersion)" PrivateAssets="All" />
         <PackageReference Include="System.Text.Encoding.CodePages" Version="8.0.0" />   <!-- §4 -->
     </ItemGroup>
-    <!-- the whole <Reference …/> group is gone: Microsoft.VisualBasic(.Compatibility[.Data]), Microsoft.CSharp,
-         System.Data.DataSetExtensions, System.Net.Http, System.Xaml, WindowsBase, PresentationCore,
-         PresentationFramework — all either in the shared framework or no longer used -->
+    <!-- the whole <Reference …/> group is gone: Microsoft.CSharp, System.Data.DataSetExtensions,
+         System.Net.Http, System.Xaml, WindowsBase, PresentationCore, PresentationFramework — all either in
+         the shared framework or no longer used. The Microsoft.VisualBasic(.Compatibility[.Data]) references
+         and VisualBasic.PowerPacks.Vs are already gone (decision 5, [79b1fcb]) -->
     <!-- the ADODB <COMReference> group is gone (check 3) -->
-    <!-- VisualBasic.PowerPacks.Vs is gone (decision 5) -->
 </Project>
 ```
 
