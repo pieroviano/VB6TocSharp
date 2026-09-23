@@ -1,3 +1,4 @@
+using System.IO;
 using Vb6ToCSharp.Parsing.Model;
 using Vb6ToCSharp.Tests.Fixtures;
 

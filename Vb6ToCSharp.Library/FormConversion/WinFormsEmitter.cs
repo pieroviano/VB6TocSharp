@@ -256,8 +256,8 @@ public sealed class WinFormsEmitter
         var w = Units.ToPixels(root.Num("ClientWidth", root.Num("Width")));
         var h = Units.ToPixels(root.Num("ClientHeight", root.Num("Height")));
         Add(me, uc ? "Size" : "ClientSize", "new " + D + "Size(" + w + ", " + h + ")");
-        if (root.Has("BackColor")) Add(me, "BackColor", ColorConverter.WinForms(ColorConverter.Parse(root.Get("BackColor").Raw)));
-        if (root.Has("ForeColor")) Add(me, "ForeColor", ColorConverter.WinForms(ColorConverter.Parse(root.Get("ForeColor").Raw)));
+        if (root.Has("BackColor")) Add(me, "BackColor", VbColorConverter.WinForms(VbColorConverter.Parse(root.Get("BackColor").Raw)));
+        if (root.Has("ForeColor")) Add(me, "ForeColor", VbColorConverter.WinForms(VbColorConverter.Parse(root.Get("ForeColor").Raw)));
         FontProperty(root, me);
         CursorProperty(root, me);
         Add(me, "Name", Lit(ctx.ClassName));
@@ -379,8 +379,8 @@ public sealed class WinFormsEmitter
         if (c.Has("TabStop") && !c.Bool("TabStop", true)) Add(me, "TabStop", "false");
         if (c.Has("Enabled") && !c.Bool("Enabled", true)) Add(me, "Enabled", "false");
         if (c.Has("Visible") && !c.Bool("Visible", true)) Add(me, "Visible", "false");
-        if (c.Has("BackColor")) Add(me, "BackColor", ColorConverter.WinForms(ColorConverter.Parse(c.Get("BackColor").Raw)));
-        if (c.Has("ForeColor")) Add(me, "ForeColor", ColorConverter.WinForms(ColorConverter.Parse(c.Get("ForeColor").Raw)));
+        if (c.Has("BackColor")) Add(me, "BackColor", VbColorConverter.WinForms(VbColorConverter.Parse(c.Get("BackColor").Raw)));
+        if (c.Has("ForeColor")) Add(me, "ForeColor", VbColorConverter.WinForms(VbColorConverter.Parse(c.Get("ForeColor").Raw)));
         if (c.Has("RightToLeft") && c.Bool("RightToLeft")) Add(me, "RightToLeft", W + "RightToLeft.Yes");
         if (c.Has("Tag")) Add(me, "Tag", Lit(c.Text("Tag")));
         FontProperty(c, me);
@@ -822,7 +822,7 @@ public sealed class WinFormsEmitter
     {
         Add(me, "Name", Lit(c.MemberName));
         if (c.Has("Visible") && !c.Bool("Visible", true)) Add(me, "Visible", "false");
-        if (c.Has("BorderColor")) Add(me, "BorderColor", ColorConverter.WinForms(ColorConverter.Parse(c.Get("BorderColor").Raw)));
+        if (c.Has("BorderColor")) Add(me, "BorderColor", VbColorConverter.WinForms(VbColorConverter.Parse(c.Get("BorderColor").Raw)));
         if (c.Num("BorderWidth", 1) != 1) Add(me, "BorderWidth", ((int)c.Num("BorderWidth", 1)).ToString(Inv));
         var bs = (int)c.Num("BorderStyle", 1);
         if (bs == 0) Add(me, "BorderStyle", "System.Drawing.Drawing2D.DashStyle.Custom");
@@ -855,12 +855,12 @@ public sealed class WinFormsEmitter
         {
             var name = fs switch { 0 => "Solid", 2 => "Horizontal", 3 => "Vertical", 4 => "BackwardDiagonal", 5 => "ForwardDiagonal", 6 => "Cross", _ => "DiagonalCross" };
             Add(me, "FillStyle", PP + "FillStyle." + name);
-            Add(me, "FillColor", c.Has("FillColor") ? ColorConverter.WinForms(ColorConverter.Parse(c.Get("FillColor").Raw)) : D + "Color.Black");
+            Add(me, "FillColor", c.Has("FillColor") ? VbColorConverter.WinForms(VbColorConverter.Parse(c.Get("FillColor").Raw)) : D + "Color.Black");
         }
         if (c.Num("BackStyle") == 1)
         {
             Add(me, "BackStyle", PP + "BackStyle.Opaque");
-            if (c.Has("BackColor")) Add(me, "BackColor", ColorConverter.WinForms(ColorConverter.Parse(c.Get("BackColor").Raw)));
+            if (c.Has("BackColor")) Add(me, "BackColor", VbColorConverter.WinForms(VbColorConverter.Parse(c.Get("BackColor").Raw)));
         }
     }
 
@@ -879,7 +879,7 @@ public sealed class WinFormsEmitter
                 var ih = (int)c.Num("ImageHeight", 16);
                 Add(me, "ImageSize", "new " + D + "Size(" + iw + ", " + ih + ")");
                 Add(me, "ColorDepth", W + "ColorDepth.Depth32Bit");
-                if (c.Has("MaskColor") && c.Bool("UseMaskColor", true)) Add(me, "TransparentColor", ColorConverter.WinForms(ColorConverter.Parse(c.Get("MaskColor").Raw)));
+                if (c.Has("MaskColor") && c.Bool("UseMaskColor", true)) Add(me, "TransparentColor", VbColorConverter.WinForms(VbColorConverter.Parse(c.Get("MaskColor").Raw)));
                 var i = 0;
                 foreach (var g in c.SubGroups("Images"))
                 {

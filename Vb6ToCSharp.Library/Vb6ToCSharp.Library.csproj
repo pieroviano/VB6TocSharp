@@ -17,15 +17,7 @@
         <PackageId>Net4x.$(MSBuildProjectName)</PackageId>
     </PropertyGroup>
     <ItemGroup>
-        <Reference Include="Microsoft.CSharp" />
-        <Reference Include="System.Data.DataSetExtensions" />
-        <Reference Include="System.Net.Http" />
-        <Reference Include="System.Xaml" />
-        <Reference Include="WindowsBase" />
-        <Reference Include="PresentationCore" />
-        <Reference Include="PresentationFramework" />
-    </ItemGroup>
-    <ItemGroup>
+        <PackageReference Include="Microsoft.CSharp" Version="4.7.0.$(VersionBuildSuffix)" />
         <PackageReference Include="Net4x.NuGetUtility" Version="$(NuGetUtilityVersion)" PrivateAssets="All" />
     </ItemGroup>
     <ItemGroup>

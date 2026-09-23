@@ -4,7 +4,7 @@ using Vb6ToCSharp.Parsing;
 namespace Vb6ToCSharp.FormConversion;
 
 /// <summary>VB6 OLE colors (<c>&amp;H00BBGGRR&amp;</c>, <c>&amp;H800000xx&amp;</c> = system color) as C# / XAML expressions.</summary>
-public static class ColorConverter
+public static class VbColorConverter
 {
     // Win32 COLOR_* index → System.Drawing.SystemColors / System.Windows.SystemColors member
     private static readonly string[] system =

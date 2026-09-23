@@ -113,16 +113,16 @@ public sealed class WpfEmitter
             if (ws is 1 or 2) a.Add("WindowState=" + Xml(ws == 1 ? "Minimized" : "Maximized"));
             var icon = Resource(root, "Icon", "Icon", icon: true);
             if (icon != null) a.Add("Icon=" + Xml(icon));
-            a.Add("Background=" + Xml(root.Has("BackColor") ? ColorConverter.Xaml(ColorConverter.Parse(root.Get("BackColor").Raw)) : ColorConverter.Xaml(0x8000000F)));
+            a.Add("Background=" + Xml(root.Has("BackColor") ? VbColorConverter.Xaml(VbColorConverter.Parse(root.Get("BackColor").Raw)) : VbColorConverter.Xaml(0x8000000F)));
             if (controlFile.IsMdiForm) xaml.Append("<!-- TODO: WPF has no MDI; ").Append(ctx.ClassName).Append(" was an MDIForm (child forms open as separate windows) -->\r\n");
         }
         else
         {
             a.Add("Width=" + Xml(w.ToString(Inv)));
             a.Add("Height=" + Xml(h.ToString(Inv)));
-            if (root.Has("BackColor")) a.Add("Background=" + Xml(ColorConverter.Xaml(ColorConverter.Parse(root.Get("BackColor").Raw))));
+            if (root.Has("BackColor")) a.Add("Background=" + Xml(VbColorConverter.Xaml(VbColorConverter.Parse(root.Get("BackColor").Raw))));
         }
-        if (root.Has("ForeColor")) a.Add("Foreground=" + Xml(ColorConverter.Xaml(ColorConverter.Parse(root.Get("ForeColor").Raw))));
+        if (root.Has("ForeColor")) a.Add("Foreground=" + Xml(VbColorConverter.Xaml(VbColorConverter.Parse(root.Get("ForeColor").Raw))));
         a.AddRange(FontAttributes(root));
         a.AddRange(EventAttributes(root));
 
@@ -272,7 +272,7 @@ public sealed class WpfEmitter
         ctor.Add("this." + c.Name + ".SetIndex(this." + c.MemberName + ", " + c.Index + ");");
     }
 
-    private string Brush(ControlWithType c, string prop) => ColorConverter.Xaml(ColorConverter.Parse(c.Get(prop).Raw));
+    private string Brush(ControlWithType c, string prop) => VbColorConverter.Xaml(VbColorConverter.Parse(c.Get(prop).Raw));
 
     private List<string> Placement(ControlWithType c, bool canvas)
     {

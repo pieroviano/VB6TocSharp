@@ -1,3 +1,4 @@
+using System.IO;
 using Vb6ToCSharp.Infrastructure;
 using Vb6ToCSharp.Tests.Fixtures;
 

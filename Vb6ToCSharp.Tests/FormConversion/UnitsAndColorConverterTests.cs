@@ -5,7 +5,7 @@ using Vb6ToCSharp.UpgradeHelpers.Model;
 
 namespace Vb6ToCSharp.Tests.FormConversion;
 
-public class UnitsAndColorConverterTests
+public class UnitsAndVbColorConverterTests
 {
     private static ControlWithType Ctl(string frm, string name) => FrmParser.Parse(frm).Find(name);
 
@@ -46,11 +46,11 @@ public class UnitsAndColorConverterTests
     [Fact]
     public void Colors_SystemAndRgb()
     {
-        Assert.Equal("System.Drawing.SystemColors.Control", ColorConverter.WinForms(ColorConverter.Parse("&H8000000F&")));
-        Assert.Equal("System.Drawing.SystemColors.WindowText", ColorConverter.WinForms(ColorConverter.Parse("&H80000008&")));
-        Assert.Equal("System.Drawing.Color.FromArgb(255, 128, 0)", ColorConverter.WinForms(ColorConverter.Parse("&H000080FF&")));
-        Assert.Equal("#FF8000", ColorConverter.Xaml(ColorConverter.Parse("&H000080FF&")));
-        Assert.Equal("{DynamicResource {x:Static SystemColors.ControlBrushKey}}", ColorConverter.Xaml(ColorConverter.Parse("&H8000000F&")));
-        Assert.Null(ColorConverter.SystemName(0x000000FF));
+        Assert.Equal("System.Drawing.SystemColors.Control", VbColorConverter.WinForms(VbColorConverter.Parse("&H8000000F&")));
+        Assert.Equal("System.Drawing.SystemColors.WindowText", VbColorConverter.WinForms(VbColorConverter.Parse("&H80000008&")));
+        Assert.Equal("System.Drawing.Color.FromArgb(255, 128, 0)", VbColorConverter.WinForms(VbColorConverter.Parse("&H000080FF&")));
+        Assert.Equal("#FF8000", VbColorConverter.Xaml(VbColorConverter.Parse("&H000080FF&")));
+        Assert.Equal("{DynamicResource {x:Static SystemColors.ControlBrushKey}}", VbColorConverter.Xaml(VbColorConverter.Parse("&H8000000F&")));
+        Assert.Null(VbColorConverter.SystemName(0x000000FF));
     }
 }

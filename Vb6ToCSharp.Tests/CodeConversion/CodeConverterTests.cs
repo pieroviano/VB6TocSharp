@@ -1,3 +1,4 @@
+using System.IO;
 using System.Text.RegularExpressions;
 using Vb6ToCSharp.CodeConversion;
 using Vb6ToCSharp.Parsing;

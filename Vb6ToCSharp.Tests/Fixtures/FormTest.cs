@@ -1,4 +1,3 @@
-using static Microsoft.VisualBasic.Constants;
 using static Vb6ToCSharp.CodeConversion.CodeConverter;
 using Vb6ToCSharp.Runtime;
 
@@ -13,7 +12,7 @@ public static class FormTest
     {
         var a = "";
         var m = "";
-        var n = vbCrLf;
+        var n = "\r\n";
 
         a = a + m + "Public Function ReadEntireFile(ByVal tFileName As String) As String";
         a = a + n + "'::::ReadEntireFile";
@@ -51,7 +50,7 @@ public static class FormTest
     public static string TestCase2()
     {
         var a = "";
-        var n = vbCrLf;
+        var n = "\r\n";
 
         a = a + n + "Public Function DescribeColor(ByVal RGB As Long) As String";
         a = a + n + "  Dim R As Long, G As Long, B As Long";
@@ -87,7 +86,7 @@ public static class FormTest
     {
         var s = "";
 
-        var n = vbCrLf;
+        var n = "\r\n";
         s = s + n + "VERSION 5.00";
         s = s + n + "Begin VB.Form frmAbout ";
         s = s + n + "   BackColor       =   &H000000FF&";
@@ -148,7 +147,7 @@ public static class FormTest
 
     public static string TestCaseFrm2()
     {
-        var n = vbCrLf;
+        var n = "\r\n";
         var s = "";
         s = s + n + "VERSION 5.00";
         s = s + n + "Object = \"{86CF1D34-0C5F-11D2-A9FC-0000F8754DA1}#2.0#0\"; \"Mscomct2.ocx\"";
@@ -1045,7 +1044,7 @@ public static class FormTest
     public static string TestCaseFunc()
     {
         var r = "";
-        var n = vbCrLf;
+        var n = "\r\n";
         var m = "";
 
         r = r + m + "Private Function AlreadyMadeSameAsCash() As Boolean";

@@ -1,3 +1,4 @@
+using System.IO;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Vb6ToCSharp.CodeConversion;
