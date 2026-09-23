@@ -60,6 +60,14 @@ public static class OcxInterop
         }
     }
 
+    /// <summary>
+    /// The one P/Invoke left in this codebase, deliberately. What is wanted is the type library's
+    /// identifier - the <c>Lib</c> of <c>Lib.Class</c> in a .frm, e.g. <c>MSComctlLib</c> - and only
+    /// the library itself carries it: the registry holds its display name and its file, not the
+    /// identifier. Guessing it from a coclass ProgID would be a heuristic, and a wrong answer here
+    /// silently mis-converts every control of that library, so the exact API is used instead.
+    /// <see cref="RegistryLookup"/> is the seam that keeps this out of the tests.
+    /// </summary>
     [DllImport("oleaut32.dll", PreserveSig = true)]
     private static extern int LoadRegTypeLib(ref Guid rguid, short wVerMajor, short wVerMinor, int lcid, out ITypeLib pptlib);
 

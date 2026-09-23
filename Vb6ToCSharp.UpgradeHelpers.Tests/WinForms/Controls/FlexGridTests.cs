@@ -1,4 +1,4 @@
-using System.Drawing;
+﻿using System.Drawing;
 using System.Windows.Forms;
 using Vb6ToCSharp.UpgradeHelpers.WinForms.Controls;
 using Vb6ToCSharp.UpgradeHelpers.Tests.Fixtures;
@@ -236,6 +236,27 @@ public class FlexGridTests
             g.Redraw = true;
             Assert.Equal(-1, g.MouseRow);
             Assert.Equal(-1, g.MouseCol);
+        });
+    }
+
+    [Fact]
+    public void Redraw_TogglingRepeatedly_LeavesTheGridUsable()
+    {
+        Sta.Run(() =>
+        {
+            var g = new FlexGrid { Rows = 5, Cols = 3 };
+            for (var i = 0; i < 3; i++)
+            {
+                g.Redraw = false;
+                g.Redraw = false;   // the second one is a no-op, so layout stays balanced
+                g.TextMatrix[1, 1] = "v" + i;
+                g.Redraw = true;
+                g.Redraw = true;
+            }
+
+            Assert.True(g.Redraw);
+            Assert.Equal("v2", g.TextMatrix[1, 1]);
+            Assert.Equal(5, g.Rows);
         });
     }
 }

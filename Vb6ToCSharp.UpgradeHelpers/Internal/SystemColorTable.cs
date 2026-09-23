@@ -1,7 +1,5 @@
-using System;
 using System.Collections.Generic;
 using System.Drawing;
-using System.Runtime.InteropServices;
 
 namespace Vb6ToCSharp.UpgradeHelpers.Internal;
 
@@ -63,22 +61,13 @@ internal static class SystemColorTable
 
     internal static int ToOle(int index) => SystemFlag | (index & 0xFF);
 
-    /// <summary>Current RGB of a COLOR_* index not covered by <see cref="KnownColor"/>.</summary>
-    internal static Color FromWin32(int index)
-    {
-        try
-        {
-            var bgr = GetSysColor(index);
-            return Color.FromArgb(255, bgr & 0xFF, (bgr >> 8) & 0xFF, (bgr >> 16) & 0xFF);
-        }
-        catch (Exception)
-        {
-            return SystemColors.Control;
-        }
-    }
+    /// <summary>
+    /// Fallback for a COLOR_* index <see cref="ByIndex"/> does not map. Every index Win32 defines is
+    /// in that table, so this is reached only for one that does not exist - which VB6 painted with
+    /// the control colour, as the GetSysColor this replaced also did on failure.
+    /// </summary>
+    internal static Color FromWin32(int index) => SystemColors.Control;
 
     internal static int ToBgr(byte r, byte g, byte b) => r | (g << 8) | (b << 16);
 
-    [DllImport("user32.dll")]
-    private static extern int GetSysColor(int nIndex);
 }

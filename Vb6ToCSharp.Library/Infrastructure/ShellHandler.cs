@@ -1,7 +1,7 @@
 using System;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
-using System.Runtime.InteropServices;
 using System.Threading;
 using Vb6ToCSharp.Runtime;
 using Vb6ToCSharp.Runtime.Model;
@@ -29,10 +29,6 @@ public static class ShellHandler
     private static int lastProcessId = 0;
     private const string dirsep = "\\";
     public const int normalPriorityClass = 0x20;
-
-    [DllImport("kernel32.dll")] private static extern void Sleep(int dwMilliseconds);
-    [DllImport("user32.dll")] private static extern int GetDesktopWindow();
-    [DllImport("shell32.dll", EntryPoint = "ShellExecuteA")] private static extern int ShellExecute(int hwnd, string lpOperation, string lpFile, string lpParameters, string lpDirectory, int nShowCmd);
 
 
     public static string RunCmdToOutput(string cmd, out string errStr, bool asAdmin = false)
@@ -73,7 +69,7 @@ public static class ShellHandler
         while (true)
         {
             var tLen = FileExists(a) ? FileLen(a) : -1;
-            Sleep(800);
+            Thread.Sleep(800);
             if (iter > maxIter || (FileExists(a) ? FileLen(a) : -1) == tLen)
             {
                 break;
@@ -171,14 +167,41 @@ public static class ShellHandler
         return tempFile;
     }
 
+    /// <summary>
+    /// Starts <paramref name="app"/> elevated. <paramref name="nHwnd"/> is the owner window the
+    /// ShellExecute this replaced took; the shell now picks the owner itself.
+    /// </summary>
     public static void RunShellExecuteAdmin(string app, int nHwnd = 0, int windowState = swShownormal)
     {
-        if (nHwnd == 0)
+        var info = new ProcessStartInfo(app)
         {
-            nHwnd = GetDesktopWindow();
+            UseShellExecute = true,   // the shell elevates; without it "runas" means nothing
+            Verb = "runas",
+            WindowStyle = WindowStyleOf(windowState),
+        };
+
+        try
+        {
+            var p = Process.Start(info);
+            lastProcessId = p == null ? 0 : p.Id;
         }
-        lastProcessId = ShellExecute(nHwnd, "runas", app, vbNullString, vbNullString, windowState);
-        //  ShellExecute nHwnd, "runas", App, Command & " /admin", vbNullString, SW_SHOWNORMAL
+        catch (Win32Exception)
+        {
+            // The user dismissed the elevation prompt, or the file cannot be run: ShellExecute
+            // reported that in its return value rather than throwing, so neither do we.
+            lastProcessId = 0;
+        }
+    }
+
+    private static ProcessWindowStyle WindowStyleOf(int windowState)
+    {
+        switch (windowState)
+        {
+            case swHide: return ProcessWindowStyle.Hidden;
+            case swShowminimized: return ProcessWindowStyle.Minimized;
+            case swShowmaximized: return ProcessWindowStyle.Maximized;
+            default: return ProcessWindowStyle.Normal;
+        }
     }
 
     public static bool RunFileAsAdmin(string app, int nHwnd = 0, int windowState = swShownormal)

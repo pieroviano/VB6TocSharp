@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
 using System.Linq;
-using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using Vb6ToCSharp.UpgradeHelpers.Arrays;
 using Vb6ToCSharp.UpgradeHelpers.Model;
@@ -18,7 +17,6 @@ namespace Vb6ToCSharp.UpgradeHelpers.WinForms.Controls;
 public class FlexGrid : DataGridView
 {
     private const int DefaultColWidthTwips = 960;
-    private const int WM_SETREDRAW = 0x000B;
 
     private readonly Dictionary<DataGridViewColumn, int> _colAlign = new();
     private int _fixedRows = 1, _fixedCols = 1, _appliedFixedRows;
@@ -232,7 +230,11 @@ public class FlexGrid : DataGridView
         }
     }
 
-    /// <summary>False suspends painting (WM_SETREDRAW) until set back to true.</summary>
+    /// <summary>
+    /// False holds back layout and repainting until set back to true, which is what a VB6 bulk fill
+    /// used it for. It suspends layout rather than the window's painting, so a long fill can still
+    /// show intermediate state; the repaint at the end is the same.
+    /// </summary>
     [DefaultValue(true)]
     public bool Redraw
     {
@@ -241,8 +243,15 @@ public class FlexGrid : DataGridView
         {
             if (_redraw == value) return;
             _redraw = value;
-            if (IsHandleCreated) SendMessage(Handle, WM_SETREDRAW, (IntPtr)(value ? 1 : 0), IntPtr.Zero);
-            if (value) Invalidate(true);
+            if (value)
+            {
+                ResumeLayout(true);
+                Invalidate(true);
+            }
+            else
+            {
+                SuspendLayout();
+            }
         }
     }
 
@@ -599,6 +608,4 @@ public class FlexGrid : DataGridView
         if (col < 0 || col >= ColumnCount) throw new ArgumentOutOfRangeException(nameof(col), "Subscript out of range");
     }
 
-    [DllImport("user32.dll")]
-    private static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);
 }

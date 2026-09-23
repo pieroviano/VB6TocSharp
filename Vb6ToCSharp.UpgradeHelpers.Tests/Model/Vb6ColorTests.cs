@@ -1,4 +1,4 @@
-using System.Drawing;
+﻿using System.Drawing;
 using Vb6ToCSharp.UpgradeHelpers.Internal;
 using Vb6ToCSharp.UpgradeHelpers.Model;
 
@@ -59,5 +59,15 @@ public class Vb6ColorTests
     {
         Assert.Equal(0x0000FF, Vb6Color.FromColor(Color.Red));
         Assert.Equal(0xFFFFFF, Vb6Color.FromColor(Color.White));
+    }
+
+    [Fact]
+    public void ToColor_SystemIndexWin32DoesNotDefine_IsTheControlColour()
+    {
+        // 25 is the one gap in the COLOR_* range; it used to go to GetSysColor, which answered
+        // nothing useful either.
+        Assert.False(SystemColorTable.ByIndex.ContainsKey(25));
+        Assert.Equal(SystemColors.Control, Vb6Color.ToColor(unchecked((int)0x80000019)));
+        Assert.Equal(SystemColors.Control, Vb6Color.ToColor(unchecked((int)0x800000FF)));
     }
 }
