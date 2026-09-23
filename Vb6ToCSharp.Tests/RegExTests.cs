@@ -1,4 +1,4 @@
-using static Vb6ToCSharp.ItemConversion.RegularExpressions;
+using static Vb6ToCSharp.Infrastructure.RegularExpressions;
 
 namespace Vb6ToCSharp.Tests;
 

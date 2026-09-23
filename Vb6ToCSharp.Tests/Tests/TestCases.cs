@@ -1,6 +1,6 @@
 using System;
-using Vb6ToCSharp.Parsing;
-using static Vb6ToCSharp.Parsing.GitInteraction;
+using Vb6ToCSharp.Infrastructure;
+using static Vb6ToCSharp.Infrastructure.GitInteraction;
 
 
 namespace Vb6ToCSharp.Tests;

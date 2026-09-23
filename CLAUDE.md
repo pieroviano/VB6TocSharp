@@ -29,37 +29,57 @@ Partner's rules. See [README.md](README.md) and the per-project READMEs for user
 ## Architecture
 
 - **Library ([Vb6ToCSharp.Library](Vb6ToCSharp.Library/))** is the engine. The WPF app and the console are thin front ends
-  that call the same static entry points (`ModConvert.ConvertProject/ConvertFile/ConvertFileList`, `ModRefScan.ScanRefs`,
-  `ModSupportFiles.*`, `ModQuickLint.LintFileOrProject`).
-- **The converter itself was machine-converted from VB6.** Code lives in static `Mod*` classes with mutable static state.
+  that call the same static entry points (`CodeConverter.ConvertProject/ConvertFile/ConvertFileList`, `RefScanner.ScanRefs`,
+  `SupportFiles.*`, `QuickLint.LintFileOrProject`).
+- **Namespaces mirror folders 1:1.** A `.Model` namespace holds the plain data types its parent produces or consumes;
+  the parent holds the services.
+
+  | Namespace | Holds |
+  |---|---|
+  | `Vb6ToCSharp.Parsing` (`.Model`) | reads `.vbp`/`.vbg`/`.frm`/`.ctl`/`.frx`/`.cls` → `ProjectInfo`, `FormControlFile`, `ControlWithType`, `ClassDefinition` |
+  | `Vb6ToCSharp.CodeConversion` (`.Model`) | the VB6 → C# code pipeline and its per-procedure state |
+  | `Vb6ToCSharp.FormConversion` (`.Model`) | designer emission: control/event catalogs, WPF and WinForms emitters |
+  | `Vb6ToCSharp.CodeGeneration` (`.Model`) | the output project: `.csproj`, `Program.cs`, `.sln` for a group, migration report |
+  | `Vb6ToCSharp.Linting` | `QuickLint`, the pre-conversion VB6 linter |
+  | `Vb6ToCSharp.Infrastructure` | host plumbing: text files, INI, shell, git, directory stack, regex |
+  | `Vb6ToCSharp.Runtime` (`.Model`) | VB6 shim **for the converter's own code**, plus the VB6 constant enums |
+  | `Vb6ToCSharp.UI` | WPF/MVVM plumbing the front end binds to (`CommandBase`, `PropertyIndexer`) |
+
+  Do not name a library namespace after a `Microsoft.VisualBasic` class (`Conversion`, `Strings`, `Interaction`,
+  `Information`, `FileSystem`): this code calls them unqualified, and the namespace would shadow them.
+- **The converter itself was machine-converted from VB6.** Code lives in static classes with mutable static state.
   It leans heavily on `using static Microsoft.VisualBasic.*` (`Mid`, `InStr`, `Split`...) and on VB-style string handling.
-  Match this style when editing. `VbExtension.cs`/`VbConstants.cs` are shims for that code, not for converted output.
-  `ModTestCases.cs`/`FormTest.cs` are conversion fixtures left over from self-conversion, not runnable tests.
-- **State and config.** `ModConfig` loads `VB6toCS.INI` (`IniFilePath`, `OverrideSettings`, `UiTarget`). Front ends inject
-  UI through the delegates `ModUtils.Notify` / `ModUtils.Progress`. The library must never show UI directly.
+  Match this style when editing. `Runtime/RuntimeExtension.cs` and `Runtime/Model/` are shims for that code, not for
+  converted output. `Vb6ToCSharp.Tests/Tests/FormTest.cs` is a conversion fixture left over from self-conversion, not a
+  runnable test.
+- **State and config.** `ProjectConfigurationParser` loads `VB6toCS.INI` (`IniFilePath`, `OverrideSettings`, `UiTarget`).
+  Front ends inject UI through the delegates `ConversionUtility.Notify` / `ConversionUtility.Progress`. The library must
+  never show UI directly.
 - **Pipeline, per file (text-based, line by line):**
-  1. `ModRefScan.ScanRefs()` indexes the project's procedures, enums, forms, UDTs and globals. The conversion needs this
+  1. `RefScanner.ScanRefs()` indexes the project's procedures, enums, forms, UDTs and globals. The conversion needs this
      index to tell a call without parentheses from a variable.
-  2. `ModConvertPragmas.PreProcess` applies `'##` pragmas and `VBMigrationPartner.pragmas`.
-  3. `ModConvertStatements.BeginFile` sets up per-file options (`Option Base/Compare/Explicit`, `DefType`) and
+  2. `PragmaConverter.PreProcess` applies `'##` pragmas and `VBMigrationPartner.pragmas`.
+  3. `StatementsConverter.BeginFile` sets up per-file options (`Option Base/Compare/Explicit`, `DefType`) and
      `#If`/`#Const` handling.
-  4. `ModConvert`: `ConvertGlobals` handles declarations, `ConvertCodeSegment` → `ConvertSub` → `ConvertCodeLine` →
+  4. `CodeConverter`: `ConvertGlobals` handles declarations, `ConvertCodeSegment` → `ConvertSub` → `ConvertCodeLine` →
      `ConvertElement`/`ConvertValue` handle procedures. Statement-level rules (error handling, `ReDim`, file I/O, implicit
-     conversions, `Select Case`) are in `ModConvertStatements`. Type and control mappings are in `ModVb6ToCs`.
-     Class semantics are in `ModConvertClasses`. Per-procedure variable/property tracking is in `ModSubTracking`.
-  5. `ModProjectSpecific` / `PostConvertCodeLine` apply the INI `[PostCodeLine]` rules. `PostProcess` applies the pragmas.
-     `WriteOut` writes the file, skipping files marked `### CONVERTED`.
-- **Forms ([Forms/](Vb6ToCSharp.Library/Forms/), namespace `Vb6ToCSharp.FormConversion`).** `FrmParser`/`FrxReader`
-  parse `.frm`/`.ctl` + `.frx` into `VbFormFile`. `ControlCatalog` and `EventCatalog` map VB6 controls and events to
-  .NET (both overridable from the INI). `WpfEmitter` (XAML) or `WinFormsEmitter` (`Designer.cs` + `.resx` via `ResxWriter`)
-  emits the designer. `FormContext` shares designer facts with the code conversion, e.g. `EventAdapters`, which bridge
-  .NET handler signatures to the VB6-signature handlers.
-- **Output support.** `ModSupportFiles` writes the `.csproj`, `Program.cs` and `AssemblyInfo.cs`.
-  `ModMigrationReport.Write()` collects every `// TODO:` in the output into `MigrationReport.md`.
+     conversions, `Select Case`) are in `StatementsConverter`. Type and control mappings are in `Vb6ToCsConverter`.
+     Class semantics are in `ClassesConverter`. Per-procedure variable/property tracking is in `SubTracking`.
+  5. `ProjectSpecificConverter` / `PostConvertCodeLine` apply the INI `[PostCodeLine]` rules. `PostProcess` applies the
+     pragmas. `WriteOut` writes the file, skipping files marked `### CONVERTED`.
+- **Forms.** `FrmParser`/`FrxReader` ([Parsing/](Vb6ToCSharp.Library/Parsing/)) parse `.frm`/`.ctl` + `.frx` into
+  `FormControlFile`. In [FormConversion/](Vb6ToCSharp.Library/FormConversion/), `ControlCatalog` and `EventCatalog` map
+  VB6 controls and events to .NET (both overridable from the INI); `WpfEmitter` (XAML) or `WinFormsEmitter`
+  (`Designer.cs` + `.resx` via `ResxWriter`) emits the designer. `FormContext` shares designer facts with the code
+  conversion, e.g. `EventAdapters`, which bridge .NET handler signatures to the VB6-signature handlers.
+- **Output support.** `SupportFiles` writes the `.csproj`, `Program.cs` and `AssemblyInfo.cs`; `ProjectGroup` writes the
+  `.sln` and project references for a `.vbg`. `MigrationReport.Write()` collects every `// TODO:` in the output into
+  `MigrationReport.md`.
 - **Runtime ([Vb6ToCSharp.UpgradeHelpers](Vb6ToCSharp.UpgradeHelpers/)).** This is what converted code calls (`VbRuntime`,
   `VB6Array<T>`, `IVbStruct`, control arrays, FlexGrid, CommonDialog), with parallel `WinForms/` and `Wpf/` namespaces.
-  VB6 semantics that can't be expressed inline belong here, not in generated boilerplate. A new runtime API needs matching
-  emission in the library.
+  It is distinct from `Vb6ToCSharp.Library`'s own `Runtime` namespace, which serves the converter's machine-converted
+  code. VB6 semantics that can't be expressed inline belong here, not in generated boilerplate. A new runtime API needs
+  matching emission in the library.
 - **Extras** is an independent optional package (`Recordset`, `FixedWidthRecord`, `CsvRecord`). The converter doesn't use it.
 
 ## Conventions

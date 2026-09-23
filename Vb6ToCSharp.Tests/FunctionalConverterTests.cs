@@ -1,8 +1,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using Vb6ToCSharp.CodeGeneration;
-using Vb6ToCSharp.ItemConversion;
-using Vb6ToCSharp.Parsing;
+using Vb6ToCSharp.CodeGeneration.Model;
+using Vb6ToCSharp.CodeConversion;
+using Vb6ToCSharp.Parsing.Model;
 
 namespace Vb6ToCSharp.Tests;
 

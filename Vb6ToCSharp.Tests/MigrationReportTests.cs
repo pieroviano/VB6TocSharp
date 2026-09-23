@@ -1,5 +1,6 @@
 using System.IO;
-using Vb6ToCSharp.ItemConversion;
+using Vb6ToCSharp.CodeGeneration;
+using Vb6ToCSharp.CodeConversion;
 using Vb6ToCSharp.Parsing;
 using Vb6ToCSharp.Tests.Infrastructure;
 

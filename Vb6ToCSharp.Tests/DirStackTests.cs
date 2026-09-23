@@ -1,4 +1,4 @@
-using Vb6ToCSharp.Parsing;
+using Vb6ToCSharp.Infrastructure;
 using Vb6ToCSharp.Tests.Infrastructure;
 
 namespace Vb6ToCSharp.Tests;

@@ -1,5 +1,6 @@
 using System.Text;
 using Vb6ToCSharp.Parsing;
+using Vb6ToCSharp.Parsing.Model;
 
 namespace Vb6ToCSharp.Tests;
 

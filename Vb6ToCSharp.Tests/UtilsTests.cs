@@ -1,6 +1,6 @@
 using Microsoft.VisualBasic;
 using Vb6ToCSharp.Tests.Infrastructure;
-using static Vb6ToCSharp.ItemConversion.ConversionUtility;
+using static Vb6ToCSharp.CodeConversion.ConversionUtility;
 
 namespace Vb6ToCSharp.Tests;
 

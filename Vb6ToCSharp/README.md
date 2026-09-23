@@ -14,19 +14,19 @@ GUI front end for the VB6 → C# converter. It is a thin shell over
 
 ## Main window commands
 
-Before every conversion command, the app runs `ModConfig.ValidateSettings()`. If the settings are invalid, it shows the error and stops.
+Before every conversion command, the app runs `ProjectConfigurationParser.ValidateSettings()`. If the settings are invalid, it shows the error and stops.
 
 | Button | Library call |
 |---|---|
-| `Config` | Opens the config window, then `ModConfig.LoadSettings()` |
-| `SCAN` | `ModRefScan.ScanRefs()`: indexes procedures, enums, forms. Run it before converting files one at a time |
-| `SUPPORT` | Asks, then `ModSupportFiles.CreateProjectFile(vbp)` and/or `CreateProjectSupportFiles()` |
-| `Forms` / `Modules` / `Classes` | `ModConvert.ConvertFileList(...)` on that group of the `.vbp` |
-| `Single File` | `ModConvert.ConvertFile(name)`. A bare name is resolved against the project folder |
-| `ALL` | `ModConvert.ConvertProject(vbp)`: scan, project + support files, every file, `MigrationReport.md` |
-| `Lint` | Opens the lint window (`ModQuickLint.LintFileOrProject`) |
+| `Config` | Opens the config window, then `ProjectConfigurationParser.LoadSettings()` |
+| `SCAN` | `RefScanner.ScanRefs()`: indexes procedures, enums, forms. Run it before converting files one at a time |
+| `SUPPORT` | Asks, then `SupportFiles.CreateProjectFile(vbp)` and/or `CreateProjectSupportFiles()` |
+| `Forms` / `Modules` / `Classes` | `CodeConverter.ConvertFileList(...)` on that group of the `.vbp` |
+| `Single File` | `CodeConverter.ConvertFile(name)`. A bare name is resolved against the project folder |
+| `ALL` | `CodeConverter.ConvertProject(vbp)`: scan, project + support files, every file, `MigrationReport.md` |
+| `Lint` | Opens the lint window (`QuickLint.LintFileOrProject`) |
 
-Progress comes from `ModUtils.Progress` (wired in [App.xaml.cs](App.xaml.cs)). Messages use the library's default message box.
+Progress comes from `ConversionUtility.Progress` (wired in [App.xaml.cs](App.xaml.cs)). Messages use the library's default message box.
 
 ## Settings
 

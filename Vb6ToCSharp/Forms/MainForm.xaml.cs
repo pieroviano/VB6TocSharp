@@ -1,17 +1,18 @@
 using System.Windows;
+using Vb6ToCSharp.Parsing;
 using Vb6ToCSharp.Runtime;
-using Vb6ToCSharp.UI;
+using Vb6ToCSharp.Runtime.Model;
 using static Microsoft.VisualBasic.Constants;
 using static Microsoft.VisualBasic.FileSystem;
 using static Microsoft.VisualBasic.Interaction;
 using static Vb6ToCSharp.Parsing.ProjectConfigurationParser;
-using static Vb6ToCSharp.ItemConversion.CodeConverter;
+using static Vb6ToCSharp.CodeConversion.CodeConverter;
 using static Vb6ToCSharp.Parsing.ProjectFiles;
-using static Vb6ToCSharp.ItemConversion.RefScanner;
-using static Vb6ToCSharp.ItemConversion.SupportFiles;
-using static Vb6ToCSharp.ItemConversion.ConversionUtility;
+using static Vb6ToCSharp.CodeConversion.RefScanner;
+using static Vb6ToCSharp.CodeGeneration.SupportFiles;
+using static Vb6ToCSharp.CodeConversion.ConversionUtility;
 using static Vb6ToCSharp.Runtime.RuntimeExtension;
-using Vb6ToCSharp.Parsing;
+using Vb6ToCSharp.UI;
 
 namespace Vb6ToCSharp.Forms;
 

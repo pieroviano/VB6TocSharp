@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using Vb6ToCSharp.Parsing.Model;
 
 namespace Vb6ToCSharp.Parsing;
 

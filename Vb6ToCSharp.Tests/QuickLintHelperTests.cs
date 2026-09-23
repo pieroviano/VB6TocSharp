@@ -1,5 +1,5 @@
 using System.IO;
-using Vb6ToCSharp.CodeErrors;
+using Vb6ToCSharp.Linting;
 using Vb6ToCSharp.Tests.Infrastructure;
 
 namespace Vb6ToCSharp.Tests;

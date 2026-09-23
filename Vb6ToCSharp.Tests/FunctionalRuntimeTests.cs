@@ -1,5 +1,5 @@
 using System.Linq;
-using Vb6ToCSharp.ItemConversion;
+using Vb6ToCSharp.CodeConversion;
 using Vb6ToCSharp.Tests.Model;
 using Vb6ToCSharp.UpgradeHelpers;
 

@@ -1,9 +1,10 @@
 using static Microsoft.VisualBasic.Constants;
 using static Microsoft.VisualBasic.Strings;
 using static Vb6ToCSharp.Parsing.ProjectConfigurationParser;
-using static Vb6ToCSharp.ItemConversion.TextFiles;
-using static Vb6ToCSharp.ItemConversion.ConversionUtility;
+using static Vb6ToCSharp.Infrastructure.TextFiles;
+using static Vb6ToCSharp.CodeConversion.ConversionUtility;
 using static Vb6ToCSharp.Runtime.RuntimeExtension;
+using Vb6ToCSharp.Runtime;
 
 
 namespace Vb6ToCSharp.Parsing;

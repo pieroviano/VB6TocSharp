@@ -1,7 +1,6 @@
-using Vb6ToCSharp.CodeGeneration;
-using Vb6ToCSharp.ItemConversion;
+using Vb6ToCSharp.FormConversion;
 using Vb6ToCSharp.Parsing;
-using Vb6ToCSharp.Runtime;
+using Vb6ToCSharp.Parsing.Model;
 
 namespace Vb6ToCSharp.Tests;
 

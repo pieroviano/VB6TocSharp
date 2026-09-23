@@ -14,7 +14,8 @@ using System.Windows.Threading;
 using Microsoft.VisualBasic;
 using Microsoft.VisualBasic.CompilerServices;
 using Microsoft.VisualBasic.PowerPacks.Printing.Compatibility.VB6;
-using Vb6ToCSharp.ItemConversion;
+using Vb6ToCSharp.Infrastructure;
+using Vb6ToCSharp.UI;
 using static Microsoft.VisualBasic.Constants;
 
 namespace Vb6ToCSharp.Runtime;

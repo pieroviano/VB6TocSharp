@@ -3,8 +3,9 @@ using System.IO;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
-using Vb6ToCSharp.ItemConversion;
-using Vb6ToCSharp.Parsing;
+using Vb6ToCSharp.CodeConversion;
+using Vb6ToCSharp.Infrastructure;
+using Vb6ToCSharp.Parsing.Model;
 using Vb6ToCSharp.Tests.Infrastructure;
 
 namespace Vb6ToCSharp.Tests;

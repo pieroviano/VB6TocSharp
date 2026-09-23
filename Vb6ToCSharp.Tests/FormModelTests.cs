@@ -1,8 +1,8 @@
 using System.IO;
 using System.Linq;
 using System.Text;
-using Vb6ToCSharp.CodeGeneration;
 using Vb6ToCSharp.Parsing;
+using Vb6ToCSharp.Parsing.Model;
 using Vb6ToCSharp.Tests.Infrastructure;
 
 namespace Vb6ToCSharp.Tests;

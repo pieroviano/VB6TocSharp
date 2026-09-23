@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using Vb6ToCSharp.CodeErrors;
-using Vb6ToCSharp.ItemConversion;
+using Vb6ToCSharp.CodeGeneration;
+using Vb6ToCSharp.CodeConversion;
+using Vb6ToCSharp.CodeConversion.Model;
+using Vb6ToCSharp.Linting;
 using Vb6ToCSharp.Parsing;
 
 namespace Vb6ToCSharp.ConsoleApp;

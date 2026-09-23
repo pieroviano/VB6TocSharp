@@ -1,5 +1,5 @@
 using System.Text.RegularExpressions;
-using Vb6ToCSharp.ItemConversion;
+using Vb6ToCSharp.CodeConversion;
 
 namespace Vb6ToCSharp.Tests;
 

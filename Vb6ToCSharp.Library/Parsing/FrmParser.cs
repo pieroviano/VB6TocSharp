@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using Vb6ToCSharp.CodeGeneration;
+using Vb6ToCSharp.Parsing.Model;
 
 namespace Vb6ToCSharp.Parsing;
 

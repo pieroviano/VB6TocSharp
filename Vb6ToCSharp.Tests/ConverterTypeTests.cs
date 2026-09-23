@@ -1,7 +1,7 @@
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
-using Vb6ToCSharp.ItemConversion;
+using Vb6ToCSharp.CodeConversion;
 using Vb6ToCSharp.Tests.Infrastructure;
 
 namespace Vb6ToCSharp.Tests;

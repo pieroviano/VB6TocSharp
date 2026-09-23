@@ -1,5 +1,6 @@
 using static Microsoft.VisualBasic.Constants;
-using static Vb6ToCSharp.ItemConversion.CodeConverter;
+using static Vb6ToCSharp.CodeConversion.CodeConverter;
+using Vb6ToCSharp.Runtime;
 
 
 namespace Vb6ToCSharp.Tests;

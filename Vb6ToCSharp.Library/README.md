@@ -8,26 +8,30 @@ Converted code runs on the `Net4x.Vb6ToCSharp.UpgradeHelpers` package, which the
 ## Use
 
 ```csharp
-using Vb6ToCSharp.Modules;
+using Vb6ToCSharp.CodeConversion;
+using Vb6ToCSharp.CodeConversion.Model;   // UiTarget
+using Vb6ToCSharp.CodeGeneration;
+using Vb6ToCSharp.Linting;
+using Vb6ToCSharp.Parsing;
 
-ModUtils.Notify = Console.WriteLine;                    // default: a message box
-ModUtils.Progress = (value, max, caption) => { };        // default: none
-ModConfig.IniFilePath = @"C:\conv\VB6toCS.INI";          // default: VB6toCS.INI next to the exe
-ModConfig.OverrideSettings(@"C:\src\App\App.vbp", @"C:\src\App.cs", "App", UiTarget.WinForms);
+ConversionUtility.Notify = Console.WriteLine;                    // default: a message box
+ConversionUtility.Progress = (value, max, caption) => { };        // default: none
+ProjectConfigurationParser.IniFilePath = @"C:\conv\VB6toCS.INI";          // default: VB6toCS.INI next to the exe
+ProjectConfigurationParser.OverrideSettings(@"C:\src\App\App.vbp", @"C:\src\App.cs", "App", UiTarget.WinForms);
 
-var error = ModConfig.ValidateSettings();                // "" when the settings are usable
-if (error == "") ModConvert.ConvertProject(ModConfig.VbpFile);
+var error = ProjectConfigurationParser.ValidateSettings();                // "" when the settings are usable
+if (error == "") CodeConverter.ConvertProject(ProjectConfigurationParser.VbpFile);
 ```
 
 | Entry point | Does |
 |---|---|
-| `ModConvert.ConvertProject(vbp)` | Scan, `.csproj` + support files, every file, `MigrationReport.md` |
-| `ModConvert.ConvertFile(path)` | One `.bas` / `.cls` / `.frm` / `.ctl`; `false` if not converted |
-| `ModConvert.ConvertClassSource(source)` | A class module's source → C# text (no file I/O) |
-| `ModRefScan.ScanRefs()` | Index the project's procedures, enums, forms (needed before converting files one by one) |
-| `ModSupportFiles.CreateProjectFile(vbp)` / `CreateProjectSupportFiles()` | Generated project scaffolding |
-| `ModQuickLint.LintFileOrProject(path)` | Lint results (`""` when clean) |
-| `ModMigrationReport.Write()` | (Re)write the report from the output folder |
+| `CodeConverter.ConvertProject(vbp)` | Scan, `.csproj` + support files, every file, `MigrationReport.md` |
+| `CodeConverter.ConvertFile(path)` | One `.bas` / `.cls` / `.frm` / `.ctl`; `false` if not converted |
+| `CodeConverter.ConvertClassSource(source)` | A class module's source → C# text (no file I/O) |
+| `RefScanner.ScanRefs()` | Index the project's procedures, enums, forms (needed before converting files one by one) |
+| `SupportFiles.CreateProjectFile(vbp)` / `CreateProjectSupportFiles()` | Generated project scaffolding |
+| `QuickLint.LintFileOrProject(path)` | Lint results (`""` when clean) |
+| `MigrationReport.Write()` | (Re)write the report from the output folder |
 
 ## What is converted
 

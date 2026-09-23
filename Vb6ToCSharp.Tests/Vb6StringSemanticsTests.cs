@@ -1,6 +1,8 @@
 using System.IO;
 using System.Threading;
-using Vb6ToCSharp.ItemConversion;
+using Vb6ToCSharp.CodeConversion;
+using Vb6ToCSharp.Infrastructure;
+using Vb6ToCSharp.Runtime;
 using Vb6ToCSharp.Tests.Infrastructure;
 using static Vb6ToCSharp.Runtime.RuntimeExtension;
 

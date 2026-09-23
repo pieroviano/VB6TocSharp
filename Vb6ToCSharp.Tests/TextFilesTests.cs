@@ -1,6 +1,6 @@
 using System.IO;
 using Vb6ToCSharp.Tests.Infrastructure;
-using static Vb6ToCSharp.ItemConversion.TextFiles;
+using static Vb6ToCSharp.Infrastructure.TextFiles;
 
 namespace Vb6ToCSharp.Tests;
 

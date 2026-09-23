@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
-using Vb6ToCSharp.ItemConversion;
+using Vb6ToCSharp.CodeGeneration;
+using Vb6ToCSharp.CodeConversion.Model;
+using Vb6ToCSharp.Infrastructure;
 using static Microsoft.VisualBasic.Strings;
-using static Vb6ToCSharp.ItemConversion.ConversionUtility;
+using static Vb6ToCSharp.CodeConversion.ConversionUtility;
 
 
 namespace Vb6ToCSharp.Parsing;
