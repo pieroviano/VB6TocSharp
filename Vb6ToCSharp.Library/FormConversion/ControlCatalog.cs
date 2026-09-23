@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Vb6ToCSharp.CodeConversion.Model;
 using Vb6ToCSharp.FormConversion.Model;
@@ -21,6 +21,12 @@ public static class ControlCatalog
     public const string HelpersDialogs = "Vb6ToCSharp.UpgradeHelpers.Dialogs.";
     public const string HelpersInterop = "Vb6ToCSharp.UpgradeHelpers.Interop.";
     public const string HelpersModel = "Vb6ToCSharp.UpgradeHelpers.Model.";
+    /// <summary>Assembly of the UpgradeHelpers half the converted project uses (its package is <c>Net4x.</c> + this).</summary>
+    public const string HelpersAssemblyWinForms = "Vb6ToCSharp.WinForms.UpgradeHelpers";
+
+    /// <inheritdoc cref="HelpersAssemblyWinForms"/>
+    public const string HelpersAssemblyWpf = "Vb6ToCSharp.WPF.UpgradeHelpers";
+
     public const string PowerPacks = "Microsoft.VisualBasic.PowerPacks.";
     /// <summary>XAML prefix of the WPF helpers (<c>xmlns:vb6</c>).</summary>
     public const string WpfHelpersPrefix = "vb6:";

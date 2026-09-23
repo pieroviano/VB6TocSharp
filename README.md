@@ -8,12 +8,15 @@ Partner's conversion rules, adapted to C#. Anything it cannot convert is marked 
 | Project | Type | Package | Role |
 |---|---|---|---|
 | [Vb6ToCSharp.Library](Vb6ToCSharp.Library/README.md) | Library | `Net4x.Vb6ToCSharp.Library` | Converter engine: parsing, statement/type conversion, `.frm` → XAML / WinForms, `.csproj`, migration report, linter |
-| [Vb6ToCSharp.UpgradeHelpers](Vb6ToCSharp.UpgradeHelpers/README.md) | Library | `Net4x.Vb6ToCSharp.UpgradeHelpers` | Runtime used by converted code (`VB6Array<T>`, UDTs, fixed strings, control arrays, FlexGrid, CommonDialog…) |
+| [Vb6ToCSharp.Base.UpgradeHelpers](Vb6ToCSharp.Base.UpgradeHelpers/README.md) | Library | `Net4x.Vb6ToCSharp.Base.UpgradeHelpers` | VB6 language runtime used by converted code (`VB6Array<T>`, UDTs, fixed strings, control arrays, OLE colors, twips); no UI |
+| [Vb6ToCSharp.WinForms.UpgradeHelpers](Vb6ToCSharp.WinForms.UpgradeHelpers/README.md) | Library | `Net4x.Vb6ToCSharp.WinForms.UpgradeHelpers` | WinForms controls and helpers (`FlexGrid`, file-system boxes, `CommonDialog`…) |
+| [Vb6ToCSharp.WPF.UpgradeHelpers](Vb6ToCSharp.WPF.UpgradeHelpers/README.md) | Library | `Net4x.Vb6ToCSharp.WPF.UpgradeHelpers` | WPF controls and helpers (same surface, WPF stack) |
 | [Extras](extras/README.md) | Library | `Net4x.Extras` | Optional helpers for converted code (`Recordset`, `FixedWidthRecord`, `CsvRecord`) |
 | [Vb6ToCSharp](Vb6ToCSharp/README.md) | WPF app | — | GUI: `Config`, `SCAN`, `SUPPORT`, `Forms` / `Modules` / `Classes`, `Single File`, `ALL`, `Lint` |
 | [Vb6ToCSharp.Console](Vb6ToCSharp.Console/README.md) | Console app | — | Scriptable front end: `all`, `file`, `scan`, `support`, `lint`, `config` |
 | Vb6ToCSharp.Tests | xUnit | — | Converter unit, functional and integration tests |
-| Vb6ToCSharp.UpgradeHelpers.Tests | xUnit | — | Runtime tests (WinForms, WPF) |
+| Vb6ToCSharp.Base.UpgradeHelpers.Tests | xUnit | — | Language runtime tests |
+| Vb6ToCSharp.WinForms.UpgradeHelpers.Tests / .WPF. | xUnit | — | Runtime tests per UI stack |
 | `VB6/` | Solution folder | — | Sample VB6 project `Showcase.vbp` (modules, classes, interface, events, form, `CondComp`) |
 
 All projects target `net10.0-windows` (`Extras` is `netstandard2.0`). Packages are written to `Packages\` on build. Version: `Vb6ToCSharpVersion` in
@@ -40,7 +43,7 @@ Or run `Vb6ToCSharp.exe`, set the project under `Config`, then click `ALL`.
 | Output | Content |
 |---|---|
 | `Modules\`, `Classes\`, `Forms\`, `UserControls\` | Converted code (WPF: `.xaml` + `.xaml.cs`; WinForms: `.cs` + `.Designer.cs` + `.resx`) |
-| `<project>.csproj` | SDK-style `net10.0-windows` project that references `Net4x.Vb6ToCSharp.UpgradeHelpers` |
+| `<project>.csproj` | SDK-style `net10.0-windows` project that references `Net4x.Vb6ToCSharp.WinForms.UpgradeHelpers` or `…WPF…` (the base package comes with it) |
 | `MigrationReport.md` | Remaining `TODO`s, grouped by category and file, with `file:line` links |
 
 When no output folder is set, the output goes to `converted\` under the `.vbp` folder. Files marked `### CONVERTED` are not overwritten.

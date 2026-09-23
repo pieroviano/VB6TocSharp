@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -74,8 +74,8 @@ public sealed class WpfEmitter
             "xmlns:d=\"http://schemas.microsoft.com/expression/blend/2008\"",
             "xmlns:mc=\"http://schemas.openxmlformats.org/markup-compatibility/2006\"",
             "xmlns:local=" + Xml("clr-namespace:" + ns),
+            "xmlns:vb6=" + Xml("clr-namespace:" + ControlCatalog.HelpersWpf.TrimEnd('.') + ";assembly=" + ControlCatalog.HelpersAssemblyWpf),
             "xmlns:usercontrols=" + Xml("clr-namespace:" + assembly + ".UserControls"),
-            "xmlns:vb6=\"clr-namespace:Vb6ToCSharp.UpgradeHelpers.Wpf.Controls;assembly=Vb6ToCSharp.UpgradeHelpers\"",
         };
         // the generated partial class must match the code-behind's accessibility (a form of an ActiveX project is internal)
         if (ProjectGroup.TypeModifier(ProjectGroup.IsExposed(controlFile)) == "internal") a.Insert(1, "x:ClassModifier=\"internal\"");

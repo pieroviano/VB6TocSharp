@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <PackageOutputPath>$(SolutionDir)Packages/</PackageOutputPath>
+        <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+        <Version>$(VersionPrefix).$(VersionSuffix)</Version>
+        <OutputType>Library</OutputType>
+        <TargetFramework>net10.0-windows</TargetFramework>
+        <!-- namespaces are shared with the UI packages: they stay Vb6ToCSharp.UpgradeHelpers.* -->
+        <RootNamespace>Vb6ToCSharp.UpgradeHelpers</RootNamespace>
+        <Copyright>Copyright (c) Piero Viano 2026. All rights reserved.</Copyright>
+        <Description>VB6 language runtime (arrays, UDTs, fixed-length strings, OLE colors, twips) for programs converted to C# by Vb6ToCSharp. UI-independent half.</Description>
+        <LangVersion>latest</LangVersion>
+        <PackageId>Net4x.$(MSBuildProjectName)</PackageId>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>
+    </PropertyGroup>
+    <ItemGroup>
+        <!-- the UI packages build on the internals (colors, file-system listing, cloning, VB comparisons) -->
+        <InternalsVisibleTo Include="Vb6ToCSharp.WinForms.UpgradeHelpers" />
+        <InternalsVisibleTo Include="Vb6ToCSharp.WPF.UpgradeHelpers" />
+        <InternalsVisibleTo Include="Vb6ToCSharp.Base.UpgradeHelpers.Tests" />
+        <InternalsVisibleTo Include="Vb6ToCSharp.WinForms.UpgradeHelpers.Tests" />
+        <InternalsVisibleTo Include="Vb6ToCSharp.WPF.UpgradeHelpers.Tests" />
+    </ItemGroup>
+    <ItemGroup>
+        <!-- colors and twips: System.Drawing without WinForms (the framework gives it only with UseWindowsForms) -->
+        <PackageReference Include="System.Drawing.Common" Version="$(SystemDrawingCommonVersion)" />
+        <PackageReference Include="Net4x.NuGetUtility" Version="$(NuGetUtilityVersion)" PrivateAssets="All" />
+    </ItemGroup>
+    <PropertyGroup>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+    </PropertyGroup>
+    <ItemGroup>
+        <None Remove="$(SolutionDir)README.md" />
+        <!-- Net4x.NuGetUtility packs the solution README: this package has its own -->
+        <None Update="README.md" Pack="true" PackagePath="\" />
+        <Content Include="$(SolutionDir)License.txt" Link="License.txt" Pack="true" PackagePath="\License.txt" Condition="Exists('$(SolutionDir)License.txt')" />
+    </ItemGroup>
+</Project>

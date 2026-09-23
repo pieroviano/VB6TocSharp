@@ -50,7 +50,7 @@ Vb6ToCSharp.Console file modMain.bas
 | Folder / file | Content |
 |---|---|
 | `Modules\`, `Classes\`, `Forms\`, `UserControls\` | Converted code (forms: `.xaml` + `.xaml.cs`, or `.cs` + `.Designer.cs` + `.resx`) |
-| `<project>.csproj` | `net10.0-windows` project referencing `Net4x.Vb6ToCSharp.UpgradeHelpers` |
+| `<project>.csproj` | `net10.0-windows` project referencing `Net4x.Vb6ToCSharp.WinForms.UpgradeHelpers` or `…WPF…`, per `--ui` |
 | `MigrationReport.md` | Items left to review, by category and file, with `file:line` links |
 
 A file already converted and marked `### CONVERTED` is not overwritten.

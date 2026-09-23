@@ -63,8 +63,10 @@ public static class SupportFiles
         s.Append("  <ItemGroup>" + n);
         // Microsoft.VisualBasic (MsgBox, Strings, FileSystem...) and Microsoft.CSharp (dynamic, for Object)
         // are part of the shared framework: no <Reference> needed
+        // the UI half of the runtime; the VB6 language half (Net4x.Vb6ToCSharp.Base.UpgradeHelpers) comes with it
+        var helpers = "Net4x." + (wpf ? FormConversion.ControlCatalog.HelpersAssemblyWpf : FormConversion.ControlCatalog.HelpersAssemblyWinForms);
         s.Append("    <!-- the runtime of converted code (VB6 arrays, UDTs, fixed-length strings, controls), like VB Migration Partner's library -->" + n);
-        s.Append("    <PackageReference Include=\"Net4x.Vb6ToCSharp.UpgradeHelpers\" Version=\"" + runtime.Major + "." + runtime.Minor + ".*\" />" + n);
+        s.Append("    <PackageReference Include=\"" + helpers + "\" Version=\"" + runtime.Major + "." + runtime.Minor + ".*\" />" + n);
         s.Append("  </ItemGroup>" + n);
         var projects = ProjectGroup.CSharpProjectReferences(projectInfo); // VB6 references to other projects of the group
         if (projects.Count > 0)
