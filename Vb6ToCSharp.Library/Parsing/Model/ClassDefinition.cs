@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
-using Microsoft.VisualBasic;
 using Vb6ToCSharp.CodeGeneration;
 using Vb6ToCSharp.CodeConversion;
+using Vb6ToCSharp.Runtime;
 
 namespace Vb6ToCSharp.Parsing.Model;
 
@@ -53,7 +53,7 @@ public sealed class ClassDefinition
             var d = Regex.Match(src, "(?m)^\\s*(?:Public |Friend )?(?:Property Get|Function)\\s+" + m.DefaultMember + "\\s*\\(([^)]*)\\)(?:\\s*As\\s+(" + ClassesConverter.Id + "(?:\\." + ClassesConverter.Id + ")?))?");
             if (d.Success)
             {
-                m.DefaultParams = Strings.Trim(d.Groups[1].Value);
+                m.DefaultParams = VbStrings.Trim(d.Groups[1].Value);
                 m.DefaultType = d.Groups[2].Success ? d.Groups[2].Value : "Variant";
             }
             m.DefaultHasSetter = Regex.IsMatch(src, "(?m)^\\s*(?:Public |Friend )?Property (?:Let|Set)\\s+" + m.DefaultMember + "\\s*\\([^)]*,");

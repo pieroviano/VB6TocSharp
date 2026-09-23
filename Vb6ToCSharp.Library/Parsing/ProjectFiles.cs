@@ -1,5 +1,5 @@
-using static Microsoft.VisualBasic.Constants;
-using static Microsoft.VisualBasic.Strings;
+using static Vb6ToCSharp.Runtime.VbConstants;
+using static Vb6ToCSharp.Runtime.VbStrings;
 using static Vb6ToCSharp.Parsing.ProjectConfigurationParser;
 using static Vb6ToCSharp.Infrastructure.TextFiles;
 using static Vb6ToCSharp.CodeConversion.ConversionUtility;

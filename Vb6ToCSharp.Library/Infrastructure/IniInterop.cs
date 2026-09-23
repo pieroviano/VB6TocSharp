@@ -1,7 +1,7 @@
 using System;
 using System.Runtime.InteropServices;
 using System.Text;
-using static Microsoft.VisualBasic.Strings;
+using static Vb6ToCSharp.Runtime.VbStrings;
 
 namespace Vb6ToCSharp.Infrastructure;
 

@@ -4,8 +4,8 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Vb6ToCSharp.CodeGeneration;
 using Vb6ToCSharp.Parsing.Model;
-using static Microsoft.VisualBasic.Constants;
-using static Microsoft.VisualBasic.Strings;
+using static Vb6ToCSharp.Runtime.VbConstants;
+using static Vb6ToCSharp.Runtime.VbStrings;
 using static Vb6ToCSharp.Parsing.ProjectConfigurationParser;
 using static Vb6ToCSharp.CodeConversion.CodeConverter;
 using static Vb6ToCSharp.CodeConversion.ConverterUtils;
@@ -134,7 +134,7 @@ public static class ClassesConverter
         return name != null && (implemented.Contains(name) || implemented.Contains(ProjectGroup.StripProjectQualifier(name)));
     }
 
-    /// <summary>obj(i) indexes: VB Collection, or a class whose default member takes parameters.</summary>
+    /// <summary>obj(i) indexes: VB VbCollection, or a class whose default member takes parameters.</summary>
     public static bool HasIndexedDefault(string typeName)
     {
         EnsureRegistry();

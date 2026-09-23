@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Threading;
-using Microsoft.VisualBasic;
+using Vb6ToCSharp.Runtime.Model;
 using Vb6ToCSharp.Runtime;
 using Vb6ToCSharp.Tests.Fixtures;
 using static Vb6ToCSharp.Runtime.RuntimeExtension;

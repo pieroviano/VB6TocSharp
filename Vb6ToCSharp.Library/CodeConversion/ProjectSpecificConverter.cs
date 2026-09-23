@@ -1,5 +1,5 @@
 using System;
-using static Microsoft.VisualBasic.Strings;
+using static Vb6ToCSharp.Runtime.VbStrings;
 using static Vb6ToCSharp.Parsing.ProjectConfigurationParser;
 using static Vb6ToCSharp.Infrastructure.RegularExpressions;
 using static Vb6ToCSharp.CodeConversion.ConversionUtility;

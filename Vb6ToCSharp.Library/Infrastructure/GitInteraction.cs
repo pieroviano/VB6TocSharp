@@ -1,7 +1,7 @@
 using System;
-using static Microsoft.VisualBasic.Constants;
-using static Microsoft.VisualBasic.Interaction;
-using static Microsoft.VisualBasic.Strings;
+using static Vb6ToCSharp.Runtime.VbConstants;
+using static Vb6ToCSharp.Runtime.VbInteraction;
+using static Vb6ToCSharp.Runtime.VbStrings;
 using static Vb6ToCSharp.Runtime.RuntimeExtension;
 using static Vb6ToCSharp.Infrastructure.DirStack;
 using static Vb6ToCSharp.Infrastructure.ShellHandler;

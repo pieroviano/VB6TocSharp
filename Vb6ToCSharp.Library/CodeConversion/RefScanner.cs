@@ -1,8 +1,7 @@
 ﻿using System;
-using Microsoft.VisualBasic;
-using static Microsoft.VisualBasic.Constants;
-using static Microsoft.VisualBasic.FileSystem;
-using static Microsoft.VisualBasic.Strings;
+using static Vb6ToCSharp.Runtime.VbConstants;
+using static Vb6ToCSharp.Runtime.VbFileSystem;
+using static Vb6ToCSharp.Runtime.VbStrings;
 using static Vb6ToCSharp.Parsing.ProjectConfigurationParser;
 using static Vb6ToCSharp.FormConversion.ControlProperties;
 using static Vb6ToCSharp.CodeConversion.FormConverter;
@@ -13,6 +12,7 @@ using static Vb6ToCSharp.CodeConversion.ConversionUtility;
 using static Vb6ToCSharp.CodeConversion.Vb6ToCsConverter;
 using static Vb6ToCSharp.Runtime.RuntimeExtension;
 using Vb6ToCSharp.Runtime;
+using Vb6ToCSharp.Runtime.Model;
 
 namespace Vb6ToCSharp.CodeConversion;
 
@@ -21,8 +21,8 @@ public static class RefScanner
     private static string outRes = "";
     private static string cFuncRefName = "";
     private static string cFuncRefValue = "";
-    private static Collection funcs = null;
-    private static Collection localFuncs = null;
+    private static VbCollection funcs = null;
+    private static VbCollection localFuncs = null;
 
 
     private static string RefList(bool killRef = false)
@@ -268,7 +268,7 @@ public static class RefScanner
 
         }
         var s = ReadEntireFile(RefList());
-        funcs = new Collection(); ;
+        funcs = new VbCollection(); ;
         // TODO (not supported): On Error Resume Next
         foreach (var iterL in Split(s, vbCrLf))
         {
@@ -282,7 +282,7 @@ public static class RefScanner
     {
         // TODO (not supported): On Error Resume Next
 
-        localFuncs = new Collection(); ;
+        localFuncs = new VbCollection(); ;
         foreach (var iterL in Split(s, vbCrLf))
         {
             dynamic l = iterL;

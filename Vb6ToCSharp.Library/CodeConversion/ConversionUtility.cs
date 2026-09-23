@@ -1,16 +1,15 @@
 using System;
 using System.Diagnostics;
-using Microsoft.VisualBasic;
-using static Microsoft.VisualBasic.Constants;
-using static Microsoft.VisualBasic.FileSystem;
-using static Microsoft.VisualBasic.Information;
-using static Microsoft.VisualBasic.Strings;
-using static Microsoft.VisualBasic.VBMath;
+using static Vb6ToCSharp.Runtime.VbConstants;
+using static Vb6ToCSharp.Runtime.VbFileSystem;
+using static Vb6ToCSharp.Runtime.VbInformation;
+using static Vb6ToCSharp.Runtime.VbStrings;
 using static Vb6ToCSharp.Parsing.ProjectConfigurationParser;
 using static Vb6ToCSharp.Infrastructure.RegularExpressions;
 using static Vb6ToCSharp.Infrastructure.TextFiles;
 using static Vb6ToCSharp.Runtime.RuntimeExtension;
 using Vb6ToCSharp.Runtime;
+using Vb6ToCSharp.Runtime.Model;
 
 namespace Vb6ToCSharp.CodeConversion;
 
@@ -113,7 +112,7 @@ public static class ConversionUtility
 
     public static int Px(string twips)
     {
-        return Px(Conversion.Val(twips));
+        return Px(VbConversion.Val(twips));
     }
 
     public static string Quote(object s)
@@ -148,7 +147,7 @@ public static class ConversionUtility
     }
 
     /// <summary>User-facing notification (message box by default); hosts and tests can replace it.</summary>
-    public static Action<string> Notify = s => Interaction.MsgBox(s);
+    public static Action<string> Notify = s => VbInteraction.MsgBox(s);
 
     public static bool IsIn(string s, params dynamic[] kUnused)
     {
@@ -794,7 +793,7 @@ public static class ConversionUtility
         Progress(val, max, cap);
     }
 
-    public static string CVal(ref Collection coll, string key, string def = "")
+    public static string CVal(ref VbCollection coll, string key, string def = "")
     {
         // VB relied on On Error Resume Next: a missing key yields the default
         try
@@ -807,7 +806,7 @@ public static class ConversionUtility
         }
     }
 
-    public static string CValP(ref Collection coll, string key, string def = "")
+    public static string CValP(ref VbCollection coll, string key, string def = "")
     {
         var cValP = P(DeQuote(CVal(ref coll, key, def)));
         return cValP;
@@ -875,11 +874,12 @@ public static class ConversionUtility
         return tokenList;
     }
 
+    private static readonly Random randomSource = new Random();
+
     public static int Random(int max = 10000)
     {
-        Randomize();
-        var random = (int)((Rnd() * max) + 1);
-        return random;
+        // was Randomize() + Rnd() * max + 1
+        lock (randomSource) return randomSource.Next(1, max + 1);
     }
 
     public static string Stack(ref string src, string val = "##REM##", bool peek = false)

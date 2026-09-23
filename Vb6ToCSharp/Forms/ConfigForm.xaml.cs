@@ -1,9 +1,9 @@
 using System.Windows;
 using Vb6ToCSharp.Parsing;
-using static Microsoft.VisualBasic.Constants;
-using static Microsoft.VisualBasic.FileSystem;
-using static Microsoft.VisualBasic.Interaction;
-using static Microsoft.VisualBasic.Strings;
+using static Vb6ToCSharp.Runtime.VbConstants;
+using static Vb6ToCSharp.Runtime.VbFileSystem;
+using static Vb6ToCSharp.Runtime.VbInteraction;
+using static Vb6ToCSharp.Runtime.VbStrings;
 using static Vb6ToCSharp.Parsing.ProjectConfigurationParser;
 using Vb6ToCSharp.UI;
 

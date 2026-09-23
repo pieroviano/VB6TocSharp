@@ -1,6 +1,6 @@
 using System.Collections.Generic;
-using static Microsoft.VisualBasic.Constants;
-using static Microsoft.VisualBasic.Strings;
+using static Vb6ToCSharp.Runtime.VbConstants;
+using static Vb6ToCSharp.Runtime.VbStrings;
 using static Vb6ToCSharp.CodeConversion.CodeConverter;
 using static Vb6ToCSharp.Infrastructure.RegularExpressions;
 using static Vb6ToCSharp.CodeConversion.ConversionUtility;

@@ -17,9 +17,6 @@
         <PackageId>Net4x.$(MSBuildProjectName)</PackageId>
     </PropertyGroup>
     <ItemGroup>
-        <Reference Include="Microsoft.VisualBasic" />
-        <Reference Include="Microsoft.VisualBasic.Compatibility" />
-        <Reference Include="Microsoft.VisualBasic.Compatibility.Data" />
         <Reference Include="Microsoft.CSharp" />
         <Reference Include="System.Data.DataSetExtensions" />
         <Reference Include="System.Net.Http" />
@@ -30,7 +27,6 @@
     </ItemGroup>
     <ItemGroup>
         <PackageReference Include="Net4x.NuGetUtility" Version="$(NuGetUtilityVersion)" PrivateAssets="All" />
-        <PackageReference Include="VisualBasic.PowerPacks.Vs" Version="1.0.0" />
     </ItemGroup>
     <ItemGroup>
         <COMReference Include="ADODB">

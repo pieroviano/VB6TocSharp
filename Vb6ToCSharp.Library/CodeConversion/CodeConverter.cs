@@ -8,10 +8,10 @@ using Vb6ToCSharp.Parsing;
 using Vb6ToCSharp.Parsing.Model;
 using Vb6ToCSharp.Runtime;
 using Vb6ToCSharp.Runtime.Model;
-using static Microsoft.VisualBasic.Constants;
-using static Microsoft.VisualBasic.Conversion;
-using static Microsoft.VisualBasic.Information;
-using static Microsoft.VisualBasic.Strings;
+using static Vb6ToCSharp.Runtime.VbConstants;
+using static Vb6ToCSharp.Runtime.VbConversion;
+using static Vb6ToCSharp.Runtime.VbInformation;
+using static Vb6ToCSharp.Runtime.VbStrings;
 using static Vb6ToCSharp.Parsing.ProjectConfigurationParser;
 using static Vb6ToCSharp.CodeConversion.FormConverter;
 using static Vb6ToCSharp.CodeConversion.ConverterUtils;
@@ -1804,7 +1804,7 @@ public static class CodeConverter
             tb = tb + "].Value";
         }
         else if (vP.asArray != "" || ClassesConverter.HasIndexedDefault(vP.asType) || StatementsConverter.IsUdtArrayField(name))
-        { // an array element, or the default member of a Collection / class: obj(i) -> obj[i]
+        { // an array element, or the default member of a VbCollection / class: obj(i) -> obj[i]
             tb = tb + "[";
             tb = tb + ConvertValue(ts);
             tb = tb + "]";
@@ -2997,7 +2997,7 @@ public static class CodeConverter
                     forCond = fk + "<=" + fe;
                     forIncr = fk + "++";
                 }
-                else if (Microsoft.VisualBasic.Information.IsNumeric(forStep))
+                else if (VbInformation.IsNumeric(forStep))
                 {
                     forCond = fk + (Val(forStep) < 0 ? ">=" : "<=") + fe;
                     forIncr = fk + " += " + ConvertValue(forStep);

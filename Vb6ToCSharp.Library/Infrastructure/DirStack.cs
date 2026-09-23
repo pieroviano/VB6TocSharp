@@ -1,14 +1,14 @@
 using System;
-using Microsoft.VisualBasic;
 using Vb6ToCSharp.Runtime;
-using static Microsoft.VisualBasic.FileSystem;
+using static Vb6ToCSharp.Runtime.VbFileSystem;
+using Vb6ToCSharp.Runtime.Model;
 
 
 namespace Vb6ToCSharp.Infrastructure;
 
 public static class DirStack
 {
-    private static Collection dirStack = null; // PushDir creates it with its "n" counter (an empty one made PushDir throw)
+    private static VbCollection dirStack = null; // PushDir creates it with its "n" counter (an empty one made PushDir throw)
 
 
     public static string PushDir(string newDir, bool doSet = true)
@@ -31,7 +31,7 @@ public static class DirStack
         // TODO (not supported): On Error Resume Next
         if (dirStack == null)
         {
-            dirStack = new Collection(); ;
+            dirStack = new VbCollection(); ;
             dirStack.Add(0, "n");
         }
 

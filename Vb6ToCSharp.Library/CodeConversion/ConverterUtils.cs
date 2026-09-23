@@ -1,8 +1,8 @@
-using Microsoft.VisualBasic;
-using static Microsoft.VisualBasic.Constants;
-using static Microsoft.VisualBasic.Strings;
+using static Vb6ToCSharp.Runtime.VbConstants;
+using static Vb6ToCSharp.Runtime.VbStrings;
 using static Vb6ToCSharp.Runtime.RuntimeExtension;
 using Vb6ToCSharp.Runtime;
+using Vb6ToCSharp.Runtime.Model;
 
 
 namespace Vb6ToCSharp.CodeConversion;
@@ -11,7 +11,7 @@ public static class ConverterUtils
 {
     // Option Explicit
     private static string eolComment = "";
-    private static Collection mStrings = null;
+    private static VbCollection mStrings = null;
     private static int nStringCnt = 0;
     private const string deStringTokenBase1 = "STRING_";
     private const string deStringTokenBase2 = "TOKEN_";
@@ -80,13 +80,13 @@ public static class ConverterUtils
 
     public static void InitDeString()
     {
-        mStrings = new Collection(); ;
+        mStrings = new VbCollection(); ;
         nStringCnt = 0;
     }
 
     private static string DeStringToken(int n)
     {
-        var deStringToken = deStringTokenBase + Format(n, "00000");
+        var deStringToken = deStringTokenBase + n.ToString("00000");
         return deStringToken;
     }
 

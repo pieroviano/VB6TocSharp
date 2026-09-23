@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using Vb6ToCSharp.CodeGeneration;
 using Vb6ToCSharp.CodeConversion.Model;
 using Vb6ToCSharp.Infrastructure;
-using static Microsoft.VisualBasic.Strings;
+using static Vb6ToCSharp.Runtime.VbStrings;
 using static Vb6ToCSharp.CodeConversion.ConversionUtility;
 
 

@@ -1,4 +1,4 @@
-using Microsoft.VisualBasic;
+using Vb6ToCSharp.Runtime.Model;
 using Vb6ToCSharp.Tests.Fixtures;
 using static Vb6ToCSharp.CodeConversion.ConversionUtility;
 
@@ -212,7 +212,7 @@ public class ConversionUtilityTests
     [Fact]
     public void CVal_ReturnsValueOrDefault()
     {
-        var c = new Collection();
+        var c = new VbCollection();
         c.Add("v", "key");
         Assert.Equal("v", CVal(ref c, "KEY"));
         Assert.Equal("def", CVal(ref c, "missing", "def"));
@@ -221,7 +221,7 @@ public class ConversionUtilityTests
     [Fact]
     public void CValP_DeQuotesAndEscapes()
     {
-        var c = new Collection();
+        var c = new VbCollection();
         c.Add("\"a<b\"", "k");
         Assert.Equal("a&lt;b", CValP(ref c, "k"));
     }

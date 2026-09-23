@@ -11,58 +11,21 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
-using Microsoft.VisualBasic;
-using Microsoft.VisualBasic.CompilerServices;
-using Microsoft.VisualBasic.PowerPacks.Printing.Compatibility.VB6;
 using Vb6ToCSharp.Infrastructure;
+using Vb6ToCSharp.Runtime.Model;
 using Vb6ToCSharp.UI;
-using static Microsoft.VisualBasic.Constants;
+using static Vb6ToCSharp.Runtime.VbConstants;
 
 namespace Vb6ToCSharp.Runtime;
 
 public static class RuntimeExtension
 {
-    private static Printer mPrinter = new Printer();
-    private static List<Printer> mPrinters;
-
     private static readonly Action EmptyDelegate = delegate { };
 
     public static int MousePointer
     {
         get => 0;
         set { }
-    }
-
-    public static List<Printer> Printers
-    {
-        get
-        {
-            if (mPrinters == null)
-            {
-                mPrinters = new List<Printer>();
-                foreach (var P in new PrinterCollection())
-                {
-                    mPrinters.Add((Printer)P);
-                }
-            }
-
-            return mPrinters;
-        }
-    }
-
-    public static Printer Printer
-    {
-        get => mPrinter ?? new Printer();
-        set
-        {
-            foreach (var P in Printers)
-            {
-                if (P.DeviceName == value.DeviceName)
-                {
-                    mPrinter = P;
-                }
-            }
-        }
     }
 
     public static List<Window> Forms
@@ -163,16 +126,6 @@ public static class RuntimeExtension
         return "";
     }
 
-    public static void Box(this Printer P, float x1, float y1, float x2, float y2, int style = 0)
-    {
-        P.Line(x1, y1, x2, y2, style, true);
-    }
-
-    public static void BoxStep(this Printer P, float x1, float y1, float x2, float y2, int style = 0)
-    {
-        P.Line(x1, y1, x1 + x2, y1 + y2, style, true);
-    }
-
     public static bool CBool(object A)
     {
         {
@@ -236,11 +189,6 @@ public static class RuntimeExtension
     {
         Ob.Left = (SystemParameters.PrimaryScreenWidth - Ob.Width) / 2;
         Ob.Top = (SystemParameters.PrimaryScreenHeight - Ob.Height) / 2;
-    }
-
-    public static void Circle(this Printer P, float x1, float y1, float x2, float y2, float radius = 0,
-        bool box = false)
-    {
     }
 
     public static void Clear(this ComboBox c)
@@ -592,7 +540,7 @@ public static class RuntimeExtension
     {
         foreach (var l in c.Items)
         {
-            if (Strings.Trim(((ComboboxItem)l).ToString()) == s)
+            if (VbStrings.Trim(((ComboboxItem)l).ToString()) == s)
             {
                 return c.Items.IndexOf(l);
             }
@@ -622,12 +570,12 @@ public static class RuntimeExtension
 
     public static bool IsInStr(string src, string find)
     {
-        return Strings.InStr(src, find) != 0;
+        return VbStrings.InStr(src, find) != 0;
     }
 
     public static bool IsLike(string A, string b)
     {
-        return LikeOperator.LikeString(A, b, CompareMethod.Binary);
+        return VbOperators.LikeString(A, b, CompareMethod.Binary);
     }
 
     public static bool IsList(object A)
@@ -655,11 +603,6 @@ public static class RuntimeExtension
         return !IsNothing(A);
     }
 
-    public static dynamic Item(this Collection C, dynamic key)
-    {
-        return C[key];
-    }
-
     public static TreeViewItemObject Item(this TreeView t, int x)
     {
         return (TreeViewItemObject)t.Items.GetItemAt(x);
@@ -682,14 +625,6 @@ public static class RuntimeExtension
     {
         // lower bound is always 0 (was -1 for empty lists, making LBound..UBound loops run once)
         return 0;
-    }
-
-    public static void Line(this Printer P, float x1, float y1, float x2, float y2, int style = 0, bool box = false)
-    {
-    }
-
-    public static void LineStep(this Printer P, float x1, float y1, float x2, float y2, int style = 0, bool box = false)
-    {
     }
 
     public static string List(this ComboBox c, int Index)
@@ -819,7 +754,7 @@ public static class RuntimeExtension
 
     public static BitmapImage PackageImage(string s, bool placeholder = true)
     {
-        if (Strings.Left(s, 1) != "/")
+        if (VbStrings.Left(s, 1) != "/")
         {
             s = "/Resources/Images/" + s;
         }
@@ -841,44 +776,9 @@ public static class RuntimeExtension
         }
     }
 
-    public static void PaintPicture(this Printer P, Image I, dynamic x1 = null, dynamic y1 = null, dynamic w1 = null,
-        dynamic h1 = null, dynamic x2 = null, dynamic y2 = null, dynamic w2 = null, dynamic h2 = null)
-    {
-        System.Drawing.Image I2 = null;
-        P.PaintPicture(I2, ValF(x1), ValF(y1), ValF(w1), ValF(h1), ValF(x2), ValF(h2), ValF(w2), ValF(h2));
-    }
-
     public static void PaintPicture(this Image P, Image I, dynamic x1 = null, dynamic y1 = null, dynamic w1 = null,
         dynamic h1 = null, dynamic x2 = null, dynamic y2 = null, dynamic w2 = null, dynamic h2 = null)
     {
-    }
-
-    public static void PrintNNL(this Printer p, params string[] s)
-    {
-        var Y = p.CurrentY;
-        p.Print(s);
-        p.CurrentY = Y;
-    }
-
-    public static void PrintPicture(this Printer P, BitmapImage I, dynamic x1 = null, dynamic y1 = null,
-        dynamic w1 = null, dynamic h1 = null, dynamic x2 = null, dynamic y2 = null, dynamic w2 = null,
-        dynamic h2 = null)
-    {
-        System.Drawing.Image I2 = null;
-        P.PaintPicture(I2, ValF(x1), ValF(y1), ValF(w1), ValF(h1), ValF(x2), ValF(h2), ValF(w2), ValF(h2));
-    }
-
-    public static void PrintPicture(this Printer P, ImageSource I, dynamic x1 = null, dynamic y1 = null,
-        dynamic w1 = null, dynamic h1 = null, dynamic x2 = null, dynamic y2 = null, dynamic w2 = null,
-        dynamic h2 = null)
-    {
-        System.Drawing.Image I2 = null;
-        P.PaintPicture(I2, ValF(x1), ValF(y1), ValF(w1), ValF(h1), ValF(x2), ValF(h2), ValF(w2), ValF(h2));
-    }
-
-    public static string PrinterName()
-    {
-        return Printer != null ? Printer.DeviceName : "";
     }
 
     public static List<string> PrinterNames()
@@ -904,11 +804,6 @@ public static class RuntimeExtension
         c.Items.RemoveAt(Index);
     }
 
-    public static void ResetPrinters()
-    {
-        mPrinters = null;
-    }
-
     public static bool Resume()
     {
         return false;
@@ -924,27 +819,29 @@ public static class RuntimeExtension
     // resolution over the Strings ones (which need optional parameters) wherever both are imported.
     public static string Replace(string Expression, string Find, string Replacement)
     {
-        return Strings.Replace(Expression, Find, Replacement) ?? "";
+        return VbStrings.Replace(Expression, Find, Replacement) ?? "";
     }
 
     public static string Replace(string Expression, string Find, string Replacement, int Start)
     {
-        return Strings.Replace(Expression, Find, Replacement, Start) ?? "";
+        return VbStrings.Replace(Expression, Find, Replacement, Start) ?? "";
     }
 
     public static string Replace(string Expression, string Find, string Replacement, int Start, int Count)
     {
-        return Strings.Replace(Expression, Find, Replacement, Start, Count) ?? "";
+        return VbStrings.Replace(Expression, Find, Replacement, Start, Count) ?? "";
     }
 
     public static string[] Split(string Expression, string Delimiter)
     {
-        return string.IsNullOrEmpty(Expression) ? new string[0] : Strings.Split(Expression, Delimiter);
+        return string.IsNullOrEmpty(Expression) ? new string[0] : VbStrings.Split(Expression, Delimiter);
     }
+
+    private static readonly Random randomSource = new Random();
 
     public static decimal RndD()
     {
-        return (decimal)VBMath.Rnd();
+        lock (randomSource) return (decimal)randomSource.NextDouble();
     }
 
     public static string SanitizeNls(string s)
@@ -1175,7 +1072,7 @@ public static class RuntimeExtension
 
     public static string Spc(int I)
     {
-        return Strings.StrDup(I, ' ');
+        return VbStrings.StrDup(I, ' ');
     }
 
     //public static void Unload(this Window Ob) { Ob.Close(); }
@@ -1439,7 +1336,7 @@ public static class RuntimeExtension
             var N = C.Name;
             if (N.StartsWith(name + "_"))
             {
-                var K = ValI(Strings.Mid(N, N.LastIndexOf('_') + 2));
+                var K = ValI(VbStrings.Mid(N, N.LastIndexOf('_') + 2));
                 if (K > Max)
                 {
                     Max = K;

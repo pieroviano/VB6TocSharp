@@ -1,16 +1,15 @@
 using System;
 using System.Collections.Generic;
-using Microsoft.VisualBasic;
 using Vb6ToCSharp.Infrastructure;
 using Vb6ToCSharp.Parsing;
 using Vb6ToCSharp.Runtime;
-using static Microsoft.VisualBasic.Constants;
-using static Microsoft.VisualBasic.DateAndTime;
-using static Microsoft.VisualBasic.Interaction;
-using static Microsoft.VisualBasic.Strings;
+using static Vb6ToCSharp.Runtime.VbConstants;
+using static Vb6ToCSharp.Runtime.VbInteraction;
+using static Vb6ToCSharp.Runtime.VbStrings;
 using static Vb6ToCSharp.Parsing.ProjectFiles;
 using static Vb6ToCSharp.Infrastructure.RegularExpressions;
 using static Vb6ToCSharp.Runtime.RuntimeExtension;
+using Vb6ToCSharp.Runtime.Model;
 
 namespace Vb6ToCSharp.Linting;
 
@@ -106,7 +105,7 @@ public static class QuickLint
             string result = QuickLintFile(l);
             if (result != "")
             {
-                Console.WriteLine(vbCrLf + "Done (" + DateDiff("s", startTime, DateTime.Now) +"s).  To re-run for failing file, hit enter on the line below:");
+                Console.WriteLine(vbCrLf + "Done (" + (long)(DateTime.Now - startTime).TotalSeconds +"s).  To re-run for failing file, hit enter on the line below:");
                 string s = "LINT FAILED: " + l + vbCrLf + result + vbCrLf + "?Lint(\"" + l + "\")";
                 quickLintFiles = s;
                 return quickLintFiles;
@@ -114,7 +113,7 @@ public static class QuickLint
             }
             else
             {
-                Console.Write(Switch(Right(l, 3) == "frm", "o", Right(l, 3) == "cls", "x", true, "."));
+                Console.Write(Right(l, 3) == "frm" ? "o" : Right(l, 3) == "cls" ? "x" : ".");
             }
             x = x + 1;
             if (x >= lintDotsPerRow)
@@ -124,7 +123,7 @@ public static class QuickLint
             }
             DoEvents();
         }
-        Console.WriteLine(vbCrLf + "Done (" + DateDiff("s", startTime, DateTime.Now) +"s).");
+        Console.WriteLine(vbCrLf + "Done (" + (long)(DateTime.Now - startTime).TotalSeconds +"s).");
         quickLintFiles = "";
         return quickLintFiles;
     }
@@ -174,7 +173,7 @@ public static class QuickLint
 
         var blankLineCount = 0;
 
-        var options = new Collection();
+        var options = new VbCollection();
 
 
         var indent = 0;
@@ -525,7 +524,7 @@ public static class QuickLint
         errorIgnore = errorIgnore + "," + typ;
     }
 
-    public static void TestModuleOptions(ref string errors, ref int errorCount, Collection options)
+    public static void TestModuleOptions(ref string errors, ref int errorCount, VbCollection options)
     {
         // TODO (not supported): On Error Resume Next
 
