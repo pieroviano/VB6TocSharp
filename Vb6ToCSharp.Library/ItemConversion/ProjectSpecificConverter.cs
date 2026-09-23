@@ -1,8 +1,8 @@
 using System;
 using static Microsoft.VisualBasic.Strings;
 using static Vb6ToCSharp.Parsing.ProjectConfigurationParser;
-using static Vb6ToCSharp.Modules.ModRegEx;
-using static Vb6ToCSharp.Modules.ModUtils;
+using static Vb6ToCSharp.ItemConversion.RegularExpressions;
+using static Vb6ToCSharp.ItemConversion.ConversionUtility;
 using static Vb6ToCSharp.Runtime.RuntimeExtension;
 
 

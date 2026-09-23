@@ -1,10 +1,6 @@
 using System.IO;
 using System.Linq;
-using Vb6ToCSharp.Analisys;
-using Vb6ToCSharp.CodeGeneration;
-using Vb6ToCSharp.Convert;
 using Vb6ToCSharp.ItemConversion;
-using Vb6ToCSharp.Modules;
 using Vb6ToCSharp.Parsing;
 using Vb6ToCSharp.Tests.Infrastructure;
 
@@ -126,8 +122,8 @@ public class ProjectGroupTests
     /// <summary>Runs <paramref name="action"/> with its own settings file and project, then restores the process-wide settings.</summary>
     private static void WithSettings(string ini, string vbp, string output, Action action)
     {
-        var notify = ModUtils.Notify;
-        ModUtils.Notify = _ => { };
+        var notify = ConversionUtility.Notify;
+        ConversionUtility.Notify = _ => { };
         ProjectConfigurationParser.IniFilePath = ini;
         ProjectConfigurationParser.OverrideSettings(vbp, output, null, UiTarget.WinForms);
         try
@@ -139,7 +135,7 @@ public class ProjectGroupTests
             ProjectConfigurationParser.IniFilePath = null;
             ProjectConfigurationParser.OverrideSettings();
             StatementsConverter.ResetProjectCaches();
-            ModUtils.Notify = notify;
+            ConversionUtility.Notify = notify;
         }
     }
 

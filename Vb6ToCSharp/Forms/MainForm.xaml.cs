@@ -7,9 +7,9 @@ using static Microsoft.VisualBasic.Interaction;
 using static Vb6ToCSharp.Parsing.ProjectConfigurationParser;
 using static Vb6ToCSharp.ItemConversion.CodeConverter;
 using static Vb6ToCSharp.Parsing.ProjectFiles;
-using static Vb6ToCSharp.Modules.ModRefScan;
-using static Vb6ToCSharp.Modules.ModSupportFiles;
-using static Vb6ToCSharp.Modules.ModUtils;
+using static Vb6ToCSharp.ItemConversion.RefScanner;
+using static Vb6ToCSharp.ItemConversion.SupportFiles;
+using static Vb6ToCSharp.ItemConversion.ConversionUtility;
 using static Vb6ToCSharp.Runtime.RuntimeExtension;
 using Vb6ToCSharp.Parsing;
 

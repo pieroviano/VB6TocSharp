@@ -14,8 +14,7 @@ using System.Windows.Threading;
 using Microsoft.VisualBasic;
 using Microsoft.VisualBasic.CompilerServices;
 using Microsoft.VisualBasic.PowerPacks.Printing.Compatibility.VB6;
-using Vb6ToCSharp.Modules;
-using Vb6ToCSharp.UI;
+using Vb6ToCSharp.ItemConversion;
 using static Microsoft.VisualBasic.Constants;
 
 namespace Vb6ToCSharp.Runtime;
@@ -1191,7 +1190,7 @@ public static class RuntimeExtension
 
     public static decimal TextHeight(string S)
     {
-        return ModTextFiles.CountLines(S) * 10m;
+        return TextFiles.CountLines(S) * 10m;
     }
 
     public static double TextHeight(this Canvas t, string s)

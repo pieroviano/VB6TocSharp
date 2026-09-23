@@ -3,16 +3,14 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
-using Vb6ToCSharp.Modules;
 using static Microsoft.VisualBasic.Constants;
 using static Microsoft.VisualBasic.Strings;
 using static Vb6ToCSharp.Parsing.ProjectConfigurationParser;
 using static Vb6ToCSharp.ItemConversion.CodeConverter;
 using static Vb6ToCSharp.Parsing.ProjectFiles;
-using static Vb6ToCSharp.Modules.ModSubTracking;
-using static Vb6ToCSharp.Modules.ModUtils;
+using static Vb6ToCSharp.ItemConversion.SubTracking;
+using static Vb6ToCSharp.ItemConversion.ConversionUtility;
 using static Vb6ToCSharp.ItemConversion.Vb6ToCsConverter;
-using Vb6ToCSharp.CodeGeneration;
 
 namespace Vb6ToCSharp.ItemConversion;
 
@@ -295,7 +293,7 @@ public static class StatementsConverter
         {
             var fn = call.Groups[1].Value;
             if (NumericFunctions.Contains(fn)) return "Double";
-            if (ModRefScan.IsFuncRef(fn)) return ModRefScan.FuncRefDeclRet(fn);
+            if (RefScanner.IsFuncRef(fn)) return RefScanner.FuncRefDeclRet(fn);
             var arr = SubParam(fn);
             if (arr.name != "" && arr.asArray != "") return arr.asType; // an array element
         }

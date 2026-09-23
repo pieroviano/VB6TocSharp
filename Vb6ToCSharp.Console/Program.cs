@@ -1,9 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using Vb6ToCSharp.Convert;
+using Vb6ToCSharp.CodeErrors;
 using Vb6ToCSharp.ItemConversion;
-using Vb6ToCSharp.Modules;
 using Vb6ToCSharp.Parsing;
 
 namespace Vb6ToCSharp.ConsoleApp;
@@ -95,8 +94,8 @@ Options:
         var argument = positional.Count > 1 ? positional[1] : "";
         if (positional.Count > 2) throw new UsageException("Too many arguments.");
 
-        ModUtils.Notify = Console.WriteLine;
-        ModUtils.Progress = quiet ? (_, _, _) => { } : new ConsoleProgress().Report;
+        ConversionUtility.Notify = Console.WriteLine;
+        ConversionUtility.Progress = quiet ? (_, _, _) => { } : new ConsoleProgress().Report;
         ProjectConfigurationParser.IniFilePath = ini;
         ProjectConfigurationParser.hush = true;
 
@@ -129,13 +128,13 @@ Options:
                 return ExitOk;
             case "scan":
                 if (!ConfigValid()) return ExitFailed;
-                Console.WriteLine("Scanned " + ModRefScan.ScanRefs() + " references.");
+                Console.WriteLine("Scanned " + RefScanner.ScanRefs() + " references.");
                 return ExitOk;
             case "support":
                 return Support(argument.ToLowerInvariant());
             case "lint":
                 if (!ConfigValid()) return ExitFailed;
-                var results = ModQuickLint.LintFileOrProject(ProjectRelative(argument));
+                var results = QuickLint.LintFileOrProject(ProjectRelative(argument));
                 Console.WriteLine(results == "" ? "Done." : results);
                 return results == "" ? ExitOk : ExitFailed;
             default:
@@ -160,7 +159,7 @@ Options:
     private static int ConvertList(string list)
     {
         if (!ConfigValid()) return ExitFailed;
-        return CodeConverter.ConvertFileList(ModUtils.FilePath(ProjectConfigurationParser.VbpFile), list) ? ExitOk : ExitFailed;
+        return CodeConverter.ConvertFileList(ConversionUtility.FilePath(ProjectConfigurationParser.VbpFile), list) ? ExitOk : ExitFailed;
     }
 
     private static int Support(string which)
@@ -172,12 +171,12 @@ Options:
         if (!ConfigValid()) return ExitFailed;
         if (which != "files")
         {
-            ModSupportFiles.CreateProjectFile(ProjectConfigurationParser.VbpFile);
+            SupportFiles.CreateProjectFile(ProjectConfigurationParser.VbpFile);
             Console.WriteLine("Generated the project file.");
         }
         if (which != "project")
         {
-            ModSupportFiles.CreateProjectSupportFiles();
+            SupportFiles.CreateProjectSupportFiles();
             Console.WriteLine("Generated the support files.");
         }
         return ExitOk;

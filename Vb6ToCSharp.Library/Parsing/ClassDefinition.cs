@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using Microsoft.VisualBasic;
-using Vb6ToCSharp.CodeGeneration;
 using Vb6ToCSharp.ItemConversion;
 
 namespace Vb6ToCSharp.Parsing;

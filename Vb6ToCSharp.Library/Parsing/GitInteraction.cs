@@ -4,8 +4,8 @@ using static Microsoft.VisualBasic.Interaction;
 using static Microsoft.VisualBasic.Strings;
 using static Vb6ToCSharp.Runtime.RuntimeExtension;
 using static Vb6ToCSharp.Parsing.DirStack;
-using static Vb6ToCSharp.Modules.ModShell;
-using static Vb6ToCSharp.Modules.ModUtils;
+using static Vb6ToCSharp.Parsing.ShellHandler;
+using static Vb6ToCSharp.ItemConversion.ConversionUtility;
 
 
 namespace Vb6ToCSharp.Parsing;

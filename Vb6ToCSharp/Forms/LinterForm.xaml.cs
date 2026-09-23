@@ -1,5 +1,5 @@
 using System.Windows;
-using Vb6ToCSharp.Modules;
+using Vb6ToCSharp.CodeErrors;
 using Vb6ToCSharp.Parsing;
 using Vb6ToCSharp.UI;
 using static Microsoft.VisualBasic.Strings;
@@ -35,7 +35,7 @@ public partial class LinterForm : Window
     private void cmdLint_Click(object sender, RoutedEventArgs e)
     {
         fraConfig.IsEnabled = false;
-        var results = ModQuickLint.LintFileOrProject(txtFile.Text);
+        var results = QuickLint.LintFileOrProject(txtFile.Text);
         fraConfig.IsEnabled = true;
 
         txtResults.Text = IIf(results == "", "Done.", results);

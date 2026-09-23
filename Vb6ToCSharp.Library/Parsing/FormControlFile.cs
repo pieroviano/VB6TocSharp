@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Vb6ToCSharp.CodeGeneration;
-using Vb6ToCSharp.Model.Parsing;
 
 namespace Vb6ToCSharp.Parsing;
 

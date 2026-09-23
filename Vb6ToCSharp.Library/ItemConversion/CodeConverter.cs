@@ -1,6 +1,5 @@
 using System;
 using Vb6ToCSharp.CodeGeneration;
-using Vb6ToCSharp.Convert;
 using Vb6ToCSharp.Parsing;
 using static Microsoft.VisualBasic.Constants;
 using static Microsoft.VisualBasic.Conversion;
@@ -10,13 +9,13 @@ using static Vb6ToCSharp.Parsing.ProjectConfigurationParser;
 using static Vb6ToCSharp.ItemConversion.FormConverter;
 using static Vb6ToCSharp.ItemConversion.ConverterUtils;
 using static Vb6ToCSharp.Parsing.ProjectFiles;
-using static Vb6ToCSharp.Modules.ModRefScan;
-using static Vb6ToCSharp.Modules.ModRegEx;
-using static Vb6ToCSharp.Modules.ModSubTracking;
-using static Vb6ToCSharp.Modules.ModSupportFiles;
-using static Vb6ToCSharp.Modules.ModTextFiles;
-using static Vb6ToCSharp.Modules.ModUsingEverything;
-using static Vb6ToCSharp.Modules.ModUtils;
+using static Vb6ToCSharp.ItemConversion.RefScanner;
+using static Vb6ToCSharp.ItemConversion.RegularExpressions;
+using static Vb6ToCSharp.ItemConversion.SubTracking;
+using static Vb6ToCSharp.ItemConversion.SupportFiles;
+using static Vb6ToCSharp.ItemConversion.TextFiles;
+using static Vb6ToCSharp.ItemConversion.UsingEverything;
+using static Vb6ToCSharp.ItemConversion.ConversionUtility;
 using static Vb6ToCSharp.ItemConversion.Vb6ToCsConverter;
 using static Vb6ToCSharp.Runtime.RuntimeExtension;
 
@@ -182,7 +181,7 @@ public static class CodeConverter
             var functions = ConvertCodeSegment(Mid(code, j));
 
             var x = "";
-            x = x + ppHeader + UsingEverything(fName) + vbCrLf;
+            x = x + ppHeader + UseEverything(fName) + vbCrLf;
             x = x + vbCrLf;
             x = x + "namespace " + ns + vbCrLf;
             x = x + "{" + vbCrLf;
@@ -291,7 +290,7 @@ public static class CodeConverter
         var functions = ConvertCodeSegment(Mid(code, j), true);
 
         var x = "";
-        x = x + ppHeader + UsingEverything(fName) + vbCrLf;
+        x = x + ppHeader + UseEverything(fName) + vbCrLf;
         x = x + vbCrLf;
         x = x + ProjectGroup.TypeModifier(false) + " static class " + fName + " {" + vbCrLf; // a standard module is never seen by other projects
         x = x + NlTrim(globals + vbCrLf + vbCrLf + functions);
@@ -324,7 +323,7 @@ public static class CodeConverter
 
         }
 
-        var x = UsingEverything(fName) + vbCrLf + vbCrLf + ConvertClassSource(s, ProjectInfo().CondComp);
+        var x = UseEverything(fName) + vbCrLf + vbCrLf + ConvertClassSource(s, ProjectInfo().CondComp);
         var header = StatementsConverter.FileHeader;
         x = DeWs(header + x);
 

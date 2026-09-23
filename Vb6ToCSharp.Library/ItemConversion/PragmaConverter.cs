@@ -1,10 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
-using Vb6ToCSharp.Convert;
 using static Microsoft.VisualBasic.Strings;
 using static Vb6ToCSharp.Parsing.ProjectConfigurationParser;
-using static Vb6ToCSharp.Modules.ModUtils;
+using static Vb6ToCSharp.ItemConversion.ConversionUtility;
 
 namespace Vb6ToCSharp.ItemConversion;
 

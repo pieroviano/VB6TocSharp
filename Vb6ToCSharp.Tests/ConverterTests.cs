@@ -4,7 +4,6 @@ using System.Text.RegularExpressions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Vb6ToCSharp.ItemConversion;
-using Vb6ToCSharp.Modules;
 using Vb6ToCSharp.Parsing;
 using Vb6ToCSharp.Tests.Infrastructure;
 
@@ -492,7 +491,7 @@ public sealed class ConverterFixture : IDisposable
             ini);
         IniInterop.IniWrite(ProjectConfigurationParser.iniSectionSettings, ProjectConfigurationParser.iniKeyAssemblyName, "TestAsm", ini);
         ProjectConfigurationParser.LoadSettings(true);
-        ModRefScan.ScanRefs();
+        RefScanner.ScanRefs();
     }
 
     public void Dispose()
@@ -539,14 +538,14 @@ public partial class ConverterTests : IClassFixture<ConverterFixture>
     [Fact]
     public void ScanRefs_IndexesProjectFunctions()
     {
-        Assert.True(ModRefScan.IsFuncRef("Twice"));
-        Assert.Equal("modA", ModRefScan.FuncRefModule("Twice"));
-        Assert.False(ModRefScan.IsFuncRef("NoSuchThing"));
+        Assert.True(RefScanner.IsFuncRef("Twice"));
+        Assert.Equal("modA", RefScanner.FuncRefModule("Twice"));
+        Assert.False(RefScanner.IsFuncRef("NoSuchThing"));
     }
 
     [Fact]
     public void FuncRefDeclArgCnt_CountsArguments() =>
-        Assert.Equal(2, TestUtil.WithTimeout(() => ModRefScan.FuncRefDeclArgCnt("Add2")));
+        Assert.Equal(2, TestUtil.WithTimeout(() => RefScanner.FuncRefDeclArgCnt("Add2")));
 
     [Fact]
     public void ConvertSub_LoopWhile_KeepsCondition()
@@ -655,18 +654,18 @@ public partial class ConverterTests : IClassFixture<ConverterFixture>
     private static List<string> CaptureNotify(Action a)
     {
         var got = new List<string>();
-        var oldNotify = ModUtils.Notify;
-        var oldProgress = ModUtils.Progress;
-        ModUtils.Notify = got.Add;
-        ModUtils.Progress = (_, _, _) => { };
+        var oldNotify = ConversionUtility.Notify;
+        var oldProgress = ConversionUtility.Progress;
+        ConversionUtility.Notify = got.Add;
+        ConversionUtility.Progress = (_, _, _) => { };
         try
         {
             a();
         }
         finally
         {
-            ModUtils.Notify = oldNotify;
-            ModUtils.Progress = oldProgress;
+            ConversionUtility.Notify = oldNotify;
+            ConversionUtility.Progress = oldProgress;
         }
 
         return got;

@@ -4,7 +4,6 @@ using System.Threading;
 using Microsoft.VisualBasic;
 using Vb6ToCSharp.Runtime;
 using Vb6ToCSharp.Tests.Infrastructure;
-using Vb6ToCSharp.UI;
 using static Vb6ToCSharp.Runtime.RuntimeExtension;
 using Timer = Vb6ToCSharp.Runtime.Timer;
 
