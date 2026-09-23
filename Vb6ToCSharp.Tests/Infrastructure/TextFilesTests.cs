@@ -58,6 +58,27 @@ public class TextFilesTests : IDisposable
         Assert.Equal("x\r\ny", ReadEntireFile(f));
     }
 
+    [Theory]
+    [InlineData("x\ny")]     // a git checkout / a non-Windows editor
+    [InlineData("x\ry")]     // an old Mac editor
+    [InlineData("x\r\ny")]
+    public void ReadEntireFile_NormalizesLineEndings(string contents)
+    {
+        var f = F();
+        File.WriteAllText(f, contents);
+        Assert.Equal("x\r\ny", ReadEntireFile(f));
+    }
+
+    [Theory]
+    [InlineData("a\nb\nc", "a\r\nb\r\nc")]
+    [InlineData("a\rb\rc", "a\r\nb\r\nc")]
+    [InlineData("a\r\nb\nc\rd", "a\r\nb\r\nc\r\nd")]
+    [InlineData("a\r\nb", "a\r\nb")]
+    [InlineData("no line ending", "no line ending")]
+    [InlineData("", "")]
+    public void NormalizeLineEndings_YieldsCrLf(string source, string expected) =>
+        Assert.Equal(expected, NormalizeLineEndings(source));
+
     [Fact] public void ReadEntireFile_Missing_IsEmpty() => Assert.Equal("", ReadEntireFile(F()));
 
     [Fact]

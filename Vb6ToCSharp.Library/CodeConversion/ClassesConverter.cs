@@ -10,6 +10,7 @@ using static Vb6ToCSharp.Parsing.ProjectConfigurationParser;
 using static Vb6ToCSharp.CodeConversion.CodeConverter;
 using static Vb6ToCSharp.CodeConversion.ConverterUtils;
 using static Vb6ToCSharp.Parsing.ProjectFiles;
+using static Vb6ToCSharp.Infrastructure.TextFiles;
 using static Vb6ToCSharp.CodeConversion.ConversionUtility;
 using static Vb6ToCSharp.CodeConversion.Vb6ToCsConverter;
 
@@ -43,14 +44,14 @@ public static class ClassesConverter
             foreach (var f in Split(VbpClasses(VbpFile), vbCrLf))
             {
                 if (Trim(f) == "" || !System.IO.File.Exists(folder + f)) continue;
-                var src = System.IO.File.ReadAllText(folder + f);
+                var src = ReadEntireFile(folder + f);
                 var model = ClassDefinition.Scan(ModuleName(src), src);
                 classes[model.Name] = model;
             }
             foreach (var f in Split(VbpClasses(VbpFile) + vbCrLf + VbpForms(VbpFile) + vbCrLf + VbpUserControls(VbpFile), vbCrLf))
             {
                 if (Trim(f) == "" || !System.IO.File.Exists(folder + f)) continue;
-                foreach (var i in ImplementsOf(System.IO.File.ReadAllText(folder + f))) implemented.Add(i);
+                foreach (var i in ImplementsOf(ReadEntireFile(folder + f))) implemented.Add(i);
             }
             var project = CodeConverter.ProjectInfo();
             // the exposed classes of the projects this one references are known as well (New, default members, For Each...)
@@ -93,7 +94,7 @@ public static class ClassesConverter
         {
             if (Trim(f) == "") continue;
             var path = System.IO.Path.Combine(project.Folder, Trim(f));
-            if (System.IO.File.Exists(path)) yield return System.IO.File.ReadAllText(path);
+            if (System.IO.File.Exists(path)) yield return ReadEntireFile(path);
         }
     }
 

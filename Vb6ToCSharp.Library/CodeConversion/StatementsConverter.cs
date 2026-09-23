@@ -9,6 +9,7 @@ using static Vb6ToCSharp.Parsing.ProjectConfigurationParser;
 using static Vb6ToCSharp.CodeConversion.CodeConverter;
 using static Vb6ToCSharp.Parsing.ProjectFiles;
 using static Vb6ToCSharp.CodeConversion.SubTracking;
+using static Vb6ToCSharp.Infrastructure.TextFiles;
 using static Vb6ToCSharp.CodeConversion.ConversionUtility;
 using static Vb6ToCSharp.CodeConversion.Vb6ToCsConverter;
 using Vb6ToCSharp.CodeGeneration;
@@ -66,7 +67,7 @@ public static class StatementsConverter
                 foreach (var f in Split(VbpModules(VbpFile), vbCrLf))
                 {
                     if (Trim(f) == "" || !System.IO.File.Exists(folder + f)) continue;
-                    foreach (Match m in Regex.Matches(System.IO.File.ReadAllText(folder + f), "(?m)^(?:Public|Global)\\s+(?:WithEvents\\s+|Const\\s+)?(" + Id + ")"))
+                    foreach (Match m in Regex.Matches(ReadEntireFile(folder + f), "(?m)^(?:Public|Global)\\s+(?:WithEvents\\s+|Const\\s+)?(" + Id + ")"))
                     {
                         projectGlobals.Add(m.Groups[1].Value);
                     }
@@ -185,7 +186,7 @@ public static class StatementsConverter
                 foreach (var f in Split(files, vbCrLf))
                 {
                     if (Trim(f) == "" || !System.IO.File.Exists(folder + f)) continue;
-                    foreach (Match m in Regex.Matches(System.IO.File.ReadAllText(folder + f), "(?ms)^(?:Public |Private |Global )?Type (" + Id + ")(.*?)^End Type"))
+                    foreach (Match m in Regex.Matches(ReadEntireFile(folder + f), "(?ms)^(?:Public |Private |Global )?Type (" + Id + ")(.*?)^End Type"))
                     {
                         udts.Add(m.Groups[1].Value);
                         RegisterUdtFields(m.Groups[1].Value, m.Groups[2].Value);

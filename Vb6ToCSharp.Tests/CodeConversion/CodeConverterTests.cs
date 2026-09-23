@@ -611,6 +611,30 @@ public class CodeConverterTests : IClassFixture<ConverterFixture>
         Assert.Contains("Add2(", cs);
     }
 
+    /// <summary>A source written with any line ending converts the same way (a vbLf-only one lost every procedure body).</summary>
+    [Theory]
+    [InlineData("\n")] // a git checkout / a non-Windows editor
+    [InlineData("\r")] // an old Mac editor
+    public void ConvertFile_Module_LineEndingsDoNotMatter(string eol)
+    {
+        var bas = Path.Combine(fixture.Dir, "modA.bas");
+        var source = File.ReadAllText(bas);
+        CleanOut(fixture);
+        CaptureNotify(() => TestUtil.WithTimeout(() => CodeConverter.ConvertFile(bas), 30000));
+        var expected = File.ReadAllText(Out(fixture, @"Modules\modA.cs"));
+        try
+        {
+            File.WriteAllText(bas, source.Replace("\r\n", eol));
+            CleanOut(fixture);
+            CaptureNotify(() => TestUtil.WithTimeout(() => CodeConverter.ConvertFile(bas), 30000));
+            Assert.Equal(expected, File.ReadAllText(Out(fixture, @"Modules\modA.cs")));
+        }
+        finally
+        {
+            File.WriteAllText(bas, source);
+        }
+    }
+
     [Fact]
     public void ConvertFile_AlreadyConverted_ReturnsFalse()
     {

@@ -72,7 +72,7 @@ public static class TextFiles
     public static string ReadEntireFile(string tFileName)
     {
         var readEntireFile =
-            ReadAllTextOrEmpty(tFileName);
+            NormalizeLineEndings(ReadAllTextOrEmpty(tFileName));
 
         //  Dim intFile As Long
         //  intFile = FreeFile
@@ -81,6 +81,21 @@ public static class TextFiles
         //  ReadEntireFile = Input$(LOF(intFile), #intFile)  '  LOF returns Length of File
         //  Close #intFile
         return readEntireFile;
+    }
+
+    //:::SUMMARY
+    //:Bring any line ending to vbCrLf.
+    //:::DESCRIPTION
+    //:VB6 sources reach the converter with whatever line ending the file system they travelled through left behind
+    //:(vbLf from a git checkout or a non-Windows editor, vbCr from an old Mac editor), while every line-based rule here
+    //:splits on vbCr after dropping vbLf, so a vbLf-only file would be read as one single line.
+    public static string NormalizeLineEndings(string source)
+    {
+        if (source == "" || (!IsInStr(source, vbLf) && !IsInStr(source, vbCr)))
+        {
+            return source;
+        }
+        return Replace(Replace(Replace(source, vbCrLf, vbLf), vbCr, vbLf), vbLf, vbCrLf);
     }
 
     private static string ReadAllTextOrEmpty(string tFileName)
