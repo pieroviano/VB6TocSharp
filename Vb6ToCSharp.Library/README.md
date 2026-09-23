@@ -1,7 +1,7 @@
-# Net4x.Vb6ToCSharp.Library
+﻿# Net4x.Vb6ToCSharp.Library
 
 The VB6 → C# converter engine used by `Vb6ToCSharp.exe` (WPF) and `Vb6ToCSharp.Console`. It reads a `.vbp` and writes a
-C# project (WPF or WinForms forms). The conversion follows VB Migration Partner's rules, adapted to C#. Target: .NET Framework 4.8.
+C# project (WPF or WinForms forms). The conversion follows VB Migration Partner's rules, adapted to C#. Target: `net10.0-windows`.
 
 Converted code runs on the `Net4x.Vb6ToCSharp.UpgradeHelpers` package, which the generated `.csproj` references.
 

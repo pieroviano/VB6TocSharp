@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using Vb6ToCSharp.Tests.Fixtures;
@@ -40,6 +40,9 @@ public class IntegrationTests
         }
         return (p.ExitCode, stdout.Result + stderr.Result);
     }
+
+    /// <summary>The target framework the converter emits (SupportFiles.ProjectFile): the converted output lands in bin\Debug\&lt;this&gt;.</summary>
+    private const string ConvertedTargetFramework = "net10.0-windows";
 
     /// <summary>MSBuild of the newest Visual Studio (via vswhere), else null (dotnet msbuild is used).</summary>
     private static string? FindMsBuild()
@@ -149,8 +152,9 @@ public class IntegrationTests
 
         Build(root, output, project);
 
-        // run it: the converted code of every module and class (RunAll; Main would also show the form)
-        var assembly = LoadFromBytes(Path.Combine(output, "bin", "Debug", "net48", "Showcase.exe"));
+        // run it: the converted code of every module and class (RunAll; Main would also show the form).
+        // The managed assembly is the .dll - on .NET the .exe is a native apphost.
+        var assembly = LoadFromBytes(Path.Combine(output, "bin", "Debug", ConvertedTargetFramework, "Showcase.dll"));
         Assert.Equal(true, Call(assembly, "modMain", "RunAll"));
         // results that depend on VB6 semantics being kept
         Assert.Equal(43, Call(assembly, "modMain", "Classes")); // events, default member c(1), For Each on the class, interface method, CApp.Version
@@ -194,13 +198,13 @@ public class IntegrationTests
         Build(root, output, solution);
 
         // run it: Lib.dll comes from the EXE's output folder (loaded from bytes as well)
-        var bin = Path.Combine(output, "Exe", "bin", "Debug", "net48");
+        var bin = Path.Combine(output, "Exe", "bin", "Debug", ConvertedTargetFramework);
         System.Reflection.Assembly? lib = null;
         ResolveEventHandler resolve = (_, e) => new System.Reflection.AssemblyName(e.Name).Name == "Lib" ? lib ??= LoadFromBytes(Path.Combine(bin, "Lib.dll")) : null;
         AppDomain.CurrentDomain.AssemblyResolve += resolve;
         try
         {
-            var assembly = LoadFromBytes(Path.Combine(bin, "Exe.exe"));
+            var assembly = LoadFromBytes(Path.Combine(bin, "Exe.dll"));
             // results that depend on the projects seeing each other as in VB6
             Assert.Equal(21.566, (double)Call(assembly, "modExe", "RunGroup")!, 3); // the DLL's class (Lib.CCircle, obj.Method) and interface (Implements Lib.IShape)
             Assert.Equal("Exe+Lib", Call(assembly, "modExe", "Owners")); // same-named modules: each project calls its own

@@ -1,8 +1,8 @@
-# Vb6ToCSharp (WPF)
+﻿# Vb6ToCSharp (WPF)
 
 GUI front end for the VB6 → C# converter. It is a thin shell over
 [Net4x.Vb6ToCSharp.Library](../Vb6ToCSharp.Library/README.md), and
-[Vb6ToCSharp.Console](../Vb6ToCSharp.Console/README.md) runs the same operations from scripts. Target: .NET Framework 4.8, WPF. Not packed.
+[Vb6ToCSharp.Console](../Vb6ToCSharp.Console/README.md) runs the same operations from scripts. Target: `net10.0-windows`, WPF. Not packed.
 
 ## Windows
 

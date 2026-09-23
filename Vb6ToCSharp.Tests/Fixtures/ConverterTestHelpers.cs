@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -61,6 +61,18 @@ internal const string CompileUsings =
         "using Vb6ToCSharp.UpgradeHelpers.Interop;\r\nusing Vb6ToCSharp.UpgradeHelpers.Model;\r\n" +
         "using static Vb6ToCSharp.UpgradeHelpers.VbRuntime;\r\n";
 
+    /// <summary>
+    /// What the generated code is compiled against: everything loaded in this process (the shared framework,
+    /// Microsoft.VisualBasic and UpgradeHelpers), so the reference set follows the target framework instead of
+    /// naming assembly files.
+    /// </summary>
+    private static readonly MetadataReference[] CompileReferences =
+        ((string?)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") ?? "")
+        .Split(Path.PathSeparator)
+        .Where(p => p.EndsWith(".dll", StringComparison.OrdinalIgnoreCase) && File.Exists(p))
+        .Select(p => (MetadataReference)MetadataReference.CreateFromFile(p))
+        .ToArray();
+
     /// <summary>The generated members compile (types and conversions, not only syntax) against the VB runtime and the helpers.</summary>
     internal static void AssertCompiles(string members) => AssertCompilesTop("public static class M {\r\n" + members + "\r\n}");
 
@@ -68,10 +80,7 @@ internal const string CompileUsings =
     internal static void AssertCompilesTop(string code)
     {
         var tree = CSharpSyntaxTree.ParseText(CompileUsings + code);
-        var refs = new[] { typeof(object), typeof(Microsoft.VisualBasic.Strings), typeof(Vb6ToCSharp.UpgradeHelpers.VbRuntime), typeof(System.Linq.Enumerable) }
-            .Select(t => MetadataReference.CreateFromFile(t.Assembly.Location))
-            .Concat(new[] { MetadataReference.CreateFromFile(typeof(object).Assembly.Location.Replace("mscorlib.dll", "System.dll")) });
-        var comp = CSharpCompilation.Create("check", new[] { tree }, refs, new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+        var comp = CSharpCompilation.Create("check", new[] { tree }, CompileReferences, new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
         var errors = comp.GetDiagnostics().Where(d => d.Severity == DiagnosticSeverity.Error).ToList();
         Assert.True(errors.Count == 0, string.Join("\n", errors) + "\n" + code);
     }

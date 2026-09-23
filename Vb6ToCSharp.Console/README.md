@@ -1,7 +1,7 @@
-# Vb6ToCSharp.Console
+﻿# Vb6ToCSharp.Console
 
 Command-line front end of the VB6 → C# converter: the same operations as the WPF window (`Vb6ToCSharp.exe`), scriptable.
-Built on [Net4x.Vb6ToCSharp.Library](../Vb6ToCSharp.Library/README.md). Target: .NET Framework 4.8.
+Built on [Net4x.Vb6ToCSharp.Library](../Vb6ToCSharp.Library/README.md). Target: `net10.0-windows`.
 
 ## Usage
 
@@ -50,7 +50,7 @@ Vb6ToCSharp.Console file modMain.bas
 | Folder / file | Content |
 |---|---|
 | `Modules\`, `Classes\`, `Forms\`, `UserControls\` | Converted code (forms: `.xaml` + `.xaml.cs`, or `.cs` + `.Designer.cs` + `.resx`) |
-| `<project>.csproj` | .NET Framework 4.8 project referencing `Net4x.Vb6ToCSharp.UpgradeHelpers` |
+| `<project>.csproj` | `net10.0-windows` project referencing `Net4x.Vb6ToCSharp.UpgradeHelpers` |
 | `MigrationReport.md` | Items left to review, by category and file, with `file:line` links |
 
 A file already converted and marked `### CONVERTED` is not overwritten.

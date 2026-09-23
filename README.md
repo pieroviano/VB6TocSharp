@@ -1,6 +1,6 @@
-# VB6 To C#
+﻿# VB6 To C#
 
-Converts a VB6 project (`.vbp`) into a C# .NET Framework 4.8 project, with WPF or WinForms forms. It follows VB Migration
+Converts a VB6 project (`.vbp`) into a C# .NET 10 project, with WPF or WinForms forms. It follows VB Migration
 Partner's conversion rules, adapted to C#. Anything it cannot convert is marked with a `// TODO:` comment and listed in `MigrationReport.md`.
 
 ## Solution (`Vb6ToCSharp.slnx`)
@@ -16,7 +16,7 @@ Partner's conversion rules, adapted to C#. Anything it cannot convert is marked 
 | Vb6ToCSharp.UpgradeHelpers.Tests | xUnit | — | Runtime tests (WinForms, WPF) |
 | `VB6/` | Solution folder | — | Sample VB6 project `Showcase.vbp` (modules, classes, interface, events, form, `CondComp`) |
 
-All projects target `net48`. Packages are written to `Packages\` on build. Version: `Vb6ToCSharpVersion` in
+All projects target `net10.0-windows` (`Extras` is `netstandard2.0`). Packages are written to `Packages\` on build. Version: `Vb6ToCSharpVersion` in
 [Directory.Nuget.Props](Directory.Nuget.Props) + `yyDDD` build suffix.
 
 ## Build
@@ -40,7 +40,7 @@ Or run `Vb6ToCSharp.exe`, set the project under `Config`, then click `ALL`.
 | Output | Content |
 |---|---|
 | `Modules\`, `Classes\`, `Forms\`, `UserControls\` | Converted code (WPF: `.xaml` + `.xaml.cs`; WinForms: `.cs` + `.Designer.cs` + `.resx`) |
-| `<project>.csproj` | SDK-style `net48` project that references `Net4x.Vb6ToCSharp.UpgradeHelpers` |
+| `<project>.csproj` | SDK-style `net10.0-windows` project that references `Net4x.Vb6ToCSharp.UpgradeHelpers` |
 | `MigrationReport.md` | Remaining `TODO`s, grouped by category and file, with `file:line` links |
 
 When no output folder is set, the output goes to `converted\` under the `.vbp` folder. Files marked `### CONVERTED` are not overwritten.

@@ -1,8 +1,8 @@
-# Net4x.Vb6ToCSharp.UpgradeHelpers
+﻿# Net4x.Vb6ToCSharp.UpgradeHelpers
 
 Runtime for VB6 programs converted to C# by Vb6ToCSharp (`Net4x.Vb6ToCSharp.Library`), comparable to VB Migration
 Partner's support library. It supplies the VB6 semantics that neither .NET nor `Microsoft.VisualBasic` covers. Target:
-.NET Framework 4.8, WinForms and WPF.
+`net10.0-windows`, WinForms and WPF.
 
 Generated projects reference this package and import it:
 

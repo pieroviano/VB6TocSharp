@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -15,7 +15,7 @@ using static Vb6ToCSharp.CodeConversion.ConversionUtility;
 namespace Vb6ToCSharp.CodeGeneration;
 
 /// <summary>
-/// The C# project around the converted files: an SDK-style .NET Framework 4.8 project (WinForms or WPF), its entry point
+/// The C# project around the converted files: an SDK-style .NET 10 Windows project (WinForms or WPF), its entry point
 /// (startup form or Sub Main, as the .vbp says) and assembly attributes.
 /// </summary>
 public static class SupportFiles
@@ -49,7 +49,7 @@ public static class SupportFiles
         var s = new StringBuilder();
         s.Append("<Project Sdk=\"Microsoft.NET.Sdk\">" + n);
         s.Append("  <PropertyGroup>" + n);
-        s.Append("    <TargetFramework>net48</TargetFramework>" + n);
+        s.Append("    <TargetFramework>net10.0-windows</TargetFramework>" + n);
         s.Append("    <OutputType>" + (library ? "Library" : "WinExe") + "</OutputType>" + n);
         s.Append("    <RootNamespace>" + AssemblyName() + "</RootNamespace>" + n);
         s.Append("    <AssemblyName>" + AssemblyName() + "</AssemblyName>" + n);
@@ -61,8 +61,8 @@ public static class SupportFiles
         s.Append("    <NoWarn>$(NoWarn);" + ConvertedCodeNoWarn + "</NoWarn>" + n);
         s.Append("  </PropertyGroup>" + n);
         s.Append("  <ItemGroup>" + n);
-        s.Append("    <Reference Include=\"Microsoft.VisualBasic\" />" + n);
-        s.Append("    <Reference Include=\"Microsoft.CSharp\" />" + n); // dynamic (Object)
+        // Microsoft.VisualBasic (MsgBox, Strings, FileSystem...) and Microsoft.CSharp (dynamic, for Object)
+        // are part of the shared framework: no <Reference> needed
         s.Append("    <!-- the runtime of converted code (VB6 arrays, UDTs, fixed-length strings, controls), like VB Migration Partner's library -->" + n);
         s.Append("    <PackageReference Include=\"Net4x.Vb6ToCSharp.UpgradeHelpers\" Version=\"" + runtime.Major + "." + runtime.Minor + ".*\" />" + n);
         s.Append("  </ItemGroup>" + n);

@@ -3,7 +3,7 @@
     <PropertyGroup>
         <Version>$(VersionPrefix).$(VersionSuffix)</Version>
         <OutputType>Exe</OutputType>
-        <TargetFramework>net48</TargetFramework>
+        <TargetFramework>net10.0-windows</TargetFramework>
         <RootNamespace>Vb6ToCSharp.ConsoleApp</RootNamespace>
         <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
         <Copyright>Copyright (c) Piero Viano 2026. All rights reserved.</Copyright>

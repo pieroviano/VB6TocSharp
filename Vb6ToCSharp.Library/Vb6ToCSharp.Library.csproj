@@ -5,7 +5,7 @@
         <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
         <Version>$(VersionPrefix).$(VersionSuffix)</Version>
         <OutputType>Library</OutputType>
-        <TargetFramework>net48</TargetFramework>
+        <TargetFramework>net10.0-windows</TargetFramework>
         <RootNamespace>Vb6ToCSharp</RootNamespace>
         <DontConvert>False</DontConvert>
         <Copyright>Copyright 2026</Copyright>

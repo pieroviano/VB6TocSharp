@@ -1,8 +1,8 @@
-# CLAUDE.md
+﻿# CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-VB6 → C# converter: reads a `.vbp`, writes an SDK-style `net48` C# project (WPF or WinForms forms) following VB Migration
+VB6 → C# converter: reads a `.vbp`, writes an SDK-style `net10.0-windows` C# project (WPF or WinForms forms) following VB Migration
 Partner's rules. See [README.md](README.md) and the per-project READMEs for user-facing behaviour.
 
 ## Commands
