@@ -75,8 +75,10 @@ public sealed class WpfEmitter
             "xmlns:mc=\"http://schemas.openxmlformats.org/markup-compatibility/2006\"",
             "xmlns:local=" + Xml("clr-namespace:" + ns),
             "xmlns:vb6=" + Xml("clr-namespace:" + ControlCatalog.HelpersWpf.TrimEnd('.') + ";assembly=" + ControlCatalog.HelpersAssemblyWpf),
-            "xmlns:usercontrols=" + Xml("clr-namespace:" + assembly + ".UserControls"),
         };
+        // the UserControls namespace exists only when the project has user controls (as UsingEverything does)
+        if (ProjectFiles.VbpUserControls(ProjectConfigurationParser.VbpFile) != "")
+            a.Insert(a.Count - 1, "xmlns:usercontrols=" + Xml("clr-namespace:" + assembly + ".UserControls"));
         // the generated partial class must match the code-behind's accessibility (a form of an ActiveX project is internal)
         if (ProjectGroup.TypeModifier(ProjectGroup.IsExposed(controlFile)) == "internal") a.Insert(1, "x:ClassModifier=\"internal\"");
         if (hosted)
