@@ -21,70 +21,109 @@ public class CommonDialog : Component
 {
     private const string DefaultFontName = "Microsoft Sans Serif";
 
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public string FileName { get; set; } = "";
 
     /// <summary>File name without path of the last selected file.</summary>
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public string FileTitle { get; private set; } = "";
 
     /// <summary>VB6 filter (<c>"Text|*.txt|All|*.*"</c>), same syntax as .NET.</summary>
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public string Filter { get; set; } = "";
 
     /// <summary>1-based selected filter.</summary>
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public int FilterIndex { get; set; }
 
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public string InitDir { get; set; } = "";
+
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public string DialogTitle { get; set; } = "";
+
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public string DefaultExt { get; set; } = "";
 
     /// <summary>cdlOFN* / cdlCC* / cdlCF* / cdlPD* flags; updated with the dialog's results.</summary>
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public int Flags { get; set; }
 
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public bool CancelError { get; set; }
 
     /// <summary>OLE color (<c>&amp;H00BBGGRR</c>).</summary>
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public int Color { get; set; }
 
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public string FontName { get; set; } = "";
+
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public float FontSize { get; set; }
+
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public bool FontBold { get; set; }
+
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public bool FontItalic { get; set; }
+
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public bool FontUnderline { get; set; }
+
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public bool FontStrikethru { get; set; }
 
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public short Copies { get; set; } = 1;
+
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public int FromPage { get; set; }
+
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public int ToPage { get; set; }
 
     /// <summary>Font size limits (cdlCFLimitSize) or printer page limits.</summary>
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public int Min { get; set; }
 
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public int Max { get; set; }
 
     /// <summary>Kept for source compatibility; the .NET print dialog always edits the selected printer settings.</summary>
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public bool PrinterDefault { get; set; } = true;
 
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public string HelpFile { get; set; } = "";
 
     /// <summary>cdlHelp* command used by <see cref="ShowHelp"/>.</summary>
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public int HelpCommand { get; set; }
 
     /// <summary>Topic id for cdlHelpContext / cdlHelpContextPopup.</summary>
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public int HelpContext { get; set; }
 
     /// <summary>Keyword for cdlHelpKey / cdlHelpPartialKey.</summary>
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public string HelpKey { get; set; } = "";
 
     /// <summary>Owner window of the dialogs (null = active window).</summary>
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public Wf.IWin32Window Owner { get; set; }
 
     /// <summary>Printer settings chosen by the last <see cref="ShowPrinter"/>.</summary>
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public PrinterSettings PrinterSettings { get; private set; }
 
     /// <summary>Test seam: shows a configured dialog and returns its result.</summary>
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     internal Func<Wf.CommonDialog, Wf.IWin32Window, Wf.DialogResult> ShowDialogHandler { get; set; } =
         (dialog, owner) => owner == null ? dialog.ShowDialog() : dialog.ShowDialog(owner);
 
     /// <summary>Test seam: invokes WinHelp/HTML help.</summary>
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     internal Action<Wf.Control, string, Wf.HelpNavigator, object> ShowHelpHandler { get; set; } =
         (parent, file, navigator, parameter) =>
         {

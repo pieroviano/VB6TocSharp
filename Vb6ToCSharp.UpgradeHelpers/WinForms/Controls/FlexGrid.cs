@@ -104,6 +104,7 @@ public class FlexGrid : DataGridView
     }
 
     [DefaultValue(1)]
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public int FixedCols
     {
         get => _fixedCols;
@@ -116,6 +117,7 @@ public class FlexGrid : DataGridView
     }
 
     /// <summary>OLE color of the fixed cells.</summary>
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public int BackColorFixed
     {
         get => Vb6Color.FromColor(_backColorFixed);
@@ -123,6 +125,7 @@ public class FlexGrid : DataGridView
     }
 
     /// <summary>OLE text color of the fixed cells.</summary>
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public int ForeColorFixed
     {
         get => Vb6Color.FromColor(_foreColorFixed);
