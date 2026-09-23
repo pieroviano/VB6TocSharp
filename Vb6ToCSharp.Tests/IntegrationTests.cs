@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using Vb6ToCSharp.Tests.Infrastructure;
+using Vb6ToCSharp.Tests.Fixtures;
 
 namespace Vb6ToCSharp.Tests;
 

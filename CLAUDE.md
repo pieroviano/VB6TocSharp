@@ -23,8 +23,17 @@ Partner's rules. See [README.md](README.md) and the per-project READMEs for user
   with vswhere-located MSBuild, then loads the exe and asserts on `modMain.RunAll` / `modMain.Classes` etc. When adding a
   VB6 feature, extend the `VB6\` sample and these assertions. The same test for project groups converts `VBG\Group.vbg`
   (`Exe\` referencing the ActiveX DLL `Lib\`) into `ConvertedGroup\` and builds `Group.sln`.
-- Test parallelization is disabled ([AssemblyInfo.cs](Vb6ToCSharp.Tests/AssemblyInfo.cs)): the converter uses
+- Test parallelization is disabled ([AssemblyInfo.cs](Vb6ToCSharp.Tests/Properties/AssemblyInfo.cs)): the converter uses
   process-wide static state.
+- **Each test project mirrors the folders, namespaces and type names of the project it tests.** A test for
+  `Vb6ToCSharp.<Area>.<Type>` lives in `Vb6ToCSharp.Tests/<Area>/<Type>Tests.cs`, namespace `Vb6ToCSharp.Tests.<Area>`
+  (likewise for `Vb6ToCSharp.UpgradeHelpers.Tests`). A new test file goes where the type it exercises lives; if that
+  means a new folder, create it. The two exceptions, both at the project root: `Fixtures/` (shared test helpers —
+  `TestUtil`, `Sta`, `TempDir`, `ConverterFixture`, `ConverterTestHelpers`, the `IVbStruct` sample types, and the
+  self-conversion leftovers `FormTest.cs`/`TestCases.cs`) and `IntegrationTests.cs`, which spans the whole pipeline.
+- Converter test classes are one class per library type, sharing `ConverterFixture` through `IClassFixture` and the
+  conversion helpers through `using static Vb6ToCSharp.Tests.Fixtures.ConverterTestHelpers;`. Do not reintroduce a
+  partial class spanning files — it cannot be split across the mirrored namespaces.
 
 ## Architecture
 
@@ -90,5 +99,6 @@ Partner's rules. See [README.md](README.md) and the per-project READMEs for user
 
 - Fix converter defects as general VB6 → C# rules. Never special-case the `VB6\Showcase` sample (names, lines, data).
 - Unit tests call library internals directly (`InternalsVisibleTo` in the `.csproj`). Converter tests usually feed VB6 text
-  to `ConvertClassSource` / `ConvertCodeLine` / `ConvertSub` and assert on the C#. `ConverterTypeTests` also compile the
-  output with Roslyn against `UpgradeHelpers`.
+  to `ConvertClassSource` / `ConvertCodeLine` / `ConvertSub` and assert on the C#. `CodeConverterTypeTests` also compiles
+  the output with Roslyn against `UpgradeHelpers`; its `CompileUsings` must list the same namespaces `UsingEverything`
+  emits.
