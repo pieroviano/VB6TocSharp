@@ -1,7 +1,9 @@
 using System.Windows;
 using Vb6ToCSharp.Modules;
+using Vb6ToCSharp.Parsing;
+using Vb6ToCSharp.UI;
 using static Microsoft.VisualBasic.Strings;
-using static Vb6ToCSharp.VbExtension;
+using static Vb6ToCSharp.Runtime.RuntimeExtension;
 
 
 namespace Vb6ToCSharp.Forms;
@@ -20,7 +22,7 @@ public partial class LinterForm : Window
 
     private void Form_Load(object sender, RoutedEventArgs e)
     {
-        txtVBPFile.Text = ModConfig.VbpFile;
+        txtVBPFile.Text = ProjectConfigurationParser.VbpFile;
         txtFile.Text = "";
     }
 

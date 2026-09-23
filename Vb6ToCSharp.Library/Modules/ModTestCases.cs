@@ -1,5 +1,6 @@
 using System;
-using static Vb6ToCSharp.Modules.ModGit;
+using Vb6ToCSharp.Parsing;
+using static Vb6ToCSharp.Parsing.GitInteraction;
 
 
 namespace Vb6ToCSharp.Modules;
@@ -18,15 +19,15 @@ public static class ModTestCases
         // assign value (w/w/o)
         // empty args parans (w/w/o)
 
-        ModGit.GitVersion();
+        GitInteraction.GitVersion();
         GitVersion();
-        ModGit.GitCmd("git --version");
-        var s = ModGit.GitCmd("git --verison");
+        GitInteraction.GitCmd("git --version");
+        var s = GitInteraction.GitCmd("git --verison");
         GitCmd("git --version");
         s = GitCmd("git --verison");
 
-        s = ModGit.GitVersion();
-        ModGit.GitVersion();
+        s = GitInteraction.GitVersion();
+        GitInteraction.GitVersion();
         s = GitVersion();
         GitVersion();
     }
@@ -40,22 +41,22 @@ public static class ModTestCases
 
         var b = HasGit();
         b = HasGit();
-        b = ModGit.HasGit();
-        b = ModGit.HasGit();
+        b = GitInteraction.HasGit();
+        b = GitInteraction.HasGit();
 
         b = !HasGit();
         b = !HasGit();
-        b = !ModGit.HasGit();
-        b = !ModGit.HasGit();
+        b = !GitInteraction.HasGit();
+        b = !GitInteraction.HasGit();
 
         TestCallWithBooleanFunction(HasGit());
         TestCallWithBooleanFunction(!HasGit());
-        TestCallWithBooleanFunction(ModGit.HasGit());
-        TestCallWithBooleanFunction(!ModGit.HasGit());
+        TestCallWithBooleanFunction(GitInteraction.HasGit());
+        TestCallWithBooleanFunction(!GitInteraction.HasGit());
         TestCallWithBooleanFunction(HasGit());
         TestCallWithBooleanFunction(!HasGit());
-        TestCallWithBooleanFunction(ModGit.HasGit());
-        TestCallWithBooleanFunction(!ModGit.HasGit());
+        TestCallWithBooleanFunction(GitInteraction.HasGit());
+        TestCallWithBooleanFunction(!GitInteraction.HasGit());
 
         if (HasGit())
         {
@@ -65,11 +66,11 @@ public static class ModTestCases
         {
             Console.WriteLine("");
         }
-        if (ModGit.HasGit())
+        if (GitInteraction.HasGit())
         {
             Console.WriteLine();
         }
-        if (ModGit.HasGit())
+        if (GitInteraction.HasGit())
         {
             Console.WriteLine();
         }
@@ -82,11 +83,11 @@ public static class ModTestCases
         {
             Console.WriteLine("");
         }
-        if (!ModGit.HasGit())
+        if (!GitInteraction.HasGit())
         {
             Console.WriteLine();
         }
-        if (!ModGit.HasGit())
+        if (!GitInteraction.HasGit())
         {
             Console.WriteLine();
         }

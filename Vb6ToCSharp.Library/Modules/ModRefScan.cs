@@ -3,15 +3,15 @@ using Microsoft.VisualBasic;
 using static Microsoft.VisualBasic.Constants;
 using static Microsoft.VisualBasic.FileSystem;
 using static Microsoft.VisualBasic.Strings;
-using static Vb6ToCSharp.Modules.ModConfig;
-using static Vb6ToCSharp.Modules.ModControlProperties;
-using static Vb6ToCSharp.Modules.ModConvertForm;
-using static Vb6ToCSharp.Modules.ModProjectFiles;
+using static Vb6ToCSharp.Parsing.ProjectConfigurationParser;
+using static Vb6ToCSharp.CodeGeneration.ControlProperties;
+using static Vb6ToCSharp.ItemConversion.FormConverter;
+using static Vb6ToCSharp.Parsing.ProjectFiles;
 using static Vb6ToCSharp.Modules.ModRegEx;
 using static Vb6ToCSharp.Modules.ModTextFiles;
 using static Vb6ToCSharp.Modules.ModUtils;
-using static Vb6ToCSharp.Modules.ModVb6ToCs;
-using static Vb6ToCSharp.VbExtension;
+using static Vb6ToCSharp.ItemConversion.Vb6ToCsConverter;
+using static Vb6ToCSharp.Runtime.RuntimeExtension;
 
 namespace Vb6ToCSharp.Modules;
 

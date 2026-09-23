@@ -7,6 +7,7 @@
         <PackageId>Net4x.$(MSBuildProjectName)</PackageId>
         <PackageOutputPath>$(SolutionDir)Packages\</PackageOutputPath>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <LangVersion>latest</LangVersion>
     </PropertyGroup>
     <ItemGroup>
         <Compile Remove="vb.net\**" />

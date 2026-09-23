@@ -1,15 +1,16 @@
 using System;
 using System.Collections.Generic;
 using Microsoft.VisualBasic;
+using Vb6ToCSharp.Parsing;
 using static Microsoft.VisualBasic.Constants;
 using static Microsoft.VisualBasic.DateAndTime;
 using static Microsoft.VisualBasic.FileSystem;
 using static Microsoft.VisualBasic.Information;
 using static Microsoft.VisualBasic.Interaction;
 using static Microsoft.VisualBasic.Strings;
-using static Vb6ToCSharp.Modules.ModProjectFiles;
+using static Vb6ToCSharp.Parsing.ProjectFiles;
 using static Vb6ToCSharp.Modules.ModRegEx;
-using static Vb6ToCSharp.VbExtension;
+using static Vb6ToCSharp.Runtime.RuntimeExtension;
 
 
 namespace Vb6ToCSharp.Modules;
@@ -63,11 +64,11 @@ public static class ModQuickLint
     {
         if (file == "")
         {
-            return Lint(ModConfig.VbpFile);
+            return Lint(ProjectConfigurationParser.VbpFile);
         }
         if (InStr(file, "\\") == 0)
         {
-            file = ModConfig.VbpPath + file;
+            file = ProjectConfigurationParser.VbpPath + file;
         }
         return Lint(file);
     }

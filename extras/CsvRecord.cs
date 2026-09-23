@@ -1,102 +1,94 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
-using System.Runtime.CompilerServices;
-using System.Runtime.Remoting.Messaging;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows;
 using Microsoft.VisualBasic;
-using static ModCsv;
+using static Extras.ModCsv;
 
-namespace WinCDS.Classes
+namespace Extras;
+
+public abstract class CsvRecord : FieldInfoListSource
 {
-    public abstract class CsvRecord : FieldInfoListSource
+    protected List<string> extraFields = new List<string>();
+
+    public CsvRecord() { }
+    public CsvRecord(string line) { FromLine(line); }
+
+    public string HeaderLine(bool Commented = false, bool addNL = false)
     {
-        protected List<string> extraFields = new List<string>();
+        var S = "";
+        if (Commented) S += "# ";
+        foreach (var f in FieldInfoList()) S += ProtectCSV(f.Name) + ",";
+        if (Strings.Right(S, 1) == ",") S = Strings.Left(S, S.Length - 1);
+        if (addNL) S += "\n";
+        return S;
+    }
 
-        public CsvRecord() { }
-        public CsvRecord(string line) { FromLine(line); }
+    protected string getFieldByIndex(int i)
+    {
+        var f = thisField(i);
+        if (f != null) return "" + f.GetValue(this);
+        var extraIdx = i - FieldInfoListCount();
+        if (extraIdx < extraFields.Count) return extraFields[extraIdx];
+        return "";
+    }
 
-        public string HeaderLine(bool Commented = false, bool addNL = false)
+    protected void setFieldByIndex(int i, string value)
+    {
+        var f = thisField(i);
+        if (f != null)
+            f.SetValue(this, value);
+        else
         {
-            var S = "";
-            if (Commented) S += "# ";
-            foreach (var f in FieldInfoList()) S += ProtectCSV(f.Name) + ",";
-            if (Strings.Right(S, 1) == ",") S = Strings.Left(S, S.Length - 1);
-            if (addNL) S += "\n";
-            return S;
-        }
-
-        protected string getFieldByIndex(int i)
-        {
-            var f = thisField(i);
-            if (f != null) return "" + f.GetValue(this);
             var extraIdx = i - FieldInfoListCount();
-            if (extraIdx < extraFields.Count) return extraFields[extraIdx];
-            return "";
+            while (extraIdx >= extraFields.Count) extraFields.Add("");
+            extraFields[extraIdx] = value;
         }
+    }
 
-        protected void setFieldByIndex(int i, string value)
+    new public string this[string i]
+    {
+        get => "" + thisField(i).GetValue(this);
+        set => thisField(i).SetValue(this, value);
+    }
+
+    new public string this[int i]
+    {
+        get => getFieldByIndex(i);
+        set => setFieldByIndex(i, value);
+    }
+
+
+    public string ToLine()
+    { return CSVLine(FieldInfoList().Select(f => f.GetValue(this).ToString()).Concat(extraFields).ToArray()); }
+
+    public void FromLine(string line)
+    {
+        var i = 0;
+        foreach (var f in FieldInfoList()) f.SetValue(this, CSVField(line, i++));
+        extraFields = new List<string>();
+        for (i = 0; i < CSVFieldCount(line) - FieldInfoListCount(); i++) extraFields.Add("");
+    }
+
+    public static List<T> FromCsvFile<T>(string csvContents) where T : CsvRecord, new()
+    {
+        var res = new List<T>();
+        foreach (var l in csvContents.Replace("\r", "").Split('\n'))
         {
-            var f = thisField(i);
-            if (f != null)
-                f.SetValue(this, value);
-            else
-            {
-                var extraIdx = i - FieldInfoListCount();
-                while (extraIdx >= extraFields.Count) extraFields.Add("");
-                extraFields[extraIdx] = value;
-            }
+            if (l == "") continue;
+            if (Strings.Left(l, 1) == "#") continue;
+            var item = new T();
+            item.FromLine(l);
+            res.Add(item);
         }
+        return res;
+    }
 
-        new public string this[string i]
-        {
-            get => "" + thisField(i).GetValue(this);
-            set => thisField(i).SetValue(this, value);
-        }
+    public static string ToCsvFile<T>(List<T> lines, bool addHeader = false) where T : CsvRecord, new()
+    {
+        var res = "";
+        if (lines.Count == 0) return res;
+        if (addHeader) res += lines[0].HeaderLine() + "\r\n";
 
-        new public string this[int i]
-        {
-            get => getFieldByIndex(i);
-            set => setFieldByIndex(i, value);
-        }
-
-
-        public string ToLine()
-        { return CSVLine(FieldInfoList().Select(f => f.GetValue(this).ToString()).Concat(extraFields).ToArray()); }
-
-        public void FromLine(string line)
-        {
-            var i = 0;
-            foreach (var f in FieldInfoList()) f.SetValue(this, CSVField(line, i++));
-            extraFields = new List<string>();
-            for (i = 0; i < CSVFieldCount(line) - FieldInfoListCount(); i++) extraFields.Add("");
-        }
-
-        public static List<T> FromCsvFile<T>(string csvContents) where T : CsvRecord, new()
-        {
-            var res = new List<T>();
-            foreach (var l in csvContents.Replace("\r", "").Split('\n'))
-            {
-                if (l == "") continue;
-                if (Strings.Left(l, 1) == "#") continue;
-                var item = new T();
-                item.FromLine(l);
-                res.Add(item);
-            }
-            return res;
-        }
-
-        public static string ToCsvFile<T>(List<T> lines, bool addHeader = false) where T : CsvRecord, new()
-        {
-            var res = "";
-            if (lines.Count == 0) return res;
-            if (addHeader) res += lines[0].HeaderLine() + "\r\n";
-
-            foreach (var l in lines) res += l.ToLine() + "\r\n";
-            return res;
-        }
+        foreach (var l in lines) res += l.ToLine() + "\r\n";
+        return res;
     }
 }

@@ -1,11 +1,12 @@
+using Vb6ToCSharp.Convert;
 using static Microsoft.VisualBasic.Constants;
 using static Microsoft.VisualBasic.Strings;
-using static Vb6ToCSharp.VbExtension;
-using static Vb6ToCSharp.Modules.ModConfig;
-using static Vb6ToCSharp.Modules.ModProjectFiles;
+using static Vb6ToCSharp.Runtime.RuntimeExtension;
+using static Vb6ToCSharp.Parsing.ProjectConfigurationParser;
+using static Vb6ToCSharp.Parsing.ProjectFiles;
 using static Vb6ToCSharp.Modules.ModTextFiles;
 using static Vb6ToCSharp.Modules.ModUtils;
-
+using Vb6ToCSharp.Parsing;
 
 namespace Vb6ToCSharp.Modules;
 
@@ -52,7 +53,7 @@ public static class ModUsingEverything
             e = e + n + "using static Microsoft.VisualBasic.Interaction;";
             e = e + n + "using static Microsoft.VisualBasic.Strings;";
             e = e + n + "using static Microsoft.VisualBasic.VBMath;";
-            if (VbpFile != "" && ModSupportFiles.UsesAdo(Vb6ToCSharp.FormConversion.VbpInfo.Load(VbpFile)))
+            if (VbpFile != "" && ModSupportFiles.UsesAdo(ProjectInfo.Load(VbpFile)))
             {
                 e = e + n + "using ADODB;";
             }

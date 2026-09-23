@@ -1,5 +1,6 @@
 using System.Linq;
-using Vb6ToCSharp.Modules;
+using Vb6ToCSharp.ItemConversion;
+using Vb6ToCSharp.Tests.Model;
 using Vb6ToCSharp.UpgradeHelpers;
 
 namespace Vb6ToCSharp.Tests;
@@ -7,12 +8,6 @@ namespace Vb6ToCSharp.Tests;
 /// <summary>Pure lexical helpers and the UpgradeHelpers runtime: edges (empty, bounds, repeated calls, invalid input).</summary>
 public class FunctionalRuntimeTests
 {
-    private sealed class RefStruct : IVbStruct
-    {
-        public bool Initialized;
-        public void Initialize() => Initialized = true;
-    }
-
     // ---------------------------------------------------------------- lexical helpers
 
     [Theory]
@@ -21,16 +16,16 @@ public class FunctionalRuntimeTests
     [InlineData("a,", new[] { "a", "" })]
     [InlineData(" a , b ", new[] { "a", "b" })]
     [InlineData("f(a, g(b, c)), d", new[] { "f(a, g(b, c))", "d" })]
-    public void SplitTopLevel_Edges(string s, string[] expected) => Assert.Equal(expected, ModConvertStatements.SplitTopLevel(s));
+    public void SplitTopLevel_Edges(string s, string[] expected) => Assert.Equal(expected, StatementsConverter.SplitTopLevel(s));
 
     [Fact]
-    public void SplitTopLevel_OtherSeparator() => Assert.Equal(new[] { "a", "f(b; c)", "d" }, ModConvertStatements.SplitTopLevel("a; f(b; c); d", ';'));
+    public void SplitTopLevel_OtherSeparator() => Assert.Equal(new[] { "a", "f(b; c)", "d" }, StatementsConverter.SplitTopLevel("a; f(b; c); d", ';'));
 
     [Theory]
     [InlineData("(a)", 0, 2)]
     [InlineData("f(a(b), c) + 1", 1, 9)]
     [InlineData("(a", 0, -1)]
-    public void MatchParen_Edges(string s, int open, int expected) => Assert.Equal(expected, ModConvertStatements.MatchParen(s, open));
+    public void MatchParen_Edges(string s, int open, int expected) => Assert.Equal(expected, StatementsConverter.MatchParen(s, open));
 
     [Theory]
     [InlineData("&H0", "0x0")]
@@ -44,7 +39,7 @@ public class FunctionalRuntimeTests
     [InlineData("&HG1", null)]
     [InlineData("&O9", null)]
     [InlineData("&H", null)]
-    public void RadixLiteral_Edges(string vb, string? cs) => Assert.Equal(cs, ModConvertStatements.ConvertRadixLiteral(vb));
+    public void RadixLiteral_Edges(string vb, string? cs) => Assert.Equal(cs, StatementsConverter.ConvertRadixLiteral(vb));
 
     [Theory]
     [InlineData("s$", "s", "String")]
@@ -55,7 +50,7 @@ public class FunctionalRuntimeTests
     public void StripSuffix_Edges(string name, string stripped, string type)
     {
         var n = name;
-        Assert.Equal(type, ModConvertStatements.StripSuffix(ref n));
+        Assert.Equal(type, StatementsConverter.StripSuffix(ref n));
         Assert.Equal(stripped, n);
     }
 
@@ -63,14 +58,14 @@ public class FunctionalRuntimeTests
     [InlineData("10", "L10")]
     [InlineData(" Retry ", "Retry")]
     [InlineData("L10", "L10")]
-    public void LabelName_Edges(string vb, string cs) => Assert.Equal(cs, ModConvertStatements.LabelName(vb));
+    public void LabelName_Edges(string vb, string cs) => Assert.Equal(cs, StatementsConverter.LabelName(vb));
 
     [Theory]
     [InlineData("#1/2/2003#", "DateTime.Parse(\"1/2/2003\", System.Globalization.CultureInfo.InvariantCulture)")]
     [InlineData("#2003-01-02 10:30#", "DateTime.Parse(\"2003-01-02 10:30\", System.Globalization.CultureInfo.InvariantCulture)")]
     [InlineData("Print #1, a", "Print #1, a")]
     [InlineData("#1#", "#1#")]
-    public void DateLiterals_Edges(string vb, string cs) => Assert.Equal(cs, ModConvertStatements.ConvertDateLiterals(vb));
+    public void DateLiterals_Edges(string vb, string cs) => Assert.Equal(cs, StatementsConverter.ConvertDateLiterals(vb));
 
     [Theory]
     [InlineData("Not a = b And Not c = d", "Not (a = b) And Not (c = d)")]
@@ -78,13 +73,13 @@ public class FunctionalRuntimeTests
     [InlineData("f(Not a = b)", "f(Not a = b)")] // inner expressions are grouped when they are converted
     [InlineData("Nothing = x", "Nothing = x")]
     [InlineData("IsNot a = b", "IsNot a = b")]
-    public void GroupNot_Edges(string vb, string expected) => Assert.Equal(expected, ModConvertStatements.GroupNot(vb));
+    public void GroupNot_Edges(string vb, string expected) => Assert.Equal(expected, StatementsConverter.GroupNot(vb));
 
     [Fact]
     public void GroupNot_IsIdempotent()
     {
-        var once = ModConvertStatements.GroupNot("Not a Is Nothing Or b");
-        Assert.Equal(once, ModConvertStatements.GroupNot(once));
+        var once = StatementsConverter.GroupNot("Not a Is Nothing Or b");
+        Assert.Equal(once, StatementsConverter.GroupNot(once));
     }
 
     // ---------------------------------------------------------------- VbRuntime / VB6Array

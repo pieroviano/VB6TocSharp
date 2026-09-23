@@ -6,11 +6,10 @@ using static Microsoft.VisualBasic.FileSystem;
 using static Microsoft.VisualBasic.Information;
 using static Microsoft.VisualBasic.Strings;
 using static Microsoft.VisualBasic.VBMath;
-using static Vb6ToCSharp.Modules.ModConfig;
+using static Vb6ToCSharp.Parsing.ProjectConfigurationParser;
 using static Vb6ToCSharp.Modules.ModRegEx;
 using static Vb6ToCSharp.Modules.ModTextFiles;
-using static Vb6ToCSharp.VbExtension;
-
+using static Vb6ToCSharp.Runtime.RuntimeExtension;
 
 namespace Vb6ToCSharp.Modules;
 

@@ -1,5 +1,6 @@
 using System.IO;
-using Vb6ToCSharp.Modules;
+using Vb6ToCSharp.ItemConversion;
+using Vb6ToCSharp.Parsing;
 
 namespace Vb6ToCSharp.Tests;
 
@@ -7,45 +8,45 @@ namespace Vb6ToCSharp.Tests;
 public class ConfigTests : IClassFixture<ConverterFixture>
 {
     private readonly ConverterFixture fixture;
-    private static string Ini => ModConfig.IniFile();
+    private static string Ini => ProjectConfigurationParser.IniFile();
 
     public ConfigTests(ConverterFixture fixture) => this.fixture = fixture;
 
     private static void WithSection(string section, Action a, params (string key, string value)[] entries)
     {
-        foreach (var (k, v) in entries) ModIni.IniWrite(section, k, v, Ini);
-        ModConfig.LoadSettings(true);
+        foreach (var (k, v) in entries) IniInterop.IniWrite(section, k, v, Ini);
+        ProjectConfigurationParser.LoadSettings(true);
         try { a(); }
         finally
         {
-            ModIni.IniWrite(section, null!, null!, Ini); // deletes the section
-            ModConfig.LoadSettings(true);
+            IniInterop.IniWrite(section, null!, null!, Ini); // deletes the section
+            ProjectConfigurationParser.LoadSettings(true);
         }
     }
 
     [Fact]
     public void DataTypes_ConfigExtendsAndOverridesMapping()
     {
-        WithSection(ModConfig.iniSectionDataTypes, () =>
+        WithSection(ProjectConfigurationParser.iniSectionDataTypes, () =>
         {
-            Assert.Equal("MyCs", ModVb6ToCs.ConvertDataType("MyType"));
-            Assert.Equal("decimal", ModVb6ToCs.ConvertDataType("Double"));
-            Assert.Equal("int", ModVb6ToCs.ConvertDataType("Long"));
+            Assert.Equal("MyCs", Vb6ToCsConverter.ConvertDataType("MyType"));
+            Assert.Equal("decimal", Vb6ToCsConverter.ConvertDataType("Double"));
+            Assert.Equal("int", Vb6ToCsConverter.ConvertDataType("Long"));
         }, ("MyType", "MyCs"), ("Double", "decimal"));
-        Assert.Equal("double", ModVb6ToCs.ConvertDataType("Double")); // VB6 Double is a binary double
+        Assert.Equal("double", Vb6ToCsConverter.ConvertDataType("Double")); // VB6 Double is a binary double
     }
 
     [Fact]
-    public void DataTypes_WinCdsTypesAreNoLongerBuiltIn() => Assert.Equal("int", ModVb6ToCs.ConvertDataType("Long"));
+    public void DataTypes_WinCdsTypesAreNoLongerBuiltIn() => Assert.Equal("int", Vb6ToCsConverter.ConvertDataType("Long"));
 
     [Fact]
     public void Controls_ConfigProvidesAllFields()
     {
-        WithSection(ModConfig.iniSectionControls, () =>
+        WithSection(ProjectConfigurationParser.iniSectionControls, () =>
         {
-            ModVb6ToCs.ControlData("Acme.Grid", out var name, out var cont, out var def, out var features);
+            Vb6ToCsConverter.ControlData("Acme.Grid", out var name, out var cont, out var def, out var features);
             Assert.Equal(("DataGrid", true, "Text", "Tooltiptext"), (name, cont, def, features));
-            ModVb6ToCs.ControlData("Acme.Btn", out name, out cont, out def, out features);
+            Vb6ToCsConverter.ControlData("Acme.Btn", out name, out cont, out def, out features);
             Assert.Equal(("Button", false, "Caption", ""), (name, cont, def, features));
         }, ("Acme.Grid", "DataGrid;1;Text;Tooltiptext"), ("Acme.Btn", "Button"));
     }
@@ -53,18 +54,18 @@ public class ConfigTests : IClassFixture<ConverterFixture>
     [Fact]
     public void Controls_BuiltInsStillWork()
     {
-        ModVb6ToCs.ControlData("VB.CommandButton", out var name, out _, out _, out _);
+        Vb6ToCsConverter.ControlData("VB.CommandButton", out var name, out _, out _, out _);
         Assert.Equal("Button", name);
-        ModVb6ToCs.ControlData("WinCDS.CandyButton", out name, out _, out _, out _);
+        Vb6ToCsConverter.ControlData("WinCDS.CandyButton", out name, out _, out _, out _);
         Assert.Equal("Label", name); // unknown without the WinCDS config
     }
 
     [Fact]
     public void FormRenames_AppliesToVbpForms()
     {
-        WithSection(ModConfig.iniSectionFormRenames, () => Assert.Equal("frmRenamed", ModProjectFiles.VbpForms(ModConfig.VbpFile)),
+        WithSection(ProjectConfigurationParser.iniSectionFormRenames, () => Assert.Equal("frmRenamed", ProjectFiles.VbpForms(ProjectConfigurationParser.VbpFile)),
             ("FRMA.frm", "frmRenamed"));
-        Assert.Equal("frmA.frm", ModProjectFiles.VbpForms(ModConfig.VbpFile));
+        Assert.Equal("frmA.frm", ProjectFiles.VbpForms(ProjectConfigurationParser.VbpFile));
     }
 
     [Theory]
@@ -75,48 +76,48 @@ public class ConfigTests : IClassFixture<ConverterFixture>
     [InlineData("SetCustomFrame(1);", "blankif|SetCustomFrame", "")]
     [InlineData("keep", "bogus|x|y", "keep")]
     [InlineData("keep", "replace||y", "keep")]
-    public void PostCodeLineRule_Kinds(string line, string rule, string expected) => Assert.Equal(expected, ModProjectSpecific.ApplyPostCodeLineRule(line, rule));
+    public void PostCodeLineRule_Kinds(string line, string rule, string expected) => Assert.Equal(expected, ProjectSpecificConverter.ApplyPostCodeLineRule(line, rule));
 
     [Fact]
     public void PostCodeLine_ConfigRulesRunAfterGenericFixes()
     {
-        WithSection(ModConfig.iniSectionPostCodeLine, () =>
+        WithSection(ProjectConfigurationParser.iniSectionPostCodeLine, () =>
         {
-            Assert.Equal("x = w.hWnd(); // gone", ModProjectSpecific.ProjectSpecificPostCodeLineConvert("x = w.hwnd; DisposeDA"));
+            Assert.Equal("x = w.hWnd(); // gone", ProjectSpecificConverter.ProjectSpecificPostCodeLineConvert("x = w.hwnd; DisposeDA"));
         }, ("1", "replace|DisposeDA|// gone"));
-        Assert.Equal("x = w.hWnd(); DisposeDA", ModProjectSpecific.ProjectSpecificPostCodeLineConvert("x = w.hwnd; DisposeDA"));
+        Assert.Equal("x = w.hWnd(); DisposeDA", ProjectSpecificConverter.ProjectSpecificPostCodeLineConvert("x = w.hwnd; DisposeDA"));
     }
 
     [Fact]
     public void WinCdsSample_IsValidConfig()
     {
         var sample = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Vb6ToCSharp.sample.ini");
-        var keys = ModIni.IniSectionKeys(sample, ModConfig.iniSectionPostCodeLine).Where(k => !k.StartsWith(";")).ToArray();
+        var keys = IniInterop.IniSectionKeys(sample, ProjectConfigurationParser.iniSectionPostCodeLine).Where(k => !k.StartsWith(";")).ToArray();
         Assert.Equal(17, keys.Length);
         foreach (var k in keys)
         {
-            var rule = ModIni.IniRead(ModConfig.iniSectionPostCodeLine, k, sample);
+            var rule = IniInterop.IniRead(ProjectConfigurationParser.iniSectionPostCodeLine, k, sample);
             Assert.Contains(rule.Split('|')[0], new[] { "replace", "ifcontains", "regex", "blankif" });
         }
-        Assert.Equal("// DisposeDA()", ModProjectSpecific.ApplyPostCodeLineRule("DisposeDA()", ModIni.IniRead(ModConfig.iniSectionPostCodeLine, "1", sample)));
-        Assert.Equal("IsIn(x, a)", ModProjectSpecific.ApplyPostCodeLineRule("IsIn(ref x, a)", ModIni.IniRead(ModConfig.iniSectionPostCodeLine, "2", sample)));
-        Assert.Equal("UGridIO", ModIni.IniRead(ModConfig.iniSectionControls, "WinCDS.UGridIO", sample));
+        Assert.Equal("// DisposeDA()", ProjectSpecificConverter.ApplyPostCodeLineRule("DisposeDA()", IniInterop.IniRead(ProjectConfigurationParser.iniSectionPostCodeLine, "1", sample)));
+        Assert.Equal("IsIn(x, a)", ProjectSpecificConverter.ApplyPostCodeLineRule("IsIn(ref x, a)", IniInterop.IniRead(ProjectConfigurationParser.iniSectionPostCodeLine, "2", sample)));
+        Assert.Equal("UGridIO", IniInterop.IniRead(ProjectConfigurationParser.iniSectionControls, "WinCDS.UGridIO", sample));
     }
 
     [Fact]
     public void OutputFolder_DefaultsUnderProjectFolder()
     {
-        var saved = ModIni.IniRead(ModConfig.iniSectionSettings, ModConfig.iniKeyOutputFolder, Ini);
-        ModIni.IniWrite(ModConfig.iniSectionSettings, ModConfig.iniKeyOutputFolder, null!, Ini);
-        ModConfig.LoadSettings(true);
+        var saved = IniInterop.IniRead(ProjectConfigurationParser.iniSectionSettings, ProjectConfigurationParser.iniKeyOutputFolder, Ini);
+        IniInterop.IniWrite(ProjectConfigurationParser.iniSectionSettings, ProjectConfigurationParser.iniKeyOutputFolder, null!, Ini);
+        ProjectConfigurationParser.LoadSettings(true);
         try
         {
-            Assert.Equal(Path.Combine(fixture.Dir, "converted") + "\\", ModConfig.OutputFolder(), StringComparer.OrdinalIgnoreCase);
+            Assert.Equal(Path.Combine(fixture.Dir, "converted") + "\\", ProjectConfigurationParser.OutputFolder(), StringComparer.OrdinalIgnoreCase);
         }
         finally
         {
-            ModIni.IniWrite(ModConfig.iniSectionSettings, ModConfig.iniKeyOutputFolder, saved, Ini);
-            ModConfig.LoadSettings(true);
+            IniInterop.IniWrite(ProjectConfigurationParser.iniSectionSettings, ProjectConfigurationParser.iniKeyOutputFolder, saved, Ini);
+            ProjectConfigurationParser.LoadSettings(true);
         }
     }
 }

@@ -1,7 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using Vb6ToCSharp.Convert;
+using Vb6ToCSharp.ItemConversion;
 using Vb6ToCSharp.Modules;
+using Vb6ToCSharp.Parsing;
 
 namespace Vb6ToCSharp.ConsoleApp;
 
@@ -72,7 +75,7 @@ Options:
                 case "--assembly": assembly = Value(args, ref i); break;
                 case "--ui":
                     var u = Value(args, ref i);
-                    ui = ModConfig.ParseUiTarget(u) ?? throw new UsageException("Unknown UI target: " + u + " (use wpf or winforms).");
+                    ui = ProjectConfigurationParser.ParseUiTarget(u) ?? throw new UsageException("Unknown UI target: " + u + " (use wpf or winforms).");
                     break;
                 case "--quiet": quiet = true; break;
                 case "-h": case "--help": case "/?": positional.Insert(0, "help"); break;
@@ -94,34 +97,34 @@ Options:
 
         ModUtils.Notify = Console.WriteLine;
         ModUtils.Progress = quiet ? (_, _, _) => { } : new ConsoleProgress().Report;
-        ModConfig.IniFilePath = ini;
-        ModConfig.hush = true;
+        ProjectConfigurationParser.IniFilePath = ini;
+        ProjectConfigurationParser.hush = true;
 
         if (command == "config")
         {
             return Config(vbp, output, assembly, ui);
         }
-        ModConfig.OverrideSettings(vbp, output, assembly, ui);
+        ProjectConfigurationParser.OverrideSettings(vbp, output, assembly, ui);
 
         switch (command)
         {
             case "all":
                 if (!ConfigValid(allowGroup: true)) return ExitFailed;
-                ModConvert.ConvertProject(ModConfig.VbpFile);
+                CodeConverter.ConvertProject(ProjectConfigurationParser.VbpFile);
                 return ExitOk;
             case "forms":
-                return ConvertList(ModProjectFiles.VbpForms(ModConfig.VbpFile));
+                return ConvertList(ProjectFiles.VbpForms(ProjectConfigurationParser.VbpFile));
             case "modules":
-                return ConvertList(ModProjectFiles.VbpModules(ModConfig.VbpFile));
+                return ConvertList(ProjectFiles.VbpModules(ProjectConfigurationParser.VbpFile));
             case "classes":
-                return ConvertList(ModProjectFiles.VbpClasses(ModConfig.VbpFile));
+                return ConvertList(ProjectFiles.VbpClasses(ProjectConfigurationParser.VbpFile));
             case "usercontrols":
-                return ConvertList(ModProjectFiles.VbpUserControls(ModConfig.VbpFile));
+                return ConvertList(ProjectFiles.VbpUserControls(ProjectConfigurationParser.VbpFile));
             case "file":
                 if (argument == "") throw new UsageException("Enter a file to convert.");
                 if (!ConfigValid()) return ExitFailed;
                 var file = ProjectRelative(argument);
-                if (!ModConvert.ConvertFile(file)) return ExitFailed;
+                if (!CodeConverter.ConvertFile(file)) return ExitFailed;
                 Console.WriteLine("Converted " + file + ".");
                 return ExitOk;
             case "scan":
@@ -144,20 +147,20 @@ Options:
     {
         if (vbp != null || output != null || assembly != null || ui != null)
         {
-            ModConfig.SaveSettings(vbp, output, assembly, ui);
+            ProjectConfigurationParser.SaveSettings(vbp, output, assembly, ui);
         }
-        Console.WriteLine("Settings file:  " + ModConfig.IniFile());
-        Console.WriteLine("Project file:   " + ModConfig.VbpFile);
-        Console.WriteLine("Output folder:  " + ModConfig.OutputFolder());
-        Console.WriteLine("Assembly name:  " + ModConfig.AssemblyName());
-        Console.WriteLine("UI target:      " + ModConfig.Ui);
+        Console.WriteLine("Settings file:  " + ProjectConfigurationParser.IniFile());
+        Console.WriteLine("Project file:   " + ProjectConfigurationParser.VbpFile);
+        Console.WriteLine("Output folder:  " + ProjectConfigurationParser.OutputFolder());
+        Console.WriteLine("Assembly name:  " + ProjectConfigurationParser.AssemblyName());
+        Console.WriteLine("UI target:      " + ProjectConfigurationParser.Ui);
         return ExitOk;
     }
 
     private static int ConvertList(string list)
     {
         if (!ConfigValid()) return ExitFailed;
-        return ModConvert.ConvertFileList(ModUtils.FilePath(ModConfig.VbpFile), list) ? ExitOk : ExitFailed;
+        return CodeConverter.ConvertFileList(ModUtils.FilePath(ProjectConfigurationParser.VbpFile), list) ? ExitOk : ExitFailed;
     }
 
     private static int Support(string which)
@@ -169,7 +172,7 @@ Options:
         if (!ConfigValid()) return ExitFailed;
         if (which != "files")
         {
-            ModSupportFiles.CreateProjectFile(ModConfig.VbpFile);
+            ModSupportFiles.CreateProjectFile(ProjectConfigurationParser.VbpFile);
             Console.WriteLine("Generated the project file.");
         }
         if (which != "project")
@@ -182,7 +185,7 @@ Options:
 
     private static bool ConfigValid(bool allowGroup = false)
     {
-        var error = ModConfig.ValidateSettings(allowGroup);
+        var error = ProjectConfigurationParser.ValidateSettings(allowGroup);
         if (error == "") return true;
         Console.Error.WriteLine(error);
         return false;

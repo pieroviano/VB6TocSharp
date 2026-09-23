@@ -1,5 +1,5 @@
 using System.Text.RegularExpressions;
-using Vb6ToCSharp.Modules;
+using Vb6ToCSharp.ItemConversion;
 
 namespace Vb6ToCSharp.Tests;
 
@@ -80,7 +80,7 @@ public partial class ConverterTests
     [Fact]
     public void NoOptionExplicit_AssignedNamesAreDeclared()
     {
-        ModConvertStatements.BeginFile("Attribute VB_Name = \"m\"\r\nDefLng I-N\r\n");
+        StatementsConverter.BeginFile("Attribute VB_Name = \"m\"\r\nDefLng I-N\r\n");
         string cs;
         try { cs = Segment("Public Sub T()\n  total = 5\n  For idx = 1 To 3\n  Next\n  Twice 2\nEnd Sub\n"); }
         finally { Begin(); }

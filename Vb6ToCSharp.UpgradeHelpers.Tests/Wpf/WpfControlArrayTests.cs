@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Media;
+using Vb6ToCSharp.UpgradeHelpers.Tests.Infrastructure;
 using Vb6ToCSharp.UpgradeHelpers.Wpf;
 
 namespace Vb6ToCSharp.UpgradeHelpers.Tests.Wpf;

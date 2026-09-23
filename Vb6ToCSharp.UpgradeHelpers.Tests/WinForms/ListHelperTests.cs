@@ -1,4 +1,5 @@
 using System.Windows.Forms;
+using Vb6ToCSharp.UpgradeHelpers.Tests.Infrastructure;
 using Vb6ToCSharp.UpgradeHelpers.WinForms;
 
 namespace Vb6ToCSharp.UpgradeHelpers.Tests.WinForms;

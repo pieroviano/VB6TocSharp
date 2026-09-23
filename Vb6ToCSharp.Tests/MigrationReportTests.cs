@@ -1,5 +1,8 @@
 using System.IO;
-using Vb6ToCSharp.Modules;
+using Vb6ToCSharp.CodeGeneration;
+using Vb6ToCSharp.ItemConversion;
+using Vb6ToCSharp.Parsing;
+using Vb6ToCSharp.Tests.Infrastructure;
 
 namespace Vb6ToCSharp.Tests;
 
@@ -16,14 +19,14 @@ public partial class ConverterTests
             File.WriteAllText(Path.Combine(dir, "Modules", "modA.cs"),
                 "class A {\r\n  // TODO: VB6 Resume (retry the failing statement) has no C# equivalent\r\n  int x; // TODO: VB6 lower bound 1\r\n  // VB6: n = Weird | Syntax\r\n}\r\n");
             File.WriteAllText(Path.Combine(dir, "Clean.cs"), "class B { }\r\n");
-            var issues = ModMigrationReport.Collect(dir);
+            var issues = MigrationReport.Collect(dir);
             Assert.Equal(3, issues.Count);
             Assert.Equal("Modules/modA.cs", issues[0].File);
             Assert.Equal(2, issues[0].Line);
             Assert.Equal("Error handling", issues[0].Category);
             Assert.Equal("Arrays", issues[1].Category);
             Assert.Equal("Kept as VB6", issues[2].Category);
-            var md = ModMigrationReport.Render(issues, 2, "prj");
+            var md = MigrationReport.Render(issues, 2, "prj");
             Assert.Contains("2 C# files, 3 items to review.", md);
             Assert.Contains("| Error handling | 1 |", md);
             Assert.Contains("| [Modules/modA.cs:3](Modules/modA.cs#L3) | Arrays | VB6 lower bound 1 |", md);
@@ -39,8 +42,8 @@ public partial class ConverterTests
     public void ConvertProject_WritesTheReport()
     {
         CleanOut();
-        CaptureNotify(() => TestUtil.WithTimeout(() => { ModConvert.ConvertProject(ModConfig.VbpFile); return 0; }, 60000));
-        var report = Out(fixture, ModMigrationReport.ReportFile);
+        CaptureNotify(() => TestUtil.WithTimeout(() => { CodeConverter.ConvertProject(ProjectConfigurationParser.VbpFile); return 0; }, 60000));
+        var report = Out(fixture, MigrationReport.ReportFile);
         Assert.True(File.Exists(report));
         Assert.StartsWith("# Migration report: prj", File.ReadAllText(report));
     }

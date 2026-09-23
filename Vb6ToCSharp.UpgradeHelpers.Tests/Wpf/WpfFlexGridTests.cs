@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using Vb6ToCSharp.UpgradeHelpers.Tests.Infrastructure;
 using Vb6ToCSharp.UpgradeHelpers.Wpf;
 using static Vb6ToCSharp.UpgradeHelpers.FlexAlign;
 
@@ -42,7 +43,7 @@ public class WpfFlexGridTests
             Assert.Equal("keep", g.Text);
             g.Cols = 1;
             Assert.Equal(1, g.FixedCols);
-            Assert.Equal(1, g.Columns.Count);
+            Assert.Single(g.Columns);
             Assert.Throws<ArgumentOutOfRangeException>(() => g.TextMatrix[0, 1]);
             Assert.Throws<ArgumentOutOfRangeException>(() => g.FixedCols = 2);
         });

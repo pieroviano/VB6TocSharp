@@ -1,17 +1,17 @@
 using System.Windows;
-using Vb6ToCSharp.Modules;
+using Vb6ToCSharp.Runtime;
+using Vb6ToCSharp.UI;
 using static Microsoft.VisualBasic.Constants;
 using static Microsoft.VisualBasic.FileSystem;
 using static Microsoft.VisualBasic.Interaction;
-using static Vb6ToCSharp.Modules.ModConfig;
-using static Vb6ToCSharp.Modules.ModConvert;
-using static Vb6ToCSharp.Modules.ModProjectFiles;
+using static Vb6ToCSharp.Parsing.ProjectConfigurationParser;
+using static Vb6ToCSharp.ItemConversion.CodeConverter;
+using static Vb6ToCSharp.Parsing.ProjectFiles;
 using static Vb6ToCSharp.Modules.ModRefScan;
 using static Vb6ToCSharp.Modules.ModSupportFiles;
 using static Vb6ToCSharp.Modules.ModUtils;
-using static Vb6ToCSharp.VbConstants;
-using static Vb6ToCSharp.VbExtension;
-
+using static Vb6ToCSharp.Runtime.RuntimeExtension;
+using Vb6ToCSharp.Parsing;
 
 namespace Vb6ToCSharp.Forms;
 
@@ -57,7 +57,7 @@ public partial class MainForm : Window
     private void cmdConfig_Click(object sender, RoutedEventArgs e)
     {
         ConfigForm.Instance.Show(1);
-        ModConfig.LoadSettings();
+        ProjectConfigurationParser.LoadSettings();
     }
 
     private void cmdExit_Click(object sender, RoutedEventArgs e) { Unload(); }
@@ -114,7 +114,7 @@ public partial class MainForm : Window
 
     private bool ConfigValid(bool allowGroup = false)
     {
-        var error = ModConfig.ValidateSettings(allowGroup);
+        var error = ProjectConfigurationParser.ValidateSettings(allowGroup);
         if (error != "")
         {
             MsgBox(error, vbExclamation, "Configuration");
@@ -141,7 +141,7 @@ public partial class MainForm : Window
         cmdBrowseFile.IsEnabled = done;
         cmdScan.IsEnabled = done;
         cmdSupport.IsEnabled = done;
-        MousePointer = IIf(done, VbDefault, VbHourglass);
+        MousePointer = CInt(IIf(done, Cursors.Default, Cursors.Hourglass));
     }
 
     public string Prg(int val = -1, int max = -1, string cap = "#")
@@ -169,7 +169,7 @@ public partial class MainForm : Window
             return;
 
         }
-        LinterForm.Instance.Show(VbModal);
+        LinterForm.Instance.Show((int)DialogType.Modal);
     }
 
     private void cmdScan_Click(object sender, RoutedEventArgs e)
@@ -203,9 +203,9 @@ public partial class MainForm : Window
 
     private void Form_Load(object sender, RoutedEventArgs e)
     {
-        ModConfig.hush = true;
-        ModConfig.LoadSettings();
-        ModConfig.hush = false;
+        ProjectConfigurationParser.hush = true;
+        ProjectConfigurationParser.LoadSettings();
+        ProjectConfigurationParser.hush = false;
         txtSrc.Text = VbpFile;
     }
 }

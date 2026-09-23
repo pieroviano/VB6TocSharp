@@ -1,4 +1,5 @@
 using System.IO;
+using Vb6ToCSharp.Tests.Infrastructure;
 using static Vb6ToCSharp.Modules.ModTextFiles;
 
 namespace Vb6ToCSharp.Tests;

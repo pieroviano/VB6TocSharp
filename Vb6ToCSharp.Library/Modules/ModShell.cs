@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Threading;
+using Vb6ToCSharp.Runtime;
 using static Microsoft.VisualBasic.Constants;
 using static Microsoft.VisualBasic.FileSystem;
 using static Microsoft.VisualBasic.Information;
@@ -10,7 +11,7 @@ using static Microsoft.VisualBasic.Interaction;
 using static Microsoft.VisualBasic.Strings;
 using static Vb6ToCSharp.Modules.ModTextFiles;
 using static Vb6ToCSharp.Modules.ModUtils;
-using static Vb6ToCSharp.VbExtension;
+using static Vb6ToCSharp.Runtime.RuntimeExtension;
 
 
 namespace Vb6ToCSharp.Modules;
@@ -29,41 +30,7 @@ public static class ModShell
     private static int lastProcessId = 0;
     private const string dirsep = "\\";
     public const int normalPriorityClass = 0x20;
-    public enum EnSw
-    {
-        EnSwHide = 0,
-        EnSwNormal = 1,
-        EnSwMaximize = 3,
-        EnSwMinimize = 6
-    }
-    public class Startupinfo
-    {
-        public int cb = 0;
-        public string lpReserved = "";
-        public string lpDesktop = "";
-        public string lpTitle = "";
-        public int dwX = 0;
-        public int dwY = 0;
-        public int dwXSize = 0;
-        public int dwYSize = 0;
-        public int dwXCountChars = 0;
-        public int dwYCountChars = 0;
-        public int dwFillAttribute = 0;
-        public int dwFlags = 0;
-        public int wShowWindow = 0;
-        public int cbReserved2 = 0;
-        public int lpReserved2 = 0;
-        public int hStdInput = 0;
-        public int hStdOutput = 0;
-        public int hStdError = 0;
-    }
-    public class ProcessInformation
-    {
-        public int hProcess = 0;
-        public int hThread = 0;
-        public int dwProcessId = 0;
-        public int dwThreadId = 0;
-    }
+
     [DllImport("kernel32.dll")] private static extern void Sleep(int dwMilliseconds);
     [DllImport("user32.dll")] private static extern int GetDesktopWindow();
     [DllImport("shell32.dll", EntryPoint = "ShellExecuteA")] private static extern int ShellExecute(int hwnd, string lpOperation, string lpFile, string lpParameters, string lpDirectory, int nShowCmd);
@@ -128,17 +95,17 @@ public static class ModShell
 ' to allow for Shell.
 ' This routine shells out to another application and waits for it to exit.
 */
-    public static void ShellAndWait(string appToRun, EnSw sw = EnSw.EnSwNormal)
+    public static void ShellAndWait(string appToRun, ShowType sw = ShowType.Normal)
     {
         // the CreateProcessA P/Invoke passed null (class) structs with 32-bit handles and always threw
         SplitCommandLine(appToRun, out var exe, out var args);
         var psi = new ProcessStartInfo(exe, args)
         {
             UseShellExecute = false,
-            CreateNoWindow = sw == EnSw.EnSwHide,
-            WindowStyle = sw == EnSw.EnSwHide ? ProcessWindowStyle.Hidden
-                : sw == EnSw.EnSwMaximize ? ProcessWindowStyle.Maximized
-                : sw == EnSw.EnSwMinimize ? ProcessWindowStyle.Minimized
+            CreateNoWindow = sw == ShowType.Hide,
+            WindowStyle = sw == ShowType.Hide ? ProcessWindowStyle.Hidden
+                : sw == ShowType.Maximize ? ProcessWindowStyle.Maximized
+                : sw == ShowType.Minimize ? ProcessWindowStyle.Minimized
                 : ProcessWindowStyle.Normal
         };
         using (var p = Process.Start(psi))

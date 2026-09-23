@@ -1,7 +1,8 @@
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
-using Vb6ToCSharp.Modules;
+using Vb6ToCSharp.ItemConversion;
+using Vb6ToCSharp.Tests.Infrastructure;
 
 namespace Vb6ToCSharp.Tests;
 
@@ -35,7 +36,7 @@ public partial class ConverterTests
         Begin();
         try
         {
-            var g = TestUtil.WithTimeout(() => ModConvert.ConvertGlobals(globals.Replace("\r\n", "\n").Replace("\n", "\r\n"), true), 30000);
+            var g = TestUtil.WithTimeout(() => CodeConverter.ConvertGlobals(globals.Replace("\r\n", "\n").Replace("\n", "\r\n"), true), 30000);
             return g + "\r\n" + Segment(code);
         }
         finally { Begin(); }
@@ -123,7 +124,7 @@ public partial class ConverterTests
     public void NullIsDbNull() => Assert.Contains("v = DBNull.Value;", Convert(Sub("  Dim v As Variant", "  v = Null")));
 
     [Fact]
-    public void ArgumentsAreConvertedToTheParameterType() => Assert.Contains("Twice(Conversions.ToInteger(", TestUtil.WithTimeout(() => ModConvert.ConvertCodeLine("x = Twice(1.5)")));
+    public void ArgumentsAreConvertedToTheParameterType() => Assert.Contains("Twice(Conversions.ToInteger(", TestUtil.WithTimeout(() => CodeConverter.ConvertCodeLine("x = Twice(1.5)")));
 
     [Fact]
     public void ConvertedArithmetic_Compiles()

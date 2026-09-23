@@ -1,4 +1,5 @@
 using Vb6ToCSharp.UpgradeHelpers.Internal;
+using Vb6ToCSharp.UpgradeHelpers.Tests.Infrastructure;
 
 namespace Vb6ToCSharp.UpgradeHelpers.Tests;
 

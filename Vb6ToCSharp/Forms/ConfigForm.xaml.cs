@@ -1,10 +1,11 @@
 using System.Windows;
-using Vb6ToCSharp.Modules;
+using Vb6ToCSharp.Parsing;
+using Vb6ToCSharp.UI;
 using static Microsoft.VisualBasic.Constants;
 using static Microsoft.VisualBasic.FileSystem;
 using static Microsoft.VisualBasic.Interaction;
 using static Microsoft.VisualBasic.Strings;
-using static Vb6ToCSharp.Modules.ModConfig;
+using static Vb6ToCSharp.Parsing.ProjectConfigurationParser;
 
 
 namespace Vb6ToCSharp.Forms;
@@ -19,11 +20,11 @@ public partial class ConfigForm : Window
 
     private void Form_Load(object sender, RoutedEventArgs e)
     {
-        ModConfig.hush = true;
-        txtVBPFile.Text = ModConfig.VbpFile;
-        txtOutput.Text = ModConfig.OutputFolder();
-        txtAssemblyName.Text = ModConfig.AssemblyName();
-        ModConfig.hush = false;
+        ProjectConfigurationParser.hush = true;
+        txtVBPFile.Text = ProjectConfigurationParser.VbpFile;
+        txtOutput.Text = ProjectConfigurationParser.OutputFolder();
+        txtAssemblyName.Text = ProjectConfigurationParser.AssemblyName();
+        ProjectConfigurationParser.hush = false;
     }
 
     private void cmdCancel_Click(object sender, RoutedEventArgs e) { Unload(); }
@@ -34,7 +35,7 @@ public partial class ConfigForm : Window
 
     private void cmdOK_Click(object sender, RoutedEventArgs e)
     {
-        ModConfig.SaveSettings(txtVBPFile.Text, txtOutput.Text, txtAssemblyName.Text);
+        ProjectConfigurationParser.SaveSettings(txtVBPFile.Text, txtOutput.Text, txtAssemblyName.Text);
         Unload();
     }
 

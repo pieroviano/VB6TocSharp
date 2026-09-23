@@ -1,7 +1,8 @@
 using System.Collections.Generic;
 using System.Linq;
-using Vb6ToCSharp.FormConversion;
-using Vb6ToCSharp.Modules;
+using Vb6ToCSharp.CodeGeneration;
+using Vb6ToCSharp.ItemConversion;
+using Vb6ToCSharp.Parsing;
 
 namespace Vb6ToCSharp.Tests;
 
@@ -25,14 +26,14 @@ public partial class ConverterTests
     [InlineData("Lock #1, To 5", "Lock(1, 1, 5);")]
     [InlineData("Unlock #1, 3", "Unlock(1, 3);")]
     [InlineData("Width #1, 80", "FileWidth(1, 80);")]
-    public void FileStatement_Forms(string vb, string expected) => Assert.Equal("  " + expected, ModConvertStatements.ConvertFileStatement(vb, 2));
+    public void FileStatement_Forms(string vb, string expected) => Assert.Equal("  " + expected, StatementsConverter.ConvertFileStatement(vb, 2));
 
     [Theory]
     [InlineData("Name = x")]
     [InlineData("Closed = True")]
     [InlineData("Printer.Print x")]
     [InlineData("Line = 5")]
-    public void FileStatement_OtherStatementsAreNotFileIo(string vb) => Assert.Null(ModConvertStatements.ConvertFileStatement(vb, 0));
+    public void FileStatement_OtherStatementsAreNotFileIo(string vb) => Assert.Null(StatementsConverter.ConvertFileStatement(vb, 0));
 
     // ---------------------------------------------------------------- Select Case / jumps / errors
 
@@ -41,16 +42,16 @@ public partial class ConverterTests
     [InlineData("Is >= 5", "case var vbCase_ when vbCase_ >= 5:")]
     [InlineData("Is <> 3", "case var vbCase_ when vbCase_ != 3:")]
     [InlineData("x, 4", "case var vbCase_ when vbCase_ == x || vbCase_ == 4:")] // a variable is not a constant
-    public void CaseLabels_Forms(string vb, string expected) => Assert.Equal(expected, ModConvertStatements.ConvertCaseLabels(vb));
+    public void CaseLabels_Forms(string vb, string expected) => Assert.Equal(expected, StatementsConverter.ConvertCaseLabels(vb));
 
     [Fact]
     public void CaseLabels_StringRangeComparesStrings()
     {
         // C# has no >= on strings: a VB6 string range must compare with string ordering
-        ModConvertUtils.InitDeString();
-        var a = ModConvertUtils.DeString("\"a\"");
-        var m = ModConvertUtils.DeString("\"m\"");
-        var cs = ModConvertStatements.ConvertCaseLabels(a + " To " + m + ", Is > " + m);
+        ConverterUtils.InitDeString();
+        var a = ConverterUtils.DeString("\"a\"");
+        var m = ConverterUtils.DeString("\"m\"");
+        var cs = StatementsConverter.ConvertCaseLabels(a + " To " + m + ", Is > " + m);
         Assert.Contains("string.CompareOrdinal(vbCase_, " + a + ") >= 0 && string.CompareOrdinal(vbCase_, " + m + ") <= 0", cs);
         Assert.Contains("string.CompareOrdinal(vbCase_, " + m + ") > 0", cs);
     }
@@ -58,22 +59,22 @@ public partial class ConverterTests
     [Theory]
     [InlineData("On x GoSub A, , B", "switch (Conversions.ToInteger(x)) { case 1: A(); break; case 3: B(); break; }")]
     [InlineData("On x GoTo 10, 20", "switch (Conversions.ToInteger(x)) { case 1: goto L10; case 2: goto L20; }")]
-    public void OnGoTo_Forms(string vb, string expected) => Assert.Equal(expected, ModConvertStatements.ConvertOnGoTo(vb, 0));
+    public void OnGoTo_Forms(string vb, string expected) => Assert.Equal(expected, StatementsConverter.ConvertOnGoTo(vb, 0));
 
     [Fact]
-    public void OnGoTo_NotAComputedJump_IsNull() => Assert.Null(ModConvertStatements.ConvertOnGoTo("On Error Resume Next", 0));
+    public void OnGoTo_NotAComputedJump_IsNull() => Assert.Null(StatementsConverter.ConvertOnGoTo("On Error Resume Next", 0));
 
     [Theory]
-    [InlineData("On Local Error Resume Next", ModConvertStatements.ErrorScope.Modes.ResumeNext)]
-    [InlineData("On Error GoTo 100", ModConvertStatements.ErrorScope.Modes.GoTo)]
-    [InlineData("On Error GoTo 0", ModConvertStatements.ErrorScope.Modes.None)]
-    public void OnError_SetsTheMode(string vb, ModConvertStatements.ErrorScope.Modes mode)
+    [InlineData("On Local Error Resume Next", StatementsConverter.ErrorScope.Modes.ResumeNext)]
+    [InlineData("On Error GoTo 100", StatementsConverter.ErrorScope.Modes.GoTo)]
+    [InlineData("On Error GoTo 0", StatementsConverter.ErrorScope.Modes.None)]
+    public void OnError_SetsTheMode(string vb, StatementsConverter.ErrorScope.Modes mode)
     {
-        var scope = new ModConvertStatements.ErrorScope { Mode = ModConvertStatements.ErrorScope.Modes.ResumeNext };
+        var scope = new StatementsConverter.ErrorScope { Mode = StatementsConverter.ErrorScope.Modes.ResumeNext };
         var ind = 0;
-        ModConvertStatements.ConvertOnError(vb, scope, ref ind);
+        StatementsConverter.ConvertOnError(vb, scope, ref ind);
         Assert.Equal(mode, scope.Mode);
-        if (mode == ModConvertStatements.ErrorScope.Modes.GoTo) Assert.Equal("L100", scope.Handler);
+        if (mode == StatementsConverter.ErrorScope.Modes.GoTo) Assert.Equal("L100", scope.Handler);
     }
 
     [Fact]
@@ -92,7 +93,7 @@ public partial class ConverterTests
     [Fact]
     public void ProcedurePlan_FindsRoutinesHandlersAndTargets()
     {
-        var plan = ModConvertStatements.ProcedurePlan.Scan(new[]
+        var plan = StatementsConverter.ProcedurePlan.Scan(new[]
         {
             "Public Sub T()", "  On Error GoTo EH", "  GoSub R1", "  On n GoSub R2, R3", "L10:", "  GoTo Done", "R1:", "  Return",
             "EH:", "  Resume Next", "Done:", "End Sub",
@@ -108,7 +109,7 @@ public partial class ConverterTests
     [Fact]
     public void ProcedurePlan_HandlerWithoutResume_IsNotRouted()
     {
-        var plan = ModConvertStatements.ProcedurePlan.Scan(new[] { "  On Error GoTo EH", "EH:", "  MsgBox 1", "End Sub" });
+        var plan = StatementsConverter.ProcedurePlan.Scan(new[] { "  On Error GoTo EH", "EH:", "  MsgBox 1", "End Sub" });
         Assert.False(plan.IsRouted("EH")); // the try/catch form is enough
     }
 
@@ -131,7 +132,7 @@ public partial class ConverterTests
     {
         var cs = Convert(Sub("  Dim n As Long, i As Integer, s As String, c As Currency, d As Double", "  n = 0")); // declares the locals
         Assert.NotNull(cs);
-        Assert.Equal(expected, ModConvertStatements.ExprType(vb));
+        Assert.Equal(expected, StatementsConverter.ExprType(vb));
     }
 
     [Theory]
@@ -149,7 +150,7 @@ public partial class ConverterTests
     public void ImplicitConversion_Matrix(string target, string raw, string cs, string expected)
     {
         Convert(Sub("  Dim n As Long, i As Integer, d As Double, b As Boolean, c As Currency", "  n = 0"));
-        Assert.Equal(expected, ModConvertStatements.ImplicitConversion(target, raw, cs));
+        Assert.Equal(expected, StatementsConverter.ImplicitConversion(target, raw, cs));
     }
 
     [Fact]
@@ -158,7 +159,7 @@ public partial class ConverterTests
         // VB6 Not converts to Long with rounding: Not -0.6 is Not -1 = 0 (False); truncation would give ~0 = -1 (True)
         var cs = Convert(Sub("  Dim d As Double", "  d = 1"));
         Assert.NotNull(cs);
-        Assert.Equal("~(Conversions.ToLong(d)) != 0", ModConvertStatements.ConditionValue("Not d"));
+        Assert.Equal("~(Conversions.ToLong(d)) != 0", StatementsConverter.ConditionValue("Not d"));
     }
 
     [Theory]
@@ -169,7 +170,7 @@ public partial class ConverterTests
     public void Condition_Forms(string vb, string expected)
     {
         Convert(Sub("  Dim b As Boolean, s As String, n As Long", "  n = 0"));
-        Assert.Equal(expected, ModConvertStatements.ConditionValue(vb));
+        Assert.Equal(expected, StatementsConverter.ConditionValue(vb));
     }
 
     // ---------------------------------------------------------------- statements
@@ -177,31 +178,31 @@ public partial class ConverterTests
     [Theory]
     [InlineData("Mid(s, 1) = t", "MidStmt(ref s, 1, t);")]
     [InlineData("MidB(s, 2, 1) = t", "MidStmt(ref s, 2, 1, t);")]
-    public void MidStatement_Forms(string vb, string expected) => Assert.Equal(expected, ModConvertStatements.ConvertMidStatement(vb, 0));
+    public void MidStatement_Forms(string vb, string expected) => Assert.Equal(expected, StatementsConverter.ConvertMidStatement(vb, 0));
 
     [Theory]
     [InlineData("Mid(s, 1)")]
     [InlineData("x = Mid(s, 1)")]
     [InlineData("Mid(s, 1) & t")]
-    public void MidStatement_MidFunctionIsNotTheStatement(string vb) => Assert.Null(ModConvertStatements.ConvertMidStatement(vb, 0));
+    public void MidStatement_MidFunctionIsNotTheStatement(string vb) => Assert.Null(StatementsConverter.ConvertMidStatement(vb, 0));
 
     [Theory]
     [InlineData("", "Console.WriteLine()")]
     [InlineData("a", "Console.WriteLine(a)")]
     [InlineData("a,", "Console.Write(string.Concat(a, \"\\t\"))")]
     [InlineData("a, b", "Console.WriteLine(string.Concat(a, \"\\t\", b))")]
-    public void DebugPrint_Forms(string list, string expected) => Assert.Equal(expected, ModConvertStatements.ConvertDebugPrint(list));
+    public void DebugPrint_Forms(string list, string expected) => Assert.Equal(expected, StatementsConverter.ConvertDebugPrint(list));
 
     [Theory]
     [InlineData("Line (1, 2)-Step(3, 4)", "Line(1, 2, 3, 4); // TODO: VB6 Step (relative coordinates)")]
     [InlineData("pic.Circle (1, 1), 5, , , , 0.5", "pic.Circle(1, 1, 5, default, default, default, 0.5); // TODO: VB6 omitted argument // TODO: VB6 omitted argument // TODO: VB6 omitted argument")]
-    public void Graphics_Forms(string vb, string expected) => Assert.Equal(expected, ModConvertStatements.ConvertGraphicsStatement(vb, 0));
+    public void Graphics_Forms(string vb, string expected) => Assert.Equal(expected, StatementsConverter.ConvertGraphicsStatement(vb, 0));
 
     [Theory]
     [InlineData("Line Input #1, s")]
     [InlineData("LineCount = 3")]
     [InlineData("Circle")]
-    public void Graphics_OtherStatementsAreNull(string vb) => Assert.Null(ModConvertStatements.ConvertGraphicsStatement(vb, 0));
+    public void Graphics_OtherStatementsAreNull(string vb) => Assert.Null(StatementsConverter.ConvertGraphicsStatement(vb, 0));
 
     // ---------------------------------------------------------------- classes
 
@@ -212,7 +213,7 @@ public partial class ConverterTests
                   "Public Property Get Item(ByVal i As Long) As String\r\nAttribute Item.VB_UserMemId = 0\r\nEnd Property\r\n" +
                   "Public Property Let Item(ByVal i As Long, ByVal v As String)\r\nEnd Property\r\n" +
                   "' Private Sub Class_Initialize()\r\nPrivate Sub Class_Terminate()\r\nEnd Sub\r\n";
-        var m = ModConvertClasses.ClassModel.Scan("C", src);
+        var m = ClassDefinition.Scan("C", src);
         Assert.Equal(new[] { "IA", "Lib.IB" }, m.Implements);
         Assert.True(m.Predeclared);
         Assert.False(m.HasInitialize); // commented out
@@ -228,28 +229,28 @@ public partial class ConverterTests
     [Fact]
     public void ImplementedInterface_OnlyForImplementedPrefixes()
     {
-        ModConvertClasses.Current = ModConvertClasses.ClassModel.Scan("C", "Implements IFoo\r\n");
+        ClassesConverter.Current = ClassDefinition.Scan("C", "Implements IFoo\r\n");
         try
         {
-            Assert.Equal("IFoo", ModConvertClasses.ImplementedInterface("IFoo_Bar"));
-            Assert.Null(ModConvertClasses.ImplementedInterface("IFoo_"));
-            Assert.Null(ModConvertClasses.ImplementedInterface("IFooBar"));
-            Assert.Null(ModConvertClasses.ImplementedInterface("Other_Bar"));
+            Assert.Equal("IFoo", ClassesConverter.ImplementedInterface("IFoo_Bar"));
+            Assert.Null(ClassesConverter.ImplementedInterface("IFoo_"));
+            Assert.Null(ClassesConverter.ImplementedInterface("IFooBar"));
+            Assert.Null(ClassesConverter.ImplementedInterface("Other_Bar"));
         }
         finally
         {
-            ModConvertClasses.Current = null;
+            ClassesConverter.Current = null;
         }
     }
 
     [Fact]
     public void InterfaceDeclaration_ClassWithCodeStaysAClass() =>
-        Assert.Null(ModConvertClasses.InterfaceDeclaration(ModConvertClasses.ClassModel.Scan("I", "Public Sub A()\r\n  Beep\r\nEnd Sub\r\n")));
+        Assert.Null(ClassesConverter.InterfaceDeclaration(ClassDefinition.Scan("I", "Public Sub A()\r\n  Beep\r\nEnd Sub\r\n")));
 
     [Fact]
     public void InterfaceDeclaration_PublicFieldsAndLetOnlyProperties()
     {
-        var cs = ModConvertClasses.InterfaceDeclaration(ModConvertClasses.ClassModel.Scan("I",
+        var cs = ClassesConverter.InterfaceDeclaration(ClassDefinition.Scan("I",
             "Public Count As Long\r\nPublic Property Let Name(ByVal v As String)\r\nEnd Property\r\nPublic Sub Run(ByVal n As Long)\r\nEnd Sub\r\n"));
         Assert.Contains("int Count { get; set; }", cs);
         Assert.Contains("string Name { set; }", cs);
@@ -264,7 +265,7 @@ public partial class ConverterTests
     [InlineData("'## Note   some text ", "", "Note", "some text")]
     public void Pragma_Parse(string line, string target, string name, string args)
     {
-        var p = ModConvertPragmas.Parse(line);
+        var p = PragmaConverter.Parse(line);
         Assert.Equal(target, p.Target);
         Assert.Equal(name, p.Name);
         Assert.Equal(args, p.Args);
@@ -274,19 +275,19 @@ public partial class ConverterTests
     [InlineData("' ## Note x")]
     [InlineData("'##")]
     [InlineData("x = 1 '## Note y")]
-    public void Pragma_ParseRejectsNonPragmas(string line) => Assert.Null(ModConvertPragmas.Parse(line));
+    public void Pragma_ParseRejectsNonPragmas(string line) => Assert.Null(PragmaConverter.Parse(line));
 
     [Fact]
     public void PreProcess_IgnoresMalformedPatternsAndLaterPragmas()
     {
         const string src = "'## PreProcess \"a\"\r\nPublic Sub T()\r\n'## PreProcess \"T\", \"U\"\r\nEnd Sub\r\n";
-        Assert.Equal(src, ModConvertPragmas.PreProcess(src)); // malformed, and procedure-level PreProcess is not file-level
+        Assert.Equal(src, PragmaConverter.PreProcess(src)); // malformed, and procedure-level PreProcess is not file-level
     }
 
     [Fact]
     public void VbpCondComp_ParsesUnquotedAndSpaced()
     {
-        var v = VbpInfo.Parse("CondComp=A=1:B = -1 :  C=0\r\n");
+        var v = ProjectInfo.Parse("CondComp=A=1:B = -1 :  C=0\r\n");
         Assert.Equal("1", v.CondComp["A"]);
         Assert.Equal("-1", v.CondComp["b"]);
         Assert.Equal("0", v.CondComp["C"]);
@@ -298,10 +299,10 @@ public partial class ConverterTests
     [InlineData("this prevents nothing", "Other")] // "event" only as a word
     [InlineData("check the handler signatures against the events of X", "Events")]
     [InlineData("VB6 lower bound 1", "Arrays")]
-    public void ReportCategory(string message, string category) => Assert.Equal(category, ModMigrationReport.Category(message));
+    public void ReportCategory(string message, string category) => Assert.Equal(category, MigrationReport.Category(message));
 
     [Fact]
-    public void Evaluate_DivisionByZeroIsNotAValue() => Assert.Null(ModConvertStatements.Evaluate("1 / 0"));
+    public void Evaluate_DivisionByZeroIsNotAValue() => Assert.Null(StatementsConverter.Evaluate("1 / 0"));
 
     [Theory]
     [InlineData("n = a Or b", "n = a | b;")] // two Longs: bitwise
@@ -312,5 +313,5 @@ public partial class ConverterTests
         Assert.Contains(expected, Convert(Sub("  Dim a As Long, b As Long, n As Long, ok As Boolean", "  " + vb)));
 
     [Fact]
-    public void ReportRender_NoItems() => Assert.Equal("# Migration report: p\r\n\r\n0 C# files, 0 items to review.\r\n", ModMigrationReport.Render(new List<ModMigrationReport.Issue>(), 0, "p"));
+    public void ReportRender_NoItems() => Assert.Equal("# Migration report: p\r\n\r\n0 C# files, 0 items to review.\r\n", MigrationReport.Render(new List<Issue>(), 0, "p"));
 }

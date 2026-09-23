@@ -1,4 +1,6 @@
-using Vb6ToCSharp.Modules;
+using Vb6ToCSharp.ItemConversion;
+using Vb6ToCSharp.Parsing;
+using Vb6ToCSharp.Tests.Infrastructure;
 
 namespace Vb6ToCSharp.Tests;
 
@@ -9,7 +11,7 @@ public partial class ConverterTests
     {
         try
         {
-            return ModConvert.ConvertClassSource(("VERSION 1.0 CLASS\nBEGIN\n  MultiUse = -1\nEND\nAttribute VB_Name = \"" + name + "\"\n" + attributes +
+            return CodeConverter.ConvertClassSource(("VERSION 1.0 CLASS\nBEGIN\n  MultiUse = -1\nEND\nAttribute VB_Name = \"" + name + "\"\n" + attributes +
                                                   "Option Explicit\n" + body).Replace("\n", "\r\n"));
         }
         finally { Begin(); }
@@ -78,7 +80,7 @@ public partial class ConverterTests
     public void MethodWithoutParentheses_OnAClassVariable_IsCalled()
     {
         // VB6 "shape.Area" calls the function; in C# "shape.Area" would be a method group (converted to a delegate)
-        ModConvertClasses.Register(ModConvertClasses.ClassModel.Scan("IArea", "Public Function Area() As Double\r\nEnd Function\r\nPublic Property Get Name() As String\r\nEnd Property\r\n"));
+        ClassesConverter.Register(ClassDefinition.Scan("IArea", "Public Function Area() As Double\r\nEnd Function\r\nPublic Property Get Name() As String\r\nEnd Property\r\n"));
         var cs = Convert(Sub("  Dim s As IArea, d As Double, n As String", "  d = s.Area", "  n = s.Name"));
         Assert.Contains("d = s.Area();", cs);
         Assert.Contains("n = s.Name;", cs); // a property is not called

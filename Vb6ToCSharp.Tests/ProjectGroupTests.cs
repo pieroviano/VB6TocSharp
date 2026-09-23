@@ -1,7 +1,12 @@
 using System.IO;
 using System.Linq;
-using Vb6ToCSharp.FormConversion;
+using Vb6ToCSharp.Analisys;
+using Vb6ToCSharp.CodeGeneration;
+using Vb6ToCSharp.Convert;
+using Vb6ToCSharp.ItemConversion;
 using Vb6ToCSharp.Modules;
+using Vb6ToCSharp.Parsing;
+using Vb6ToCSharp.Tests.Infrastructure;
 
 namespace Vb6ToCSharp.Tests;
 
@@ -11,7 +16,7 @@ public class ProjectGroupTests
     [Fact]
     public void Vbg_StartupProjectFirst_PathsResolvedAgainstTheGroupFolder()
     {
-        var g = VbgInfo.Parse("VBGROUP 5.0\r\nProject=Lib\\Lib.vbp\r\nStartupProject=App\\App.vbp\r\nProject=Lib\\Lib.vbp\r\n", @"C:\src\Group");
+        var g = ProjectGroupInfo.Parse("VBGROUP 5.0\r\nProject=Lib\\Lib.vbp\r\nStartupProject=App\\App.vbp\r\nProject=Lib\\Lib.vbp\r\n", @"C:\src\Group");
 
         Assert.Equal(new[] { @"C:\src\Group\App\App.vbp", @"C:\src\Group\Lib\Lib.vbp" }, g.Projects);
     }
@@ -19,7 +24,7 @@ public class ProjectGroupTests
     [Fact]
     public void Vbp_ProjectAndCompiledReferences_ExeName_Type()
     {
-        var vbp = VbpInfo.Parse("Type=OleDll\r\nReference=*\\A..\\Lib\\Lib.vbp\r\n" +
+        var vbp = ProjectInfo.Parse("Type=OleDll\r\nReference=*\\A..\\Lib\\Lib.vbp\r\n" +
                                 "Reference=*\\G{00020430-0000-0000-C000-000000000046}#2.0#0#..\\bin\\Other.dll#Other\r\n" +
                                 "ExeName32=\"Core.dll\"\r\nStartup=\"(None)\"\r\n");
         Assert.Equal("Core.dll", vbp.ExeName32);
@@ -29,9 +34,9 @@ public class ProjectGroupTests
         Assert.True(vbp.IsLibrary);
         Assert.True(vbp.ExposesTypes);
         Assert.True(vbp.StartsWithSubMain); // (None): no startup form
-        Assert.False(VbpInfo.Parse("Type=Exe\r\n").ExposesTypes);
-        Assert.True(VbpInfo.Parse("Type=OleExe\r\n").ExposesTypes);
-        Assert.False(VbpInfo.Parse("Type=OleExe\r\n").IsLibrary);
+        Assert.False(ProjectInfo.Parse("Type=Exe\r\n").ExposesTypes);
+        Assert.True(ProjectInfo.Parse("Type=OleExe\r\n").ExposesTypes);
+        Assert.False(ProjectInfo.Parse("Type=OleExe\r\n").IsLibrary);
     }
 
     [Fact]
@@ -40,23 +45,23 @@ public class ProjectGroupTests
         var app = Vbp("App", @"C:\g\App\App.vbp");
         var lib = Vbp("Lib", @"C:\g\Lib\Core.vbp");
 
-        var sln = ModProjectGroup.SolutionFile("Group", new[] { app, lib });
+        var sln = ProjectGroup.SolutionFile("Group", new[] { app, lib });
 
         Assert.Contains("Microsoft Visual Studio Solution File, Format Version 12.00", sln);
         var appLine = sln.IndexOf("= \"App\", \"App\\App.csproj\"", StringComparison.Ordinal);
         var libLine = sln.IndexOf("= \"Lib\", \"Lib\\Core.csproj\"", StringComparison.Ordinal); // folder = Name, file = .vbp file name
         Assert.True(appLine > 0 && libLine > appLine, sln);
-        Assert.Equal(ModProjectGroup.ProjectGuid("Group", app), ModProjectGroup.ProjectGuid("group", Vbp("app", @"D:\x.vbp")));
-        Assert.NotEqual(ModProjectGroup.ProjectGuid("Group", app), ModProjectGroup.ProjectGuid("Group", lib));
-        Assert.Contains(ModProjectGroup.ProjectGuid("Group", lib) + ".Release|Any CPU.Build.0 = Release|Any CPU", sln);
+        Assert.Equal(ProjectGroup.ProjectGuid("Group", app), ProjectGroup.ProjectGuid("group", Vbp("app", @"D:\x.vbp")));
+        Assert.NotEqual(ProjectGroup.ProjectGuid("Group", app), ProjectGroup.ProjectGuid("Group", lib));
+        Assert.Contains(ProjectGroup.ProjectGuid("Group", lib) + ".Release|Any CPU.Build.0 = Release|Any CPU", sln);
     }
 
     [Fact]
     public void Exposure_FollowsVbExposed()
     {
-        Assert.True(ModProjectGroup.IsExposed("Attribute VB_Name = \"C\"\r\nAttribute VB_Exposed = True\r\n"));
-        Assert.False(ModProjectGroup.IsExposed("Attribute VB_Exposed = False\r\n"));
-        Assert.False(ModProjectGroup.IsExposed("Attribute VB_Name = \"modMain\"\r\n"));
+        Assert.True(ProjectGroup.IsExposed("Attribute VB_Name = \"C\"\r\nAttribute VB_Exposed = True\r\n"));
+        Assert.False(ProjectGroup.IsExposed("Attribute VB_Exposed = False\r\n"));
+        Assert.False(ProjectGroup.IsExposed("Attribute VB_Name = \"modMain\"\r\n"));
     }
 
     [Fact]
@@ -67,8 +72,8 @@ public class ProjectGroupTests
         File.WriteAllText(vbg, "VBGROUP 5.0\r\n");
         WithSettings(Path.Combine(dir, "t.ini"), vbg, dir, () =>
         {
-            Assert.Contains(".vbg", ModConfig.ValidateSettings());
-            Assert.Equal("", ModConfig.ValidateSettings(allowGroup: true));
+            Assert.Contains(".vbg", ProjectConfigurationParser.ValidateSettings());
+            Assert.Equal("", ProjectConfigurationParser.ValidateSettings(allowGroup: true));
         });
     }
 
@@ -81,10 +86,10 @@ public class ProjectGroupTests
 
         string sln = null!;
         WithSettings(Path.Combine(output, "t.ini"), Path.Combine(src, "Group.vbg"), output,
-            () => sln = TestUtil.WithTimeout(() => ModProjectGroup.ConvertGroup(Path.Combine(src, "Group.vbg")), 120000));
+            () => sln = TestUtil.WithTimeout(() => ProjectGroup.ConvertGroup(Path.Combine(src, "Group.vbg")), 120000));
 
         Assert.Equal(Path.Combine(output, "Group.sln"), sln);
-        Assert.Null(ModProjectGroup.Current);
+        Assert.Null(ProjectGroup.Current);
         string Read(string rel) => File.ReadAllText(Path.Combine(output, rel));
 
         // one project per .vbp, the startup project first, ProjectReference from the VB6 *\A reference
@@ -111,9 +116,9 @@ public class ProjectGroupTests
         Assert.Contains("c.Area() + s.Area()", exe); // the DLL's class is known: obj.Method without parentheses is a call
     }
 
-    private static VbpInfo Vbp(string name, string path)
+    private static ProjectInfo Vbp(string name, string path)
     {
-        var v = VbpInfo.Parse("Name=\"" + name + "\"\r\n");
+        var v = ProjectInfo.Parse("Name=\"" + name + "\"\r\n");
         v.Path = path;
         return v;
     }
@@ -123,17 +128,17 @@ public class ProjectGroupTests
     {
         var notify = ModUtils.Notify;
         ModUtils.Notify = _ => { };
-        ModConfig.IniFilePath = ini;
-        ModConfig.OverrideSettings(vbp, output, null, UiTarget.WinForms);
+        ProjectConfigurationParser.IniFilePath = ini;
+        ProjectConfigurationParser.OverrideSettings(vbp, output, null, UiTarget.WinForms);
         try
         {
             action();
         }
         finally
         {
-            ModConfig.IniFilePath = null;
-            ModConfig.OverrideSettings();
-            ModConvertStatements.ResetProjectCaches();
+            ProjectConfigurationParser.IniFilePath = null;
+            ProjectConfigurationParser.OverrideSettings();
+            StatementsConverter.ResetProjectCaches();
             ModUtils.Notify = notify;
         }
     }

@@ -2,14 +2,16 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Text.RegularExpressions;
-using Vb6ToCSharp.FormConversion;
+using Vb6ToCSharp.Convert;
+using Vb6ToCSharp.ItemConversion;
+using Vb6ToCSharp.Parsing;
 using static Microsoft.VisualBasic.Constants;
 using static Microsoft.VisualBasic.Strings;
-using static Vb6ToCSharp.Modules.ModConfig;
-using static Vb6ToCSharp.Modules.ModProjectFiles;
+using static Vb6ToCSharp.Parsing.ProjectConfigurationParser;
+using static Vb6ToCSharp.Parsing.ProjectFiles;
 using static Vb6ToCSharp.Modules.ModTextFiles;
 using static Vb6ToCSharp.Modules.ModUtils;
-
+using Vb6ToCSharp.CodeGeneration;
 
 namespace Vb6ToCSharp.Modules;
 
@@ -25,7 +27,7 @@ public static class ModSupportFiles
     /// <summary>Entry point and assembly attributes of the converted project.</summary>
     public static bool CreateProjectSupportFiles()
     {
-        var vbp = VbpInfo.Load(VbpFile);
+        var vbp = ProjectInfo.Load(VbpFile);
         var ok = vbp.IsLibrary || WriteOut("Program.cs", ProgramFile(vbp), ""); // a class library has no entry point
         ok = WriteOut("Properties\\AssemblyInfo.cs", AssemblyInfoFile(), "Properties") && ok;
         return ok;
@@ -34,16 +36,16 @@ public static class ModSupportFiles
     /// <summary>The .csproj of the converted project (named after the .vbp).</summary>
     public static bool CreateProjectFile(string vbpFile)
     {
-        return WriteOut(ChgExt(TFileName(vbpFile), ".csproj"), ProjectFile(VbpInfo.Load(vbpFile)));
+        return WriteOut(ChgExt(TFileName(vbpFile), ".csproj"), ProjectFile(ProjectInfo.Load(vbpFile)));
     }
 
     /// <summary>SDK-style project: sources are picked up from the output folder; forms per the UI target.</summary>
-    public static string ProjectFile(VbpInfo vbp)
+    public static string ProjectFile(ProjectInfo projectInfo)
     {
         var n = vbCrLf;
         var wpf = Ui == UiTarget.Wpf;
-        var library = vbp.IsLibrary; // ActiveX DLL / OCX
-        var symbols = string.Concat(ModConvertStatements.ProjectSymbols(vbp.CondComp).ConvertAll(c => ";" + c)); // VB6 CondComp that are true
+        var library = projectInfo.IsLibrary; // ActiveX DLL / OCX
+        var symbols = string.Concat(StatementsConverter.ProjectSymbols(projectInfo.CondComp).ConvertAll(c => ";" + c)); // VB6 CondComp that are true
         var runtime = typeof(ModSupportFiles).Assembly.GetName().Version;
         var s = new StringBuilder();
         s.Append("<Project Sdk=\"Microsoft.NET.Sdk\">" + n);
@@ -65,14 +67,14 @@ public static class ModSupportFiles
         s.Append("    <!-- the runtime of converted code (VB6 arrays, UDTs, fixed-length strings, controls), like VB Migration Partner's library -->" + n);
         s.Append("    <PackageReference Include=\"Net4x.Vb6ToCSharp.UpgradeHelpers\" Version=\"" + runtime.Major + "." + runtime.Minor + ".*\" />" + n);
         s.Append("  </ItemGroup>" + n);
-        var projects = ModProjectGroup.CSharpProjectReferences(vbp); // VB6 references to other projects of the group
+        var projects = ProjectGroup.CSharpProjectReferences(projectInfo); // VB6 references to other projects of the group
         if (projects.Count > 0)
         {
             s.Append("  <ItemGroup>" + n);
             foreach (var p in projects) s.Append("    <ProjectReference Include=\"" + p + "\" />" + n);
             s.Append("  </ItemGroup>" + n);
         }
-        if (UsesAdo(vbp))
+        if (UsesAdo(projectInfo))
         {
             s.Append("  <ItemGroup>" + n);
             s.Append("    <COMReference Include=\"ADODB\">" + n);
@@ -91,34 +93,34 @@ public static class ModSupportFiles
     }
 
     /// <summary>The project references ADO (Microsoft ActiveX Data Objects): converted code uses ADODB.</summary>
-    public static bool UsesAdo(VbpInfo vbp) => vbp.References.Exists(r => Regex.IsMatch(r, "ActiveX Data Objects|msado|\\{00000[0-9A-F]{3}-0000-0010-8000-00AA006D2EA4\\}", RegexOptions.IgnoreCase));
+    public static bool UsesAdo(ProjectInfo projectInfo) => projectInfo.References.Exists(r => Regex.IsMatch(r, "ActiveX Data Objects|msado|\\{00000[0-9A-F]{3}-0000-0010-8000-00AA006D2EA4\\}", RegexOptions.IgnoreCase));
 
     /// <summary>
     /// Program.Main: VB6 starts with the startup form, or runs Sub Main and keeps going while forms are open.
     /// </summary>
-    public static string ProgramFile(VbpInfo vbp)
+    public static string ProgramFile(ProjectInfo projectInfo)
     {
         var n = vbCrLf;
         var wpf = Ui == UiTarget.Wpf;
-        var main = SubMainModule(vbp);
+        var main = SubMainModule(projectInfo);
         var s = new StringBuilder();
         s.Append("using System;" + n + n);
         s.Append("namespace " + AssemblyName() + n + "{" + n);
-        s.Append("    /// <summary>Entry point of the converted VB6 project (" + (vbp.StartsWithSubMain ? "Sub Main" : "startup form " + vbp.Startup) + ").</summary>" + n);
+        s.Append("    /// <summary>Entry point of the converted VB6 project (" + (projectInfo.StartsWithSubMain ? "Sub Main" : "startup form " + projectInfo.Startup) + ").</summary>" + n);
         s.Append("    internal static class Program" + n + "    {" + n);
         s.Append("        [STAThread]" + n);
         s.Append("        private static void Main()" + n + "        {" + n);
         if (wpf)
         {
             s.Append("            var app = new System.Windows.Application { ShutdownMode = System.Windows.ShutdownMode.OnLastWindowClose };" + n);
-            if (!vbp.StartsWithSubMain) s.Append("            app.Run(" + AssemblyName() + ".Forms." + vbp.Startup + ".instance);" + n);
+            if (!projectInfo.StartsWithSubMain) s.Append("            app.Run(" + AssemblyName() + ".Forms." + projectInfo.Startup + ".instance);" + n);
             else if (main != null) s.Append("            global::" + main + ".Main();" + n + "            if (app.Windows.Count > 0) app.Run();" + n);
         }
         else
         {
             s.Append("            System.Windows.Forms.Application.EnableVisualStyles();" + n);
             s.Append("            System.Windows.Forms.Application.SetCompatibleTextRenderingDefault(false);" + n);
-            if (!vbp.StartsWithSubMain) s.Append("            System.Windows.Forms.Application.Run(" + AssemblyName() + ".Forms." + vbp.Startup + ".instance);" + n);
+            if (!projectInfo.StartsWithSubMain) s.Append("            System.Windows.Forms.Application.Run(" + AssemblyName() + ".Forms." + projectInfo.Startup + ".instance);" + n);
             else if (main != null)
             {
                 s.Append("            global::" + main + ".Main();" + n);
@@ -131,7 +133,7 @@ public static class ModSupportFiles
     }
 
     /// <summary>The standard module declaring Sub Main, or null.</summary>
-    public static string SubMainModule(VbpInfo vbp)
+    public static string SubMainModule(ProjectInfo projectInfo)
     {
         var folder = FilePath(VbpFile);
         foreach (var f in Split(VbpModules(VbpFile), vbCrLf))

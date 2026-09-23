@@ -1,3 +1,4 @@
+using Vb6ToCSharp.Tests.Model;
 using Vb6ToCSharp.UpgradeHelpers;
 
 namespace Vb6ToCSharp.Tests;
@@ -5,18 +6,6 @@ namespace Vb6ToCSharp.Tests;
 /// <summary>Vb6ToCSharp.UpgradeHelpers runtime used by converted code: VB6 arrays, UDTs, fixed-length strings.</summary>
 public class RuntimeTests
 {
-    private struct Rec : IVbStruct
-    {
-        public string Name;
-        public int[] Values;
-
-        public void Initialize()
-        {
-            Name = VbRuntime.FixedLen("", 3);
-            Values = VbRuntime.NewArray<int>(2);
-        }
-    }
-
     [Fact]
     public void NewArray_InitializesStringsAndUdts()
     {

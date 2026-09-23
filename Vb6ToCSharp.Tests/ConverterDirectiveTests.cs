@@ -3,8 +3,9 @@ using System.IO;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
-using Vb6ToCSharp.FormConversion;
-using Vb6ToCSharp.Modules;
+using Vb6ToCSharp.ItemConversion;
+using Vb6ToCSharp.Parsing;
+using Vb6ToCSharp.Tests.Infrastructure;
 
 namespace Vb6ToCSharp.Tests;
 
@@ -15,12 +16,12 @@ namespace Vb6ToCSharp.Tests;
 public partial class ConverterTests
 {
     /// <summary>Sets the constants of the "file" being converted; an empty source resets them.</summary>
-    private static string Begin(string vb = "", Dictionary<string, string>? project = null) => ModConvertStatements.BeginFile(vb.Replace("\n", "\r\n"), project);
+    private static string Begin(string vb = "", Dictionary<string, string>? project = null) => StatementsConverter.BeginFile(vb.Replace("\n", "\r\n"), project);
 
     private static string Directive(string vb, string module = "", Dictionary<string, string>? project = null)
     {
         Begin(module, project);
-        try { return ModConvertStatements.ConvertDirective(vb); }
+        try { return StatementsConverter.ConvertDirective(vb); }
         finally { Begin(); }
     }
 
@@ -47,7 +48,7 @@ public partial class ConverterTests
         var header = Begin("#Const DBG = 1\n#Const OLD = False\n#Const LEVEL = DBG + 2\nSub A()\nEnd Sub\n");
         Begin();
         Assert.Equal("#define DBG\r\n#undef OLD\r\n#define LEVEL\r\n", header);
-        Assert.StartsWith("// VB6 #Const DBG = 1", ModConvertStatements.ConvertDirective("#Const DBG = 1"));
+        Assert.StartsWith("// VB6 #Const DBG = 1", StatementsConverter.ConvertDirective("#Const DBG = 1"));
     }
 
     [Fact]
@@ -80,18 +81,18 @@ public partial class ConverterTests
     public void Evaluate_UsesVbSemantics(string expr, double expected)
     {
         Begin();
-        Assert.Equal(expected, ModConvertStatements.Evaluate(expr));
+        Assert.Equal(expected, StatementsConverter.Evaluate(expr));
     }
 
     [Fact]
-    public void Evaluate_NotAnExpression_IsNull() => Assert.Null(ModConvertStatements.Evaluate("1 +"));
+    public void Evaluate_NotAnExpression_IsNull() => Assert.Null(StatementsConverter.Evaluate("1 +"));
 
     [Fact]
     public void ProjectConstants_TrueOnesAreSymbols()
     {
-        var vbp = VbpInfo.Parse("Type=Exe\r\nCondComp=\"DEBUG_MODE = 1 : LEGACY = 0 : VER = 3\"\r\n");
+        var vbp = ProjectInfo.Parse("Type=Exe\r\nCondComp=\"DEBUG_MODE = 1 : LEGACY = 0 : VER = 3\"\r\n");
         Assert.Equal("3", vbp.CondComp["ver"]);
-        Assert.Equal(new[] { "DEBUG_MODE", "VER" }, ModConvertStatements.ProjectSymbols(vbp.CondComp));
+        Assert.Equal(new[] { "DEBUG_MODE", "VER" }, StatementsConverter.ProjectSymbols(vbp.CondComp));
     }
 
     [Fact]
@@ -124,7 +125,7 @@ public partial class ConverterTests
         AssertParsesWith(cs);
         AssertParsesWith(cs, "A");
         // the shared "Case 2" closes the section of the one open switch, not of both
-        Assert.Equal(1, System.Text.RegularExpressions.Regex.Matches(cs, @"break;\s*case 2:").Count);
+        Assert.Single(System.Text.RegularExpressions.Regex.Matches(cs, @"break;\s*case 2:"));
     }
 
     [Fact]
@@ -133,7 +134,7 @@ public partial class ConverterTests
         var vb = "Public Enum E\n  eA\n#If A Then\n  eB = 2\n#End If\n  eC\nEnd Enum\n" +
                  "Private Type R\n  X As Long\n#If A Then\n  Y As String\n#End If\nEnd Type\n";
         Begin();
-        var cs = TestUtil.WithTimeout(() => ModConvert.ConvertGlobals(vb.Replace("\n", "\r\n"), true), 30000);
+        var cs = TestUtil.WithTimeout(() => CodeConverter.ConvertGlobals(vb.Replace("\n", "\r\n"), true), 30000);
         Assert.Contains("#if A", cs);
         AssertParsesWith(cs);
         AssertParsesWith(cs, "A");
@@ -146,7 +147,7 @@ public partial class ConverterTests
         File.WriteAllText(bas, "Attribute VB_Name = \"modPP\"\r\nOption Explicit\r\n#Const TRACE_ON = 1\r\n\r\n" +
                                "Public Sub T()\r\n#If TRACE_ON Then\r\n  Debug.Print 1\r\n#End If\r\nEnd Sub\r\n");
         var ok = false;
-        CaptureNotify(() => ok = TestUtil.WithTimeout(() => ModConvert.ConvertFile(bas), 30000));
+        CaptureNotify(() => ok = TestUtil.WithTimeout(() => CodeConverter.ConvertFile(bas), 30000));
         Assert.True(ok);
         var cs = File.ReadAllText(Out(fixture, @"Modules\modPP.cs"));
         Assert.StartsWith("#define TRACE_ON", cs.TrimStart());

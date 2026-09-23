@@ -1,6 +1,8 @@
 using System.Drawing;
 using System.Windows.Media;
-using Brush = System.Windows.Media.Brush; // Fill is a WPF brush (OcxHelper converts OLE colors to it)
+using Vb6ToCSharp.UpgradeHelpers.Tests.Infrastructure;
+using Vb6ToCSharp.UpgradeHelpers.Tests.Model;
+// Fill is a WPF brush (OcxHelper converts OLE colors to it)
 using Color = System.Drawing.Color;
 using SystemColors = System.Drawing.SystemColors;
 
@@ -8,20 +10,6 @@ namespace Vb6ToCSharp.UpgradeHelpers.Tests;
 
 public class OcxHelperTests
 {
-    private sealed class Target
-    {
-        public bool Enabled { get; set; }
-        public int Count { get; set; }
-        public short Small { get; set; }
-        public double Ratio { get; set; }
-        public string Caption { get; set; } = "";
-        public DayOfWeek Day { get; set; }
-        public Color BackColor { get; set; }
-        public int? Optional { get; set; }
-        public Brush? Fill { get; set; }
-        public int ReadOnlyValue => 42;
-    }
-
     [Theory]
     [InlineData(-1, true)]
     [InlineData(0, false)]

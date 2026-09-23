@@ -1,5 +1,6 @@
 using System.Drawing;
 using System.Windows.Forms;
+using Vb6ToCSharp.UpgradeHelpers.Tests.Infrastructure;
 using Vb6ToCSharp.UpgradeHelpers.WinForms;
 using static Vb6ToCSharp.UpgradeHelpers.FlexAlign;
 

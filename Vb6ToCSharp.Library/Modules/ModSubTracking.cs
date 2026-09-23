@@ -1,46 +1,21 @@
 using System.Collections.Generic;
+using Vb6ToCSharp.Analisys;
+using Vb6ToCSharp.Convert;
 using static Microsoft.VisualBasic.Constants;
 using static Microsoft.VisualBasic.Strings;
-using static Vb6ToCSharp.Modules.ModConvert;
+using static Vb6ToCSharp.ItemConversion.CodeConverter;
 using static Vb6ToCSharp.Modules.ModRegEx;
 using static Vb6ToCSharp.Modules.ModUtils;
-using static Vb6ToCSharp.Modules.ModVb6ToCs;
-using static Vb6ToCSharp.VbExtension;
-
+using static Vb6ToCSharp.ItemConversion.Vb6ToCsConverter;
+using static Vb6ToCSharp.Runtime.RuntimeExtension;
+using Vb6ToCSharp.ItemConversion;
 
 namespace Vb6ToCSharp.Modules;
 
 public static class ModSubTracking
 {
     // Option Explicit
-    public class Variable
-    {
-        public string name = "";
-        public string asType = "";
-        public string asArray = "";
-        public bool param = false;
-        public bool retVal = false;
-        public bool assigned = false;
-        public bool used = false;
-        public bool assignedBeforeUsed = false;
-        public bool usedBeforeAssigned = false;
-        public bool vb6Array = false; // a VB6Array<T> (non-zero lower bound), not a T[]
-        public string fixedLen = ""; // String * n: the length expression
-    }
-    public class Property
-    {
-        public string name = "";
-        public bool asPublic = false;
-        public string asType = "";
-        public bool asFunc = false;
-        public string getter = "";
-        public string setter = "";
-        public string origArgName = "";
-        public string funcArgs = "";
-        public string origProto = "";
-        public string getArgs = ""; // VB6 parameters of Property Get
-        public string letArgs = ""; // VB6 parameters of Property Let / Set (the last one is the value)
-    }
+
     private static bool lockout = false;
     private static List<Variable> vars = new List<Variable> { }; 
     private static List<Property> props = new List<Property> { }; 
@@ -345,7 +320,7 @@ public static class ModSubTracking
         switch (gsl)
         {
             case "get":
-                props[x].getter = ConvertSub(s, false, vbTriState.vbFalse);
+                props[x].getter = ConvertSub(s, false, TriState.False);
                 props[x].asType = ConvertDataType(pType);
                 props[x].asFunc = props[x].asFunc || asFunc;
                 props[x].funcArgs = pArgs;
@@ -353,7 +328,7 @@ public static class ModSubTracking
                 break;
             case "set":
             case "let":
-                props[x].setter = ConvertSub(s, false, vbTriState.vbFalse);
+                props[x].setter = ConvertSub(s, false, TriState.False);
                 props[x].origArgName = pArgName;
                 if (pType != "")
                 {
@@ -387,7 +362,7 @@ public static class ModSubTracking
             }
             var initial = p.asType == "string" ? "\"\"" : "default(" + p.asType + ")"; // VB6 returns the default when never assigned
             // Implements: IFoo_Name is the explicit implementation of IFoo.Name (no access modifier)
-            var iface = ModConvertClasses.ImplementedInterface(p.name);
+            var iface = ClassesConverter.ImplementedInterface(p.name);
             var mods = iface != null ? "" : (p.asPublic ? "public " : "") + (asModule ? "static " : "");
             var declName = iface != null ? iface + "." + Mid(p.name, Len(iface) + 2) : p.name;
             if (p.asFunc)
@@ -451,7 +426,7 @@ public static class ModSubTracking
     private static string PropertyParameters(string vbArgs, bool dropValue, out string valueName)
     {
         valueName = "";
-        var list = ModConvertStatements.SplitTopLevel(vbArgs ?? "");
+        var list = StatementsConverter.SplitTopLevel(vbArgs ?? "");
         list.RemoveAll(a => Trim(a) == "");
         if (dropValue && list.Count > 0)
         {

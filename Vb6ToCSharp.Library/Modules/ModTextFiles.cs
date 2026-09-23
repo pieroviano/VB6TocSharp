@@ -4,7 +4,7 @@ using static Microsoft.VisualBasic.FileSystem;
 using static Microsoft.VisualBasic.Interaction;
 using static Microsoft.VisualBasic.Strings;
 using static Vb6ToCSharp.Modules.ModUtils;
-using static Vb6ToCSharp.VbExtension;
+using static Vb6ToCSharp.Runtime.RuntimeExtension;
 
 
 namespace Vb6ToCSharp.Modules;

@@ -1,5 +1,6 @@
 using System.IO;
-using Vb6ToCSharp.Modules;
+using Vb6ToCSharp.ItemConversion;
+using Vb6ToCSharp.Tests.Infrastructure;
 
 namespace Vb6ToCSharp.Tests;
 
@@ -9,7 +10,7 @@ public partial class ConverterTests
     /// <summary>Converts with the file-level pragmas of <paramref name="fileHeader"/> in effect.</summary>
     private string WithPragmas(string fileHeader, System.Func<string> convert)
     {
-        ModConvertStatements.BeginFile(fileHeader.Replace("\n", "\r\n"));
+        StatementsConverter.BeginFile(fileHeader.Replace("\n", "\r\n"));
         try { return convert(); }
         finally { Begin(); }
     }
@@ -25,7 +26,7 @@ public partial class ConverterTests
     [Fact]
     public void AutoNewFalse_CreatesEagerly()
     {
-        var cs = WithPragmas("'## AutoNew False\n", () => TestUtil.WithTimeout(() => ModConvert.ConvertGlobals("Private mCol As New Collection\r\n", true)));
+        var cs = WithPragmas("'## AutoNew False\n", () => TestUtil.WithTimeout(() => CodeConverter.ConvertGlobals("Private mCol As New Collection\r\n", true)));
         Assert.Contains("Collection mCol = new Collection();", cs);
     }
 
@@ -65,15 +66,15 @@ public partial class ConverterTests
     public void PreAndPostProcess_RewriteSourceAndOutput()
     {
         const string src = "'## PreProcess \"OldName\", \"NewName\"\r\n'## PostProcess \"Console\\.WriteLine\", \"Trace.WriteLine\"\r\nPublic Sub T()\r\n  OldName\r\nEnd Sub\r\n";
-        Assert.Contains("NewName", ModConvertPragmas.PreProcess(src));
-        var cs = WithPragmas(src, () => ModConvertPragmas.PostProcess("Console.WriteLine(1);"));
+        Assert.Contains("NewName", PragmaConverter.PreProcess(src));
+        var cs = WithPragmas(src, () => PragmaConverter.PostProcess("Console.WriteLine(1);"));
         Assert.Equal("Trace.WriteLine(1);", cs);
     }
 
     [Fact]
     public void ProjectPragmaFile_AppliesToEveryFile()
     {
-        var file = Path.Combine(fixture.Dir, ModConvertPragmas.ProjectPragmaFile);
+        var file = Path.Combine(fixture.Dir, PragmaConverter.ProjectPragmaFile);
         File.WriteAllText(file, "ArrayBounds ForceZero\r\n");
         try
         {

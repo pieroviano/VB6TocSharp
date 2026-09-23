@@ -1,5 +1,5 @@
 ﻿using System.Collections.Generic;
-using static Vb6ToCSharp.VbExtension;
+using static Vb6ToCSharp.Runtime.RuntimeExtension;
 
 
 namespace Vb6ToCSharp.Modules;

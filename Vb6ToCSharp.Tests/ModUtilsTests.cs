@@ -1,4 +1,5 @@
 using Microsoft.VisualBasic;
+using Vb6ToCSharp.Tests.Infrastructure;
 using static Vb6ToCSharp.Modules.ModUtils;
 
 namespace Vb6ToCSharp.Tests;
