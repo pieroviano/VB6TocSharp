@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using Vb6ToCSharp.UpgradeHelpers.Arrays;
+using Vb6ToCSharp.UpgradeHelpers.Interop;
 
 namespace Vb6ToCSharp.UpgradeHelpers;
 
@@ -206,6 +207,27 @@ public static class VbRuntime
         {
             if (bridge.Unload(form)) return;
         }
+    }
+
+    /// <summary>
+    /// The placeholder VB6 passes for an argument left out of a call (<c>cmd.Execute , , adExecuteNoRecords</c>).
+    /// </summary>
+    public static object Missing => Type.Missing;
+
+    /// <summary>
+    /// VB6 call with arguments left out. C# cannot omit an argument in the middle of a call, and cannot even write
+    /// one for an <c>out</c> parameter of a COM method without knowing the signature, so the call is made late bound:
+    /// <see cref="Missing"/> arguments reach the object as "not supplied", exactly as in VB6.
+    /// </summary>
+    public static object ComInvoke(object target, string member, params object[] args)
+    {
+        if (target == null) throw new ArgumentNullException(nameof(target));
+        var a = args ?? new object[0];
+        for (var i = 0; i < a.Length; i++)
+        {
+            if (a[i] is IVbLibraryConstant c) a[i] = c.Value; // a type library constant is a Long to COM
+        }
+        return target.GetType().InvokeMember(member, System.Reflection.BindingFlags.InvokeMethod, null, target, a);
     }
 
     /// <summary>VB6 Option Compare Text string comparison (case-insensitive, current culture): -1, 0, 1.</summary>

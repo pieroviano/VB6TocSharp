@@ -29,6 +29,7 @@ public static class SupportFiles
         var vbp = ProjectInfo.Load(VbpFile);
         var ok = vbp.IsLibrary || WriteOut("Program.cs", ProgramFile(vbp), ""); // a class library has no entry point
         ok = WriteOut("Properties\\AssemblyInfo.cs", AssemblyInfoFile(), "Properties") && ok;
+        if (UsesAdo(vbp)) ok = WriteOut(AdoConstants.FileName, AdoConstants.File(AssemblyName()), "") && ok;
         return ok;
     }
 

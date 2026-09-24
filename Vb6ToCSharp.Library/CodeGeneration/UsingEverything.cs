@@ -57,6 +57,8 @@ public static class UsingEverything
             if (VbpFile != "" && SupportFiles.UsesAdo(ProjectInfo.Load(VbpFile)))
             {
                 e = e + n + "using ADODB;";
+                // the type library's enum members, which VB6 code names unqualified (adCmdText, adStateClosed...)
+                e = e + n + "using static " + AssemblyName() + "." + AdoConstants.ClassName + ";";
             }
             e = e + n + "using System;";
             e = e + n + "using System.Collections.Generic;";

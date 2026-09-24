@@ -40,7 +40,13 @@ public static class CodeConverter
     private static string withTypes = "";
     private static string withAssign = "";
     private static string formName = "";
-    private static string currentModule = "";
+    /// <summary>The module being converted; the reference index resolves a bare name against its own procedures.</summary>
+    private static string currentModule
+    {
+        get => RefScanner.CurrentModule;
+        set => RefScanner.CurrentModule = value;
+    }
+
     private static string currSub = "";
 
 
@@ -1741,6 +1747,8 @@ public static class CodeConverter
             }
         }
 
+        convertElement = ConvertIndexedMembers(convertElement);
+
         if (IsInStr(convertElement, ":="))
         {
             var ts = SplitWord(convertElement, 1, ":=");
@@ -1784,6 +1792,95 @@ public static class CodeConverter
         return convertElement;
     }
 
+    /// <summary>
+    /// The parameterized properties of a type library object an expression calls: <c>rs.Fields("Text").Value</c>.
+    /// VB6 calls such a property like a method, C# indexes it. A call at the very end of an expression is rewritten
+    /// by <see cref="ConvertFunctionCall"/>; this covers the ones a member access follows.
+    /// </summary>
+    public static string ConvertIndexedMembers(string s)
+    {
+        var r = s;
+        var i = 1;
+        while (i <= Len(r))
+        {
+            var c = Mid(r, i, 1);
+            if (c == "\"")
+            { // a string literal: nothing in it is a call
+                var e = InStr(i + 1, r, "\"");
+                i = e == 0 ? Len(r) + 1 : e + 1;
+                continue;
+            }
+            if (c != "(")
+            {
+                i = i + 1;
+                continue;
+            }
+            var name = RegExNMatch(Left(r, i - 1), "[A-Za-z_][A-Za-z0-9_.]*$");
+            var dot = InStrRev(name, ".");
+            var close = dot > 0 && AdoInterop.IsIndexedMember(SubParam(Left(name, dot - 1)).asType, Mid(name, dot + 1))
+                ? ClosingParen(r, i)
+                : 0;
+            if (close > 0)
+            {
+                r = Left(r, i - 1) + "[" + Mid(r, i + 1, close - i - 1) + "]" + Mid(r, close + 1);
+            }
+            i = i + 1;
+        }
+        return r;
+    }
+
+    /// <summary>The parenthesis closing the one at <paramref name="open"/>, 0 when the text has none.</summary>
+    private static int ClosingParen(string s, int open)
+    {
+        var depth = 0;
+        for (var i = open; i <= Len(s); i++)
+        {
+            var c = Mid(s, i, 1);
+            if (c == "\"")
+            {
+                var e = InStr(i + 1, s, "\"");
+                if (e == 0) return 0;
+                i = e;
+            }
+            else if (c == "(")
+            {
+                depth = depth + 1;
+            }
+            else if (c == ")")
+            {
+                depth = depth - 1;
+                if (depth == 0) return i;
+            }
+        }
+        return 0;
+    }
+
+    /// <summary>What VB6 passes for an argument left out of a call (the runtime's Type.Missing).</summary>
+    public const string MissingArgument = "Missing";
+
+    /// <summary>
+    /// An argument bound to a ByRef parameter. VB6 passes a variable by reference and anything else - an expression,
+    /// a literal, the result of a call - by value, through a temporary; C# accepts <c>ref</c> only on the former.
+    /// </summary>
+    public static string RefArgument(string arg)
+    {
+        var a = Trim(arg);
+        // a name, a member of one, an array or collection element: v, a.b.c, a[i], a.b[i]
+        return RegExTest(a, "^[A-Za-z_][A-Za-z0-9_.]*(\\[[^()]*\\])?$") ? "ref " + a : a;
+    }
+
+    /// <summary>
+    /// A call with arguments left out, made on an object the conversion has no signature for (a type library: ADO).
+    /// C# has no syntax for an omitted argument, and cannot even name the ones it would have to write out, so the
+    /// call goes through the runtime, late bound, the way VB6 itself resolves a missing argument.
+    /// </summary>
+    public static string LateBoundCall(string name, string args)
+    {
+        var member = Mid(name, InStrRev(name, ".") + 1);
+        var target = StatementsConverter.IntrinsicMember(Left(name, InStrRev(name, ".") - 1));
+        return "ComInvoke(" + target + ", \"" + member + "\"" + IIf(args == "", "", ", " + args) + ")";
+    }
+
     public static string ConvertFunctionCall(string fCall)
     {
         //Debug.Print "ConvertFunctionCall: " & fCall
@@ -1799,11 +1896,19 @@ public static class CodeConverter
         ts = Left(ts, Len(ts) - 1);
 
         var vP = SubParam(name);
-        if (ConvertDataType(vP.asType) == "Recordset")
-        {
+        // a member of an ADO object: rs.Fields("Text"), cn.Errors(0), cmd.Parameters("p")
+        var qualifier = IsInStr(name, ".") ? SubParam(Left(name, InStrRev(name, ".") - 1)).asType : "";
+        if (AdoInterop.IsRecordset(vP.asType))
+        { // the Recordset's default member is a field of the current row: rs("Text") -> rs.Fields["Text"].Value
             tb = tb + ".Fields[";
             tb = tb + ConvertValue(ts);
             tb = tb + "].Value";
+        }
+        else if (AdoInterop.IsIndexedMember(qualifier, Mid(name, InStrRev(name, ".") + 1)))
+        { // a parameterized property, which C# reaches through an indexer
+            tb = tb + "[";
+            tb = tb + ConvertValue(ts);
+            tb = tb + "]";
         }
         else if (vP.asArray != "" || ClassesConverter.HasIndexedDefault(vP.asType) || StatementsConverter.IsUdtArrayField(name))
         { // an array element, or the default member of a VbCollection / class: obj(i) -> obj[i]
@@ -1815,6 +1920,7 @@ public static class CodeConverter
         else
         {
             var n = NextByPCt(ts, ",");
+            var proc = ProcRef(name); // "" when the callee is not a procedure of this project
             tb = tb + "(";
             for (var I = 1; I <= n; I++)
             {
@@ -1823,27 +1929,27 @@ public static class CodeConverter
                     tb = tb + ", ";
                 }
                 var tv = NextByP(ts, ",", I);
-                if (IsFuncRef(name))
+                if (proc != "")
                 {
                     if (Trim(tv) == "")
                     {
-                        tb = tb + ConvertElement(FuncRefArgDefault(name, I));
+                        tb = tb + ConvertElement(FuncRefArgDefault(proc, I));
                     }
                     else
                     {
-                        if (FuncRefArgByRef(name, I))
+                        if (FuncRefArgByRef(proc, I))
                         {
-                            tb = tb + "ref " + ConvertValue(tv);
+                            tb = tb + RefArgument(ConvertValue(tv));
                         }
                         else
                         { // a VB6 argument is converted to the parameter type (Integer parameter, Long argument)
-                            tb = tb + StatementsConverter.ImplicitConversion(Trim(SplitWord(FuncRefArgType(name, I), 1, "=")), tv, ConvertValue(tv));
+                            tb = tb + StatementsConverter.ImplicitConversion(Trim(SplitWord(FuncRefArgType(proc, I), 1, "=")), tv, ConvertValue(tv));
                         }
                     }
                 }
                 else
-                {
-                    tb = tb + ConvertValue(tv);
+                { // an unknown callee (a type library): an omitted argument is "not supplied", as VB6 passes it
+                    tb = tb + IIf(Trim(tv) == "", MissingArgument, ConvertValue(tv));
                 }
             }
             tb = tb + StatementsConverter.CompareArgument(name, n) + ")";
@@ -2312,24 +2418,44 @@ public static class CodeConverter
             }
             else if (StrQCnt(firstWord, "(") == 0)
             {
-                convertCodeLine = "";
-                // the callee needs the same intrinsic-object mapping an expression gets: Err.Raise 5 -> Err().Raise(5)
-                convertCodeLine = convertCodeLine + StatementsConverter.IntrinsicMember(firstWord) + "(";
-                var n = 0;
-                do
+                var args = "";
+                var lateBound = false; // an argument left out of a call the conversion knows no signature for
+                var proc = ProcRef(firstWord); // "" when the callee is not a procedure of this project
+                var cnt = NextByPCt(rest, ", ");
+                for (var n = 1; n <= cnt; n++)
                 {
-                    n = n + 1;
                     b = NextByP(rest, ", ", n);
-                    if (b == "")
-                    {
-                        break;
+                    string arg;
+                    if (Trim(b) == "")
+                    { // VB6 leaves an argument out: the default of a known procedure, "not supplied" otherwise
+                        if (proc != "")
+                        {
+                            arg = ConvertElement(FuncRefArgDefault(proc, n));
+                        }
+                        else
+                        {
+                            arg = MissingArgument;
+                            lateBound = true;
+                        }
                     }
-                    var arg = IsFuncRef(firstWord) && !FuncRefArgByRef(firstWord, n)
-                        ? StatementsConverter.ImplicitConversion(Trim(SplitWord(FuncRefArgType(firstWord, n), 1, "=")), b, ConvertValue(b))
-                        : ConvertValue(b);
-                    convertCodeLine = convertCodeLine + IIf(n == 1, "", ", ") + arg;
-                } while (true); // VB "Loop While" (was mistranslated as Loop Until)
-                convertCodeLine = convertCodeLine + ")";
+                    else if (proc != "" && FuncRefArgByRef(proc, n))
+                    {
+                        arg = RefArgument(ConvertValue(b));
+                    }
+                    else if (proc != "")
+                    { // a VB6 argument is converted to the parameter type (Integer parameter, Long argument)
+                        arg = StatementsConverter.ImplicitConversion(Trim(SplitWord(FuncRefArgType(proc, n), 1, "=")), b, ConvertValue(b));
+                    }
+                    else
+                    {
+                        arg = ConvertValue(b);
+                    }
+                    args = args + IIf(n == 1, "", ", ") + arg;
+                }
+                // the callee needs the same intrinsic-object mapping an expression gets: Err.Raise 5 -> Err().Raise(5)
+                convertCodeLine = lateBound && IsInStr(firstWord, ".")
+                    ? LateBoundCall(firstWord, args)
+                    : StatementsConverter.IntrinsicMember(firstWord) + "(" + args + ")";
                 //      ConvertCodeLine = ConvertElement(ConvertCodeLine)
             }
             else

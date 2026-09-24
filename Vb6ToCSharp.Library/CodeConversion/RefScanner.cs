@@ -187,19 +187,35 @@ public static class RefScanner
                 outRes = outRes + vbCrLf + f;
                 scanRefsFile = scanRefsFile + 1;
             }
-            else if (TLMatch(l, "Declare ") || TLMatch(l, "Public Decalre "))
+            else if (TLMatch(l, "Declare ") || TLMatch(l, "Public Declare ") || TLMatch(l, "Private Declare "))
             {
-                l = LTrim(l);
-                if (LMatch(l, "Public "))
+                f = LTrim(l);
+                if (LMatch(f, "Public "))
                 {
-                    l = Mid(l, 8);
+                    f = Mid(f, 8);
                 }
-                if (LMatch(l, "Declare "))
+                var declarePrivate = LMatch(f, "Private ");
+                if (declarePrivate)
                 {
-                    l = Mid(l, 9);
+                    f = Mid(f, 9);
                 }
-                g = SplitWord(l);
+                f = Mid(f, 9); // "Declare "
 
+                g = f;
+                if (TLMatch(g, "Function "))
+                {
+                    g = Mid(g, 10);
+                }
+                if (TLMatch(g, "Sub "))
+                {
+                    g = Mid(g, 5);
+                }
+                g = Trim(SplitWord(g)); // the name, before Lib "..." [Alias "..."]
+
+                // the declaration carries the parameters: a call site needs them for ByRef and for the argument types
+                f = m + ":" + IIf(declarePrivate, Trim(m) + ".", "") + Trim(g) + ":Declare:" + f;
+                outRes = outRes + vbCrLf + f;
+                scanRefsFile = scanRefsFile + 1;
             }
             else if (TLMatch(l, "Const ") || TLMatch(l, "Public Const ") || TLMatch(l, "Global Const "))
             {
@@ -342,6 +358,28 @@ public static class RefScanner
         var name = Trim(module) + "." + Trim(fName);
         var isPrivateFuncRef = FuncRef(name) != "" && FuncRefEntity(name) == "Private Function";
         return isPrivateFuncRef;
+    }
+
+    /// <summary>The module being converted: a bare name in it may be one of its Private procedures or Declares.</summary>
+    public static string CurrentModule { get; set; } = "";
+
+    /// <summary>A catalogued procedure: a Sub / Function of the project, one Private to a module, or a Declare.</summary>
+    private static bool IsProcEntity(string entity) => entity == "Function" || entity == "Private Function" || entity == "Declare";
+
+    /// <summary>
+    /// The name a called procedure is catalogued under - what VB6 resolves <paramref name="fName"/> to: a procedure
+    /// of the project, or one the module being converted declares for itself (Private, or a Declare of an API).
+    /// "" when no procedure of that name is known, so the call is to something the conversion knows no signature for.
+    /// </summary>
+    public static string ProcRef(string fName)
+    {
+        var name = Trim(fName);
+        if (IsProcEntity(FuncRefEntity(name)))
+        {
+            return name;
+        }
+        var ownName = Trim(CurrentModule) + "." + name;
+        return CurrentModule != "" && IsProcEntity(FuncRefEntity(ownName)) ? ownName : "";
     }
 
     public static bool IsEnumRef(string fName)

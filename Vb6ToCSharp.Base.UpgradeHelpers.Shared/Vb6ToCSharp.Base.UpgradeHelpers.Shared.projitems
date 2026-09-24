@@ -18,6 +18,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Internal\SystemColorTable.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Internal\VbCompare.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\IOcxValueConverter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Interop\IVbLibraryConstant.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\OcxHelper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\PropertyBag.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)IVbUiBridge.cs" />
