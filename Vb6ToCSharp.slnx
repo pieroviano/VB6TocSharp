@@ -23,6 +23,9 @@
     <Project Path="Vb6ToCSharp.WPF.UpgradeHelpers.Tests/Vb6ToCSharp.WPF.UpgradeHelpers.Tests.csproj" />
   </Folder>
   <Project Path="Vb6ToCSharp/Vb6ToCSharp.csproj" Id="92f75129-0ec1-47ba-85a7-e47f9eb140fd" />
+  <Folder Name="/Utility/">
+    <Project Path="ProcessForGtk/ProcessForGtk.csproj" />
+  </Folder>
   <Folder Name="/VB6/">
     <File Path="VB6/CApp.cls" />
     <File Path="VB6/CCircle.cls" />
