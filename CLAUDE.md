@@ -22,7 +22,9 @@ Partner's rules. See [README.md](README.md) and the per-project READMEs for user
 - `IntegrationTests` converts `VB6\Showcase.vbp` into `Converted\` (git-ignored) through the console exe, builds the result
   with vswhere-located MSBuild, then loads the exe and asserts on `modMain.RunAll` / `modMain.Classes` etc. When adding a
   VB6 feature, extend the `VB6\` sample and these assertions. The same test for project groups converts `VBG\Group.vbg`
-  (`Exe\` referencing the ActiveX DLL `Lib\`) into `ConvertedGroup\` and builds `Group.sln`.
+  (`Exe\` referencing the ActiveX DLL `Lib\`) into `ConvertedGroup\` and builds `Group.sln`. A third converts the ADO
+  sample `Vb6Ado\Vbb6Ado.vbp` into `ConvertedVb6Ado\` and only builds it: it talks to SQL Server LocalDB and shows
+  message boxes, so it cannot run unattended.
 - Test parallelization is disabled ([AssemblyInfo.cs](Vb6ToCSharp.Tests/Properties/AssemblyInfo.cs)): the converter uses
   process-wide static state.
 - **Each test project mirrors the folders, namespaces and type names of the project it tests.** A test for

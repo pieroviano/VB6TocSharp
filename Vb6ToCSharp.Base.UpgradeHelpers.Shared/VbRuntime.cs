@@ -227,7 +227,10 @@ public static class VbRuntime
         {
             if (a[i] is IVbLibraryConstant c) a[i] = c.Value; // a type library constant is a Long to COM
         }
-        return target.GetType().InvokeMember(member, System.Reflection.BindingFlags.InvokeMethod, null, target, a);
+        // OptionalParamBinding lets a Missing argument take the parameter's default, as VB6 does
+        const System.Reflection.BindingFlags how = System.Reflection.BindingFlags.InvokeMethod
+                                                   | System.Reflection.BindingFlags.OptionalParamBinding;
+        return target.GetType().InvokeMember(member, how, null, target, a);
     }
 
     /// <summary>VB6 Option Compare Text string comparison (case-insensitive, current culture): -1, 0, 1.</summary>

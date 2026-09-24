@@ -1,4 +1,4 @@
-using Vb6ToCSharp.UpgradeHelpers.Tests.Fixtures;
+﻿using Vb6ToCSharp.UpgradeHelpers.Tests.Fixtures;
 using Vb6ToCSharp.UpgradeHelpers.Arrays;
 using Vb6ToCSharp.UpgradeHelpers;
 
@@ -60,4 +60,38 @@ public class VbRuntimeTests
 
     [Fact]
     public void TextCompare_IgnoresCase() => Assert.Equal(0, VbRuntime.TextCompare("ABC", "abc"));
+
+    [Fact]
+    public void ComInvoke_CallsTheMemberByName()
+    {
+        Assert.Equal("a|b", VbRuntime.ComInvoke(new LateBound(), "Join", "a", "b"));
+    }
+
+    [Fact]
+    public void ComInvoke_PassesATypeLibraryConstantAsItsNumber()
+    {
+        // an ADO constant reaches COM as the Long VB6 sees, not as the value type the converted project declares
+        Assert.Equal(7, VbRuntime.ComInvoke(new LateBound(), "Number", new Const7()));
+    }
+
+    [Fact]
+    public void ComInvoke_LeavesAnOmittedArgumentUnsupplied()
+    {
+        Assert.Equal("x-", VbRuntime.ComInvoke(new LateBound(), "Optional2", "x", VbRuntime.Missing));
+    }
+
+    [Fact]
+    public void ComInvoke_RefusesNoTarget() => Assert.Throws<ArgumentNullException>(() => VbRuntime.ComInvoke(null, "Join"));
+
+    private sealed class Const7 : Vb6ToCSharp.UpgradeHelpers.Interop.IVbLibraryConstant
+    {
+        public int Value => 7;
+    }
+
+    private sealed class LateBound
+    {
+        public string Join(string a, string b) => a + "|" + b;
+        public int Number(int n) => n;
+        public string Optional2(string a, string b = "-") => a + b;
+    }
 }

@@ -42,8 +42,12 @@ public sealed class ConverterFixture : IDisposable
             "Private Sub cmdOK_Click()\r\n  Unload Me\r\nEnd Sub\r\n");
         File.WriteAllText(Path.Combine(Dir, "modA.bas"),
             "Attribute VB_Name = \"modA\"\r\nOption Explicit\r\n\r\n" +
+            "Private Declare Function ApiSize Lib \"kernel32\" (ByRef Buf As Long) As Long\r\n\r\n" +
             "Public Function Twice(ByVal X As Long) As Long\r\n  Twice = X * 2\r\nEnd Function\r\n\r\n" +
-            "Public Function Add2(ByVal A As Long, ByVal B As Long) As Long\r\n  Add2 = A + B\r\nEnd Function\r\n");
+            "Public Function Add2(ByVal A As Long, ByVal B As Long) As Long\r\n  Add2 = A + B\r\nEnd Function\r\n\r\n" +
+            "Public Sub Swap2(ByRef A As Long, ByRef B As Long)\r\n  Dim T As Long\r\n  T = A: A = B: B = T\r\nEnd Sub\r\n\r\n" +
+            "Private Sub Own(ByRef N As Long)\r\n  N = N + 1\r\nEnd Sub\r\n\r\n" +
+            "Public Function Pair(Optional ByVal A As Long = 1, Optional ByVal B As Long = 2) As Long\r\n  Pair = A + B\r\nEnd Function\r\n");
         IniInterop.IniWrite(ProjectConfigurationParser.iniSectionSettings, ProjectConfigurationParser.iniKeyVbpFile, vbp, ini);
         IniInterop.IniWrite(ProjectConfigurationParser.iniSectionSettings, ProjectConfigurationParser.iniKeyOutputFolder, Path.Combine(Dir, "out") + "\\",
             ini);

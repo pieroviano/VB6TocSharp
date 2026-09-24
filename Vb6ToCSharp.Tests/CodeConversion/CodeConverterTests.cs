@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using System.Text.RegularExpressions;
 using Vb6ToCSharp.CodeConversion;
 using Vb6ToCSharp.Parsing;
@@ -687,5 +687,82 @@ public class CodeConverterTests : IClassFixture<ConverterFixture>
         Assert.True(File.Exists(Out(fixture, @"Modules\modA.cs")));
         Assert.True(File.Exists(Out(fixture, @"Forms\frmA.xaml")));
         Assert.True(File.Exists(Out(fixture, @"Forms\frmA.xaml.cs")));
+    }
+
+    // ---------------------------------------------------------------- call sites: ByRef, omitted arguments, type libraries
+
+    [Fact]
+    public void Call_PassesAVariableToAByRefParameterByRef()
+    {
+        var cs = Convert(Sub("  Dim a As Long", "  Dim b As Long", "  Swap2 a, b"));
+        Assert.Contains("Swap2(ref a, ref b);", cs);
+    }
+
+    [Fact]
+    public void Call_PassesAnExpressionToAByRefParameterByValue()
+    {
+        // VB6 passes anything but a variable through a temporary, and C# takes ref only on what it can assign to
+        var cs = Convert(Sub("  Dim a As Long", "  Dim b As Long", "  Swap2 a + 1, b"));
+        Assert.Contains("Swap2(a + 1, ref b);", cs);
+    }
+
+    [Fact]
+    public void Call_ResolvesAPrivateProcedureOfTheModuleBeingConverted()
+    {
+        RefScanner.CurrentModule = "modA";
+        try
+        {
+            var cs = Convert(Sub("  Dim n As Long", "  Own n"));
+            Assert.Contains("Own(ref n);", cs);
+        }
+        finally
+        {
+            RefScanner.CurrentModule = "";
+        }
+    }
+
+    [Fact]
+    public void Call_ResolvesADeclaredApi()
+    {
+        RefScanner.CurrentModule = "modA";
+        try
+        {
+            Assert.Equal("modA.ApiSize", RefScanner.ProcRef("ApiSize"));
+            var cs = Convert(Sub("  Dim n As Long", "  ApiSize n"));
+            Assert.Contains("ApiSize(ref n);", cs);
+        }
+        finally
+        {
+            RefScanner.CurrentModule = "";
+        }
+    }
+
+    [Fact]
+    public void Call_WithAnOmittedArgument_KeepsTheArgumentsAfterIt()
+    {
+        // C# has no syntax for an omitted argument, and none for an out parameter it cannot name: the call is late bound
+        var cs = Convert(Sub("  Dim cmd As Object", "  cmd.Execute , , 3"));
+        Assert.Contains("ComInvoke(cmd, \"Execute\", Missing, Missing, 3);", cs);
+    }
+
+    [Fact]
+    public void Call_WithAnOmittedArgument_UsesTheDefaultOfAKnownProcedure()
+    {
+        var cs = Convert(Sub("  Dim n As Long", "  n = Pair(, 5)"));
+        Assert.Contains("Pair(1, 5)", cs);
+    }
+
+    [Fact]
+    public void AdoRecordset_IndexesItsParameterizedProperties()
+    {
+        var cs = Convert(Sub("  Dim rs As ADODB.Recordset", "  Dim s As String", "  s = rs.Fields(1).Value"));
+        Assert.Contains("rs.Fields[1].Value", cs);
+    }
+
+    [Fact]
+    public void AdoRecordset_QualifiedLikeAnUnqualifiedOne_ReadsItsDefaultMember()
+    {
+        var cs = Convert(Sub("  Dim rs As ADODB.Recordset", "  Dim s As String", "  s = rs(1)"));
+        Assert.Contains("rs.Fields[1].Value", cs);
     }
 }
