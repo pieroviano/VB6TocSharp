@@ -7,7 +7,8 @@ namespace Vb6ToCSharp.Tests;
 
 /// <summary>
 /// End to end: Vb6ToCSharp.Console converts the VB6 samples under the repository root (VB6\Showcase.vbp into Converted\,
-/// the project group VBG\Group.vbg into ConvertedGroup\); the result builds and runs.
+/// the project group VBG\Group.vbg into ConvertedGroup\, the ADO sample Vb6Ado\Vbb6Ado.vbp into ConvertedVb6Ado\);
+/// the result builds and, where it can run unattended, runs.
 /// </summary>
 [Trait("Category", "Integration")]
 public class IntegrationTests
@@ -178,6 +179,27 @@ public class IntegrationTests
             ((System.Windows.Forms.Button)control("cmdClose")).PerformClick(); // Unload Me
             Assert.False(form.Visible);
         });
+    }
+
+    /// <summary>
+    /// The same end to end for a project that uses ADO: Vb6Ado\Vbb6Ado.vbp into ConvertedVb6Ado\. Only convert and
+    /// build - the converted code talks to SQL Server LocalDB and shows message boxes, so it is not run here.
+    /// The generated project has a COMReference (ADODB), which only Visual Studio's MSBuild can resolve.
+    /// </summary>
+    [Fact]
+    public void Vb6Ado_ConvertsWithTheConsole_AndTheConvertedProjectBuilds()
+    {
+        var root = RepoRoot();
+        var output = Path.Combine(root, "ConvertedVb6Ado");
+        ConvertWithConsole(Path.Combine(root, "Vb6Ado", "Vbb6Ado.vbp"), output, "--assembly Vbb6Ado");
+        var project = Path.Combine(output, "Vbb6Ado.csproj");
+        Assert.True(File.Exists(project), "no project generated");
+        Assert.True(File.Exists(Path.Combine(output, "MigrationReport.md")));
+        // the VB6 project references Microsoft ActiveX Data Objects: the converted one must reference ADODB
+        Assert.Contains("<COMReference Include=\"ADODB\">", File.ReadAllText(project));
+
+        Build(root, output, project);
+        Assert.True(File.Exists(Path.Combine(output, "bin", "Debug", ConvertedTargetFramework, "Vbb6Ado.dll")), "not built");
     }
 
     /// <summary>The same end to end for a project group: VBG\Group.vbg (an EXE referencing an ActiveX DLL) into ConvertedGroup\.</summary>
