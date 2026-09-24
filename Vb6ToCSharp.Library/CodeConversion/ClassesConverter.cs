@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -181,16 +181,17 @@ public static class ClassesConverter
     public static string ClassMembers(ClassDefinition definition)
     {
         var n = vbCrLf;
+        var i1 = SSpace(spIndent);
         var r = new StringBuilder();
         if (definition.HasInitialize)
         {
-            r.Append("public " + definition.Name + "() {" + n + "  Class_Initialize(); // VB6 Class_Initialize" + n + "}" + n);
+            r.Append("public " + definition.Name + "() {" + n + i1 + "Class_Initialize(); // VB6 Class_Initialize" + n + "}" + n);
         }
         if (definition.HasTerminate)
         { // VB6 Class_Terminate runs when the last reference goes: Dispose (deterministic) or the finalizer
             r.Append("private bool vbTerminated;" + n);
-            r.Append("public void Dispose() {" + n + "  if (vbTerminated) return;" + n + "  vbTerminated = true;" + n + "  GC.SuppressFinalize(this);" + n + "  Class_Terminate();" + n + "}" + n);
-            r.Append("~" + definition.Name + "() {" + n + "  if (!vbTerminated) { vbTerminated = true; Class_Terminate(); }" + n + "}" + n);
+            r.Append("public void Dispose() {" + n + i1 + "if (vbTerminated) return;" + n + i1 + "vbTerminated = true;" + n + i1 + "GC.SuppressFinalize(this);" + n + i1 + "Class_Terminate();" + n + "}" + n);
+            r.Append("~" + definition.Name + "() {" + n + i1 + "if (!vbTerminated) { vbTerminated = true; Class_Terminate(); }" + n + "}" + n);
         }
         if (definition.Predeclared)
         {
@@ -220,7 +221,7 @@ public static class ClassesConverter
         }
         if (definition.EnumSource != null)
         { // For Each over the class: NewEnum
-            r.Append("public System.Collections.IEnumerator GetEnumerator() {" + n + "  return ((System.Collections.IEnumerable)" + definition.EnumSource + ").GetEnumerator();" + n + "}" + n);
+            r.Append("public System.Collections.IEnumerator GetEnumerator() {" + n + i1 + "return ((System.Collections.IEnumerable)" + definition.EnumSource + ").GetEnumerator();" + n + "}" + n);
         }
         return r.ToString();
     }
@@ -245,7 +246,7 @@ public static class ClassesConverter
                 var field = Regex.Match(line, "^Public (" + Id + ")(\\(\\))? As (" + Id + ")");
                 if (field.Success && field.Groups[1].Value != "Const")
                 {
-                    members.Add("  " + ConvertDataType(field.Groups[3].Value) + (field.Groups[2].Success ? "[]" : "") + " " + field.Groups[1].Value + " { get; set; }");
+                    members.Add(SSpace(spIndent) + ConvertDataType(field.Groups[3].Value) + (field.Groups[2].Success ? "[]" : "") + " " + field.Groups[1].Value + " { get; set; }");
                 }
                 continue;
             }
@@ -283,11 +284,11 @@ public static class ClassesConverter
             sig = Trim(NextBy(sig, "{"));
             sig = Regex.Replace(sig, "^(public |private |internal )*(static )?", "");
             sig = Replace(sig, "_UNUSED", "");
-            members.Add("  " + sig + ";");
+            members.Add(SSpace(spIndent) + sig + ";");
         }
         foreach (var p in props)
         {
-            members.Add("  " + ConvertDataType(p.Value[0] == "" ? "Variant" : p.Value[0]) + " " + p.Key + " { " + p.Value[1] + p.Value[2] + "}");
+            members.Add(SSpace(spIndent) + ConvertDataType(p.Value[0] == "" ? "Variant" : p.Value[0]) + " " + p.Key + " { " + p.Value[1] + p.Value[2] + "}");
         }
         return ReString(ProjectGroup.TypeModifier(definition.Exposed) + " interface " + definition.Name + " {" + vbCrLf + string.Join(vbCrLf, members) + vbCrLf + "}", true);
     }
@@ -307,15 +308,17 @@ public static class ClassesConverter
             return r;
         }
         var i = SSpace(ind);
+        var i1 = i + SSpace(spIndent);
+        var i2 = i + SSpace(spIndent * 2);
         var todo = project || handlers.Count == 0 ? "" : " // TODO: check the handler signatures against the events of " + vbType;
         return i + Replace(mods, "public ", "private ") + cType + " _" + name + ";" + vbCrLf
                + i + mods + cType + " " + name + " {" + todo + vbCrLf
-               + i + "  get => _" + name + ";" + vbCrLf
-               + i + "  set {" + vbCrLf
-               + (handlers.Count == 0 ? "" : i + "    if (_" + name + " != null) {" + Hook("-=") + " }" + vbCrLf)
-               + i + "    _" + name + " = value;" + vbCrLf
-               + (handlers.Count == 0 ? "" : i + "    if (_" + name + " != null) {" + Hook("+=") + " }" + vbCrLf)
-               + i + "  }" + vbCrLf
+               + i1 + "get => _" + name + ";" + vbCrLf
+               + i1 + "set {" + vbCrLf
+               + (handlers.Count == 0 ? "" : i2 + "if (_" + name + " != null) {" + Hook("-=") + " }" + vbCrLf)
+               + i2 + "_" + name + " = value;" + vbCrLf
+               + (handlers.Count == 0 ? "" : i2 + "if (_" + name + " != null) {" + Hook("+=") + " }" + vbCrLf)
+               + i1 + "}" + vbCrLf
                + i + "}" + vbCrLf;
     }
 }

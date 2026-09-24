@@ -12,7 +12,7 @@ namespace Vb6ToCSharp.Parsing;
 public static class ProjectConfigurationParser
 {
     // Option Explicit
-    public const int spIndent = 2;
+    public const int spIndent = 4; // one indentation level of the converted C#
     public const string defaultDataType = "dynamic";
     public const string packagePrefix = "";
     private const string defVbpFile = ""; // no default project (was the original author's C:\WinCDS.NET\cnv\prj.vbp)

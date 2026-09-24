@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using Vb6ToCSharp.CodeGeneration;
 using Vb6ToCSharp.CodeConversion.Model;
 using Vb6ToCSharp.FormConversion;
@@ -227,41 +227,43 @@ public static class CodeConverter
         var isUserControl = file.IsUserControl || file.Root?.Type == "VB.PropertyPage";
         var baseType = isUserControl ? (winForms ? "System.Windows.Forms.UserControl" : "System.Windows.Controls.UserControl") : winForms ? "System.Windows.Forms.Form" : "Window";
         var n = vbCrLf;
+        var i1 = SSpace(spIndent);
+        var i2 = SSpace(spIndent * 2);
         var x = ProjectGroup.TypeModifier(ProjectGroup.IsExposed(file)) + " partial class " + fName + " : " + baseType + " {" + n;
         if (!isUserControl)
         {
             var alive = winForms ? "_instance == null || _instance.IsDisposed" : "_instance == null";
-            x = x + "  private static " + fName + " _instance;" + n;
-            x = x + "  /// <summary>VB6 default instance: recreated after the form is unloaded.</summary>" + n;
-            x = x + "  public static " + fName + " instance { set { _instance = null; } get { if (" + alive + ") _instance = new " + fName + "(); return _instance; } }" + n;
-            x = x + "  public static void LoadForm() { if (" + alive + ") { var f = instance; " + (winForms ? "f.CreateControl(); " : "") + "} }" + n;
-            x = x + "  public static void UnloadForm() { if (_instance != null) _instance.Close(); _instance = null; }" + n;
+            x = x + i1 + "private static " + fName + " _instance;" + n;
+            x = x + i1 + "/// <summary>VB6 default instance: recreated after the form is unloaded.</summary>" + n;
+            x = x + i1 + "public static " + fName + " instance { set { _instance = null; } get { if (" + alive + ") _instance = new " + fName + "(); return _instance; } }" + n;
+            x = x + i1 + "public static void LoadForm() { if (" + alive + ") { var f = instance; " + (winForms ? "f.CreateControl(); " : "") + "} }" + n;
+            x = x + i1 + "public static void UnloadForm() { if (_instance != null) _instance.Close(); _instance = null; }" + n;
             if (!winForms)
             {
-                x = x + "  public static void Load() { LoadForm(); }" + n;
-                x = x + "  public static void Unload() { UnloadForm(); }" + n;
+                x = x + i1 + "public static void Load() { LoadForm(); }" + n;
+                x = x + i1 + "public static void Unload() { UnloadForm(); }" + n;
             }
         }
-        x = x + "  public " + fName + "() {" + n;
-        x = x + "    InitializeComponent();" + n;
-        if (winForms) x = x + "    InitializeComponentExtras();" + n;
-        if (designer.ConstructorCode != "") x = x + "    " + Replace(designer.ConstructorCode, n, n + "    ") + n;
-        if (!isUserControl) x = x + "    " + (winForms ? "FormClosed" : "Closed") + " += (s, e) => { if (_instance == this) _instance = null; };" + n;
+        x = x + i1 + "public " + fName + "() {" + n;
+        x = x + i2 + "InitializeComponent();" + n;
+        if (winForms) x = x + i2 + "InitializeComponentExtras();" + n;
+        if (designer.ConstructorCode != "") x = x + i2 + Replace(designer.ConstructorCode, n, n + i2) + n;
+        if (!isUserControl) x = x + i2 + (winForms ? "FormClosed" : "Closed") + " += (s, e) => { if (_instance == this) _instance = null; };" + n;
         if (file.IsMdiChild)
         {
             var mdi = ctx.Project?.MdiFormName ?? "";
-            if (winForms && mdi != "") x = x + "    MdiParent = " + mdi + ".instance;" + n;
-            else x = x + "    // TODO: VB6 MDI child" + (mdi != "" ? " of " + mdi : "") + (winForms ? "" : " (WPF has no MDI)") + n;
+            if (winForms && mdi != "") x = x + i2 + "MdiParent = " + mdi + ".instance;" + n;
+            else x = x + i2 + "// TODO: VB6 MDI child" + (mdi != "" ? " of " + mdi : "") + (winForms ? "" : " (WPF has no MDI)") + n;
         }
         var init = ctx.RootPrefix + "_Initialize";
-        if (ctx.Handlers.Contains(init)) x = x + "    " + ctx.ExactHandler(init) + "();" + n;
-        x = x + "  }" + n;
+        if (ctx.Handlers.Contains(init)) x = x + i2 + ctx.ExactHandler(init) + "();" + n;
+        x = x + i1 + "}" + n;
         if (isUserControl)
         {
             var pb = "Vb6ToCSharp.UpgradeHelpers.Interop.PropertyBag";
-            if (!ctx.Handlers.Contains(ctx.RootPrefix + "_InitProperties")) x = x + "  public void InitProperties() { }" + n;
-            if (!ctx.Handlers.Contains(ctx.RootPrefix + "_ReadProperties")) x = x + "  public void ReadProperties(" + pb + " bag) { }" + n;
-            if (!ctx.Handlers.Contains(ctx.RootPrefix + "_WriteProperties")) x = x + "  public void WriteProperties(" + pb + " bag) { }" + n;
+            if (!ctx.Handlers.Contains(ctx.RootPrefix + "_InitProperties")) x = x + i1 + "public void InitProperties() { }" + n;
+            if (!ctx.Handlers.Contains(ctx.RootPrefix + "_ReadProperties")) x = x + i1 + "public void ReadProperties(" + pb + " bag) { }" + n;
+            if (!ctx.Handlers.Contains(ctx.RootPrefix + "_WriteProperties")) x = x + i1 + "public void WriteProperties(" + pb + " bag) { }" + n;
         }
         if (designer.CodeMembers != "") x = x + designer.CodeMembers;
         return x;
@@ -1277,7 +1279,7 @@ public static class CodeConverter
             if (fixedLen != "" && !isArray)
             {
                 marshal = "[MarshalAs(UnmanagedType.ByValTStr, SizeConst = " + fixedLen + ")] ";
-                init = init + vbCrLf + "  " + eName + " = FixedLen(\"\", " + fixedLen + ");";
+                init = init + vbCrLf + SSpace(spIndent * 2) + eName + " = FixedLen(\"\", " + fixedLen + ");";
             }
             else if (counts.Count > 0)
             {
@@ -1285,19 +1287,19 @@ public static class CodeConverter
                 {
                     marshal = "[MarshalAs(UnmanagedType.ByValArray, SizeConst = " + counts[0] + ")] ";
                 }
-                init = init + vbCrLf + "  " + eName + " = NewArray<" + cType + ">(" + string.Join(", ", counts) + ");";
+                init = init + vbCrLf + SSpace(spIndent * 2) + eName + " = NewArray<" + cType + ">(" + string.Join(", ", counts) + ");";
             }
             else if (!isArray && eType == "String")
             {
-                init = init + vbCrLf + "  " + eName + " = \"\";";
+                init = init + vbCrLf + SSpace(spIndent * 2) + eName + " = \"\";";
             }
             else if (!isArray && StatementsConverter.IsUdt(eType))
             {
-                init = init + vbCrLf + "  " + eName + " = NewStruct<" + cType + ">();";
+                init = init + vbCrLf + SSpace(spIndent * 2) + eName + " = NewStruct<" + cType + ">();";
             }
-            res = res + vbCrLf + " " + marshal + "public " + cType + rank + " " + eName + ";" + boundTodo;
+            res = res + vbCrLf + SSpace(spIndent) + marshal + "public " + cType + rank + " " + eName + ";" + boundTodo;
         }
-        res = res + vbCrLf + " public void Initialize() {" + init + vbCrLf + " }";
+        res = res + vbCrLf + SSpace(spIndent) + "public void Initialize() {" + init + vbCrLf + SSpace(spIndent) + "}";
         res = res + vbCrLf + "}";
 
         var convertType = res;

@@ -1,7 +1,8 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using static Vb6ToCSharp.Runtime.VbConstants;
 using static Vb6ToCSharp.Runtime.VbStrings;
 using static Vb6ToCSharp.CodeConversion.CodeConverter;
+using static Vb6ToCSharp.Parsing.ProjectConfigurationParser;
 using static Vb6ToCSharp.Infrastructure.RegularExpressions;
 using static Vb6ToCSharp.CodeConversion.ConversionUtility;
 using static Vb6ToCSharp.CodeConversion.Vb6ToCsConverter;
@@ -350,6 +351,8 @@ public static class SubTracking
 
         var r = "";
         var n = vbCrLf;
+        var i1 = SSpace(spIndent);
+        var i2 = SSpace(spIndent * 2);
         for (var I = 0; I < props.Count; I++)
         {
             var p = props[I];
@@ -368,9 +371,9 @@ public static class SubTracking
                 {
                     var args = PropertyParameters(p.getArgs, false, out _);
                     r = r + mods + p.asType + " " + declName + "(" + args + ") {";
-                    r = r + n + "  " + p.asType + " " + p.name + " = " + initial + ";";
-                    r = r + n + "  " + Replace(p.getter, ExitPropertyMark, "return " + p.name + ";");
-                    r = r + n + "  return " + p.name + ";";
+                    r = r + n + i1 + p.asType + " " + p.name + " = " + initial + ";";
+                    r = r + n + i1 + Replace(p.getter, ExitPropertyMark, "return " + p.name + ";");
+                    r = r + n + i1 + "return " + p.name + ";";
                     r = r + n + "}" + n;
                 }
                 if (p.setter != "")
@@ -380,7 +383,7 @@ public static class SubTracking
                     T = ReplaceToken(T, valueName, "value");
                     T = Replace(T, ExitPropertyMark, "return;");
                     r = r + mods + "void set_" + (iface != null ? Mid(p.name, Len(iface) + 2) : p.name) + "(" + args + (args == "" ? "" : ", ") + p.asType + " value) {";
-                    r = r + n + "  " + T;
+                    r = r + n + i1 + T;
                     r = r + n + "}" + n;
                 }
                 continue;
@@ -390,23 +393,23 @@ public static class SubTracking
 
             if (p.getter != "")
             {
-                r = r + n + "  get {";
-                r = r + n + "    " + p.asType + " " + p.name + " = " + initial + ";";
+                r = r + n + i1 + "get {";
+                r = r + n + i2 + p.asType + " " + p.name + " = " + initial + ";";
                 T = p.getter;
                 T = Replace(T, ExitPropertyMark, "return " + p.name + ";");
-                r = r + n + "    " + T;
-                r = r + n + "  return " + p.name + ";";
-                r = r + n + "  }";
+                r = r + n + i2 + T;
+                r = r + n + i2 + "return " + p.name + ";";
+                r = r + n + i1 + "}";
             }
             if (p.setter != "")
             {
-                r = r + n + "  set {";
+                r = r + n + i1 + "set {";
                 T = p.setter;
                 T = ReplaceToken(T, "value", "valueOrig");
                 T = ReplaceToken(T, p.origArgName, "value"); // whole identifiers only
                 T = Replace(T, ExitPropertyMark, "return;");
-                r = r + n + "    " + T;
-                r = r + n + "  }";
+                r = r + n + i2 + T;
+                r = r + n + i1 + "}";
             }
             r = r + n + "}";
             r = r + n;
