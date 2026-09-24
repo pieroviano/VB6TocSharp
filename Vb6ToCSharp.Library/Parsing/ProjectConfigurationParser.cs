@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Vb6ToCSharp.CodeGeneration;
 using Vb6ToCSharp.CodeConversion.Model;
@@ -22,15 +22,18 @@ public static class ProjectConfigurationParser
     private static string mOutputFolder = "";
     private static string mAssemblyName = "";
     private static UiTarget mUiTarget = UiTarget.Wpf;
+    private static AdoTarget mAdoTarget = AdoTarget.Package;
     private static bool loaded = false;
     private static string oVbpFile, oOutputFolder, oAssemblyName; // in-memory overrides of the INI values (null = use INI)
     private static UiTarget? oUiTarget;
+    private static AdoTarget? oAdoTarget;
     public static bool hush = false;
     public const string iniSectionSettings = "Settings";
     public const string iniKeyVbpFile = "VBPFile";
     public const string iniKeyOutputFolder = "OutputFolder";
     public const string iniKeyAssemblyName = "AssemblyName";
     public const string iniKeyUiTarget = "UITarget";           // WPF (default) | WinForms
+    public const string iniKeyAdoTarget = "ADOTarget";         // Package (default) | COM
 
     // Project-specific conversion rules (all optional, empty by default)
     public const string iniSectionFormRenames = "FormRenames";   // <vbp Form= entry>=<new name>
@@ -75,12 +78,13 @@ public static class ProjectConfigurationParser
     }
 
     /// <summary>Overrides the INI settings for this process only (null keeps the INI value); reloads settings.</summary>
-    public static void OverrideSettings(string vbpFile = null, string outputFolder = null, string assemblyName = null, UiTarget? uiTarget = null)
+    public static void OverrideSettings(string vbpFile = null, string outputFolder = null, string assemblyName = null, UiTarget? uiTarget = null, AdoTarget? adoTarget = null)
     {
         oVbpFile = vbpFile;
         oOutputFolder = outputFolder;
         oAssemblyName = assemblyName;
         oUiTarget = uiTarget;
+        oAdoTarget = adoTarget;
         LoadSettings(true);
     }
 
@@ -93,9 +97,9 @@ public static class ProjectConfigurationParser
     /// </summary>
     public static IDisposable ProjectScope(string vbpFile, string outputFolder, string assemblyName)
     {
-        var saved = (oVbpFile, oOutputFolder, oAssemblyName, oUiTarget);
-        OverrideSettings(vbpFile, outputFolder, assemblyName, oUiTarget);
-        return new Restore(() => OverrideSettings(saved.oVbpFile, saved.oOutputFolder, saved.oAssemblyName, saved.oUiTarget));
+        var saved = (oVbpFile, oOutputFolder, oAssemblyName, oUiTarget, oAdoTarget);
+        OverrideSettings(vbpFile, outputFolder, assemblyName, oUiTarget, oAdoTarget);
+        return new Restore(() => OverrideSettings(saved.oVbpFile, saved.oOutputFolder, saved.oAssemblyName, saved.oUiTarget, saved.oAdoTarget));
     }
 
     private sealed class Restore(Action restore) : IDisposable
@@ -104,12 +108,13 @@ public static class ProjectConfigurationParser
     }
 
     /// <summary>Writes the settings to the INI file (null leaves a key unchanged) and reloads them.</summary>
-    public static void SaveSettings(string vbpFile, string outputFolder, string assemblyName, UiTarget? uiTarget = null)
+    public static void SaveSettings(string vbpFile, string outputFolder, string assemblyName, UiTarget? uiTarget = null, AdoTarget? adoTarget = null)
     {
         if (vbpFile != null) IniInterop.IniWrite(iniSectionSettings, iniKeyVbpFile, vbpFile, IniFile());
         if (outputFolder != null) IniInterop.IniWrite(iniSectionSettings, iniKeyOutputFolder, outputFolder, IniFile());
         if (assemblyName != null) IniInterop.IniWrite(iniSectionSettings, iniKeyAssemblyName, assemblyName, IniFile());
         if (uiTarget != null) IniInterop.IniWrite(iniSectionSettings, iniKeyUiTarget, uiTarget.ToString(), IniFile());
+        if (adoTarget != null) IniInterop.IniWrite(iniSectionSettings, iniKeyAdoTarget, adoTarget.ToString(), IniFile());
         LoadSettings(true);
     }
 
@@ -121,6 +126,27 @@ public static class ProjectConfigurationParser
             case "wpf": return UiTarget.Wpf;
             case "winforms": case "windowsforms": case "forms": return UiTarget.WinForms;
             default: return null;
+        }
+    }
+
+    /// <summary>Parses an ADO target name (Package / COM, case-insensitive); null when unknown.</summary>
+    public static AdoTarget? ParseAdoTarget(string s)
+    {
+        switch ((s ?? "").Trim().ToLowerInvariant())
+        {
+            case "package": case "nuget": case "standard.adodb": return AdoTarget.Package;
+            case "com": case "cominterop": case "comreference": case "typelibrary": return AdoTarget.Com;
+            default: return null;
+        }
+    }
+
+    /// <summary>What a converted project references for ADO: the Standard.AdoDb package (default) or the COM library.</summary>
+    public static AdoTarget Ado
+    {
+        get
+        {
+            LoadSettings();
+            return mAdoTarget;
         }
     }
 
@@ -173,6 +199,7 @@ public static class ProjectConfigurationParser
         mOutputFolder = IniInterop.IniRead(iniSectionSettings, iniKeyOutputFolder, IniFile());
         mAssemblyName = IniInterop.IniRead(iniSectionSettings, iniKeyAssemblyName, IniFile());
         mUiTarget = oUiTarget ?? ParseUiTarget(IniInterop.IniRead(iniSectionSettings, iniKeyUiTarget, IniFile())) ?? UiTarget.Wpf;
+        mAdoTarget = oAdoTarget ?? ParseAdoTarget(IniInterop.IniRead(iniSectionSettings, iniKeyAdoTarget, IniFile())) ?? AdoTarget.Package;
         mVbpFile = oVbpFile ?? mVbpFile;
         mOutputFolder = oOutputFolder ?? mOutputFolder;
         mAssemblyName = oAssemblyName ?? mAssemblyName;

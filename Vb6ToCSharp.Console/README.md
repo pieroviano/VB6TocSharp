@@ -27,6 +27,7 @@ Vb6ToCSharp.Console <command> [argument] [options]
 | `--out <folder>` | Output folder (overrides the INI; default `converted\` under the `.vbp` folder) |
 | `--assembly <name>` | Assembly / root namespace of the converted project |
 | `--ui <wpf\|winforms>` | UI of converted forms (default WPF) |
+| `--ado <package\|com>` | What a project that uses ADO references: the managed `Standard.AdoDb` package (default) or the ADODB type library as a `COMReference` |
 | `--quiet` | No progress output |
 
 Exit codes: `0` success, `1` conversion/validation failed, `2` usage error. Messages go to stdout, progress and errors to stderr.
@@ -50,14 +51,14 @@ Vb6ToCSharp.Console file modMain.bas
 | Folder / file | Content |
 |---|---|
 | `Modules\`, `Classes\`, `Forms\`, `UserControls\` | Converted code (forms: `.xaml` + `.xaml.cs`, or `.cs` + `.Designer.cs` + `.resx`) |
-| `<project>.csproj` | `net10.0-windows` project referencing `Net4x.Vb6ToCSharp.WinForms.UpgradeHelpers` or `…WPF…`, per `--ui` |
+| `<project>.csproj` | `net10.0-windows` project referencing `Net4x.Vb6ToCSharp.WinForms.UpgradeHelpers` or `…WPF…`, per `--ui`; plus `Standard.AdoDb` when the VB6 project referenced ADO |
 | `MigrationReport.md` | Items left to review, by category and file, with `file:line` links |
 
 A file already converted and marked `### CONVERTED` is not overwritten.
 
 ## Settings
 
-The INI's `[Settings]` section holds `VBPFile`, `OutputFolder`, `AssemblyName`, `UITarget`. Optional sections tailor the
+The INI's `[Settings]` section holds `VBPFile`, `OutputFolder`, `AssemblyName`, `UITarget`, `ADOTarget`. Optional sections tailor the
 conversion to a project (`[DataTypes]`, `[Controls]`, `[WinFormsControls]`, `[FormRenames]`, `[PostCodeLine]`): see the
 [library README](../Vb6ToCSharp.Library/README.md#project-specific-rules). VB Migration Partner `'##` pragmas in the
 sources, or in `VBMigrationPartner.pragmas` next to the `.vbp`, are honoured.

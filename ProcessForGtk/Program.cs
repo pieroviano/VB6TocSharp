@@ -25,6 +25,8 @@ Each project is rewritten in place:
     becomes " + ProjectRewriter.GtkPackage + @"
   * a PackageReference to " + ProjectRewriter.GtkWinFormsPackage
                                  + " " + ProjectRewriter.GtkWinFormsVersion + @" is added
+  * an ADODB <COMReference> becomes a PackageReference to "
+                                 + ProjectRewriter.AdoPackage + " " + ProjectRewriter.AdoPackageVersion + @"
 
 A project already in that shape is left untouched.";
 

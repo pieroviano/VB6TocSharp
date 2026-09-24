@@ -28,7 +28,7 @@ Commands:
   support [project|files]
                        Generate the project file and/or the support files (default: both)
   lint [file]          Lint one file (bare name: project folder) or the whole project
-  config               Show the settings; with --vbp/--out/--assembly/--ui, save them to the INI
+  config               Show the settings; with --vbp/--out/--assembly/--ui/--ado, save them to the INI
   help                 Show this help
 
 Options:
@@ -37,6 +37,8 @@ Options:
   --out <folder>       Output folder        (overrides the INI for this run)
   --assembly <name>    Assembly name        (overrides the INI for this run; a group keeps the .vbp names)
   --ui <wpf|winforms>  UI of converted forms (overrides the INI for this run; default WPF)
+  --ado <package|com>  What a project that uses ADO references: the Standard.AdoDb package
+                       (default) or the ADODB type library as a COMReference
   --quiet              No progress output";
 
     [STAThread]
@@ -65,6 +67,7 @@ Options:
         var positional = new List<string>();
         string ini = null, vbp = null, output = null, assembly = null;
         UiTarget? ui = null;
+        AdoTarget? ado = null;
         var quiet = false;
         for (var i = 0; i < args.Length; i++)
         {
@@ -77,6 +80,10 @@ Options:
                 case "--ui":
                     var u = Value(args, ref i);
                     ui = ProjectConfigurationParser.ParseUiTarget(u) ?? throw new UsageException("Unknown UI target: " + u + " (use wpf or winforms).");
+                    break;
+                case "--ado":
+                    var a = Value(args, ref i);
+                    ado = ProjectConfigurationParser.ParseAdoTarget(a) ?? throw new UsageException("Unknown ADO target: " + a + " (use package or com).");
                     break;
                 case "--quiet": quiet = true; break;
                 case "-h": case "--help": case "/?": positional.Insert(0, "help"); break;
@@ -103,9 +110,9 @@ Options:
 
         if (command == "config")
         {
-            return Config(vbp, output, assembly, ui);
+            return Config(vbp, output, assembly, ui, ado);
         }
-        ProjectConfigurationParser.OverrideSettings(vbp, output, assembly, ui);
+        ProjectConfigurationParser.OverrideSettings(vbp, output, assembly, ui, ado);
 
         switch (command)
         {
@@ -144,17 +151,18 @@ Options:
         }
     }
 
-    private static int Config(string vbp, string output, string assembly, UiTarget? ui)
+    private static int Config(string vbp, string output, string assembly, UiTarget? ui, AdoTarget? ado)
     {
-        if (vbp != null || output != null || assembly != null || ui != null)
+        if (vbp != null || output != null || assembly != null || ui != null || ado != null)
         {
-            ProjectConfigurationParser.SaveSettings(vbp, output, assembly, ui);
+            ProjectConfigurationParser.SaveSettings(vbp, output, assembly, ui, ado);
         }
         Console.WriteLine("Settings file:  " + ProjectConfigurationParser.IniFile());
         Console.WriteLine("Project file:   " + ProjectConfigurationParser.VbpFile);
         Console.WriteLine("Output folder:  " + ProjectConfigurationParser.OutputFolder());
         Console.WriteLine("Assembly name:  " + ProjectConfigurationParser.AssemblyName());
         Console.WriteLine("UI target:      " + ProjectConfigurationParser.Ui);
+        Console.WriteLine("ADO target:     " + ProjectConfigurationParser.Ado);
         return ExitOk;
     }
 

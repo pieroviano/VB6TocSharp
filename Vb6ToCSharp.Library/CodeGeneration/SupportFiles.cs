@@ -79,20 +79,35 @@ public static class SupportFiles
         if (UsesAdo(projectInfo))
         {
             s.Append("  <ItemGroup>" + n);
-            s.Append("    <COMReference Include=\"ADODB\">" + n);
-            s.Append("      <Guid>{B691E011-1797-432E-907A-4D8C69339129}</Guid>" + n);
-            s.Append("      <VersionMajor>6</VersionMajor>" + n);
-            s.Append("      <VersionMinor>1</VersionMinor>" + n);
-            s.Append("      <Lcid>0</Lcid>" + n);
-            s.Append("      <WrapperTool>tlbimp</WrapperTool>" + n);
-            s.Append("      <Isolated>False</Isolated>" + n);
-            s.Append("      <EmbedInteropTypes>True</EmbedInteropTypes>" + n);
-            s.Append("    </COMReference>" + n);
+            s.Append(Ado == AdoTarget.Com ? AdoComReference(n) : AdoPackageReference(n));
             s.Append("  </ItemGroup>" + n);
         }
         s.Append("</Project>" + n);
         return s.ToString();
     }
+
+    /// <summary>The managed ADODB replacement a converted project references by default: no COM interop, so it builds off Windows.</summary>
+    public const string AdoPackage = "Standard.AdoDb";
+
+    /// <summary>The version range referenced for <see cref="AdoPackage"/>.</summary>
+    public const string AdoPackageVersion = "1.0.0.*";
+
+    /// <summary>ADO as managed code: the same ADODB namespace, without the type library.</summary>
+    private static string AdoPackageReference(string n) =>
+        "    <!-- ADO (Microsoft ActiveX Data Objects) as managed code: the ADODB namespace without the COM type library -->" + n
+        + "    <PackageReference Include=\"" + AdoPackage + "\" Version=\"" + AdoPackageVersion + "\" />" + n;
+
+    /// <summary>ADO as the type library itself: needs a registered msado*.tlb and Visual Studio's MSBuild to resolve it.</summary>
+    private static string AdoComReference(string n) =>
+        "    <COMReference Include=\"ADODB\">" + n
+        + "      <Guid>{B691E011-1797-432E-907A-4D8C69339129}</Guid>" + n
+        + "      <VersionMajor>6</VersionMajor>" + n
+        + "      <VersionMinor>1</VersionMinor>" + n
+        + "      <Lcid>0</Lcid>" + n
+        + "      <WrapperTool>tlbimp</WrapperTool>" + n
+        + "      <Isolated>False</Isolated>" + n
+        + "      <EmbedInteropTypes>True</EmbedInteropTypes>" + n
+        + "    </COMReference>" + n;
 
     /// <summary>The project references ADO (Microsoft ActiveX Data Objects): converted code uses ADODB.</summary>
     public static bool UsesAdo(ProjectInfo projectInfo) => projectInfo.References.Exists(r => Regex.IsMatch(r, "ActiveX Data Objects|msado|\\{00000[0-9A-F]{3}-0000-0010-8000-00AA006D2EA4\\}", RegexOptions.IgnoreCase));

@@ -71,7 +71,7 @@ Partner's rules. See [README.md](README.md) and the per-project READMEs for user
   `CodeGeneration/UsingEverything.cs`, the assembly reference in `SupportFiles`, the PowerPacks prefix in
   `ControlCatalog` and `CompileUsings` in the tests are emitted text - do not "clean" them up.
   `Vb6ToCSharp.Tests/Tests/FormTest.cs` is a conversion fixture left over from self-conversion, not a runnable test.
-- **State and config.** `ProjectConfigurationParser` loads `VB6toCS.INI` (`IniFilePath`, `OverrideSettings`, `UiTarget`).
+- **State and config.** `ProjectConfigurationParser` loads `VB6toCS.INI` (`IniFilePath`, `OverrideSettings`, `UiTarget`, `AdoTarget`).
   Front ends inject UI through the delegates `ConversionUtility.Notify` / `ConversionUtility.Progress`. The library must
   never show UI directly.
 - **Pipeline, per file (text-based, line by line):**
@@ -91,7 +91,8 @@ Partner's rules. See [README.md](README.md) and the per-project READMEs for user
   VB6 controls and events to .NET (both overridable from the INI); `WpfEmitter` (XAML) or `WinFormsEmitter`
   (`Designer.cs` + `.resx` via `ResxWriter`) emits the designer. `FormContext` shares designer facts with the code
   conversion, e.g. `EventAdapters`, which bridge .NET handler signatures to the VB6-signature handlers.
-- **Output support.** `SupportFiles` writes the `.csproj`, `Program.cs` and `AssemblyInfo.cs`; `ProjectGroup` writes the
+- **Output support.** `SupportFiles` writes the `.csproj`, `Program.cs` and `AssemblyInfo.cs` (a project that used ADO
+  references the managed `Standard.AdoDb` package, or the ADODB `COMReference` when `ADOTarget=COM`); `ProjectGroup` writes the
   `.sln` and project references for a `.vbg`. `MigrationReport.Write()` collects every `// TODO:` in the output into
   `MigrationReport.md`.
 - **Runtime (three packages).** This is what converted code calls, split by UI stack; namespaces are shared

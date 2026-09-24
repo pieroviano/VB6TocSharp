@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using Vb6ToCSharp.CodeGeneration;
 using Vb6ToCSharp.Tests.Fixtures;
 
 namespace Vb6ToCSharp.Tests;
@@ -79,19 +80,45 @@ public class IntegrationTests
     }
 
     /// <summary>
-    /// Builds a converted project or solution: restore only from the repository feed (the runtime package built with this
-    /// solution), into a fresh folder.
+    /// Builds a converted project or solution into a fresh folder. The packages this solution builds come from the
+    /// repository feed, everything else a converted project references (Standard.AdoDb's dependencies) from nuget.org.
     /// </summary>
     private static void Build(string root, string output, string target)
     {
-        var feed = Path.Combine(root, "Packages");
-        var props = $"-restore -nologo -v:m -p:Configuration=Debug \"-p:RestoreSources={feed}\" \"-p:RestorePackagesPath={Path.Combine(output, ".packages")}\"";
+        WriteRestoreSources(root, output);
+        var props = $"-restore -nologo -v:m -p:Configuration=Debug \"-p:RestorePackagesPath={Path.Combine(output, ".packages")}\"";
         var msbuild = FindMsBuild();
         var build = msbuild != null
             ? Run(msbuild, $"\"{target}\" {props}", output, 600000)
             : Run("dotnet", $"msbuild \"{target}\" {props}", output, 600000);
         Assert.True(build.Code == 0, "the converted code does not build (" + build.Code + "):\n"
                                      + string.Join("\n", build.Output.Split('\n').Where(l => l.Contains(" error ")).Distinct().Take(50)));
+    }
+
+    /// <summary>
+    /// The NuGet sources of the converted project: source mapping pins the packages this solution builds to the
+    /// repository feed, so a same-numbered build published on nuget.org cannot shadow the one under test.
+    /// </summary>
+    private static void WriteRestoreSources(string root, string output)
+    {
+        File.WriteAllText(Path.Combine(output, "NuGet.config"),
+            "<?xml version=\"1.0\" encoding=\"utf-8\"?>\r\n" +
+            "<configuration>\r\n" +
+            "  <packageSources>\r\n" +
+            "    <clear />\r\n" +
+            "    <add key=\"Local\" value=\"" + Path.Combine(root, "Packages") + "\" />\r\n" +
+            "    <add key=\"nuget.org\" value=\"https://api.nuget.org/v3/index.json\" />\r\n" +
+            "  </packageSources>\r\n" +
+            "  <packageSourceMapping>\r\n" +
+            "    <packageSource key=\"Local\">\r\n" +
+            "      <package pattern=\"Net4x.Vb6ToCSharp.*\" />\r\n" +
+            "      <package pattern=\"" + SupportFiles.AdoPackage + "\" />\r\n" +
+            "    </packageSource>\r\n" +
+            "    <packageSource key=\"nuget.org\">\r\n" +
+            "      <package pattern=\"*\" />\r\n" +
+            "    </packageSource>\r\n" +
+            "  </packageSourceMapping>\r\n" +
+            "</configuration>\r\n");
     }
 
     /// <summary>Loads a built assembly from its bytes, so the file stays deletable for the next run.</summary>
@@ -184,7 +211,7 @@ public class IntegrationTests
     /// <summary>
     /// The same end to end for a project that uses ADO: Vb6Ado\Vbb6Ado.vbp into ConvertedVb6Ado\. Only convert and
     /// build - the converted code talks to SQL Server LocalDB and shows message boxes, so it is not run here.
-    /// The generated project has a COMReference (ADODB), which only Visual Studio's MSBuild can resolve.
+    /// ADO comes from the managed Standard.AdoDb package, not from the COM type library.
     /// </summary>
     [Fact]
     public void Vb6Ado_ConvertsWithTheConsole_AndTheConvertedProjectBuilds()
@@ -195,8 +222,10 @@ public class IntegrationTests
         var project = Path.Combine(output, "Vbb6Ado.csproj");
         Assert.True(File.Exists(project), "no project generated");
         Assert.True(File.Exists(Path.Combine(output, "MigrationReport.md")));
-        // the VB6 project references Microsoft ActiveX Data Objects: the converted one must reference ADODB
-        Assert.Contains("<COMReference Include=\"ADODB\">", File.ReadAllText(project));
+        // the VB6 project references Microsoft ActiveX Data Objects: the converted one references the managed ADODB package
+        var csproj = File.ReadAllText(project);
+        Assert.Contains("<PackageReference Include=\"Standard.AdoDb\"", csproj);
+        Assert.DoesNotContain("COMReference", csproj);
 
         Build(root, output, project);
         Assert.True(File.Exists(Path.Combine(output, "bin", "Debug", ConvertedTargetFramework, "Vbb6Ado.dll")), "not built");

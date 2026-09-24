@@ -19,10 +19,16 @@ internal static class ProjectRewriter
     internal const string GtkPackage = "Net4x.Vb6ToCSharp.Gtk.UpgradeHelpers";
 
     /// <summary>The Gtk implementation of Windows Forms, which a Gtk project also needs.</summary>
-    internal const string GtkWinFormsPackage = "Gtk.Windows.Forms";
+    internal const string GtkWinFormsPackage = "Gtk.Windows.Forms.Base";
 
     /// <summary>The version range referenced for <see cref="GtkWinFormsPackage"/>.</summary>
-    internal const string GtkWinFormsVersion = "1.3.24.*";
+    internal const string GtkWinFormsVersion = "1.4.2464.*";
+
+    /// <summary>The managed ADODB replacement: a Gtk project cannot resolve the COM type library at all.</summary>
+    internal const string AdoPackage = "Standard.AdoDb";
+
+    /// <summary>The version range referenced for <see cref="AdoPackage"/>.</summary>
+    internal const string AdoPackageVersion = "1.0.0.*";
 
     /// <summary>A platform suffix of a target framework moniker, e.g. <c>-windows10.0.19041.0</c>.</summary>
     private static readonly Regex WindowsSuffix =
@@ -55,6 +61,24 @@ internal static class ProjectRewriter
             + Regex.Escape(GtkWinFormsPackage) + @"""",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
+    /// <summary>A whole ADODB <c>COMReference</c> element, from its indentation to its closing tag.</summary>
+    private static readonly Regex AdoComReferenceElement =
+        new(@"(?<indent>[ \t]*)<COMReference\b[^>]*\bInclude\s*=\s*""ADODB""[^>]*?"
+            + @"(?:/>|>.*?</COMReference\s*>)[ \t]*",
+            RegexOptions.IgnoreCase | RegexOptions.Singleline | RegexOptions.Compiled);
+
+    /// <summary>The whole line of an ADODB <c>COMReference</c>, for a project that already references the package.</summary>
+    private static readonly Regex AdoComReferenceLine =
+        new(@"[ \t]*<COMReference\b[^>]*\bInclude\s*=\s*""ADODB""[^>]*?"
+            + @"(?:/>|>.*?</COMReference\s*>)[ \t]*(?:\r?\n)?",
+            RegexOptions.IgnoreCase | RegexOptions.Singleline | RegexOptions.Compiled);
+
+    /// <summary>An existing reference to <see cref="AdoPackage"/> (that exact id, not a sibling).</summary>
+    private static readonly Regex AdoPackageReference =
+        new(@"<PackageReference\b[^>]*?\bInclude\s*=\s*"""
+            + Regex.Escape(AdoPackage) + @"""",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
     /// <summary>The closing tag of the project: the fallback insertion point.</summary>
     private static readonly Regex ProjectEnd =
         new(@"[ \t]*</Project\s*>[ \t]*\r?\n?\s*$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
@@ -70,6 +94,7 @@ internal static class ProjectRewriter
         string result = DropWindowsPlatform(project);
         result = UseWindowsFormsElement.Replace(result, string.Empty);
         result = WinFormsPackageReference.Replace(result, "${open}" + GtkPackage + "${close}");
+        result = ReplaceAdoComReference(result);
         return AddGtkWinForms(result);
     }
 
@@ -96,6 +121,21 @@ internal static class ProjectRewriter
 
         return seen;
     }
+
+    /// <summary>Swaps an ADODB <c>COMReference</c> for the managed package, in place so its ItemGroup stays valid.</summary>
+    private static string ReplaceAdoComReference(string project)
+    {
+        if (AdoPackageReference.IsMatch(project))
+        {
+            return AdoComReferenceLine.Replace(project, string.Empty); // the package is already referenced
+        }
+
+        return AdoComReferenceElement.Replace(project, match => match.Groups["indent"].Value + AdoReference());
+    }
+
+    /// <summary>The managed ADO <c>PackageReference</c> element, without indentation.</summary>
+    private static string AdoReference() =>
+        $"<PackageReference Include=\"{AdoPackage}\" Version=\"{AdoPackageVersion}\" />";
 
     /// <summary>Adds the Gtk Windows Forms reference, unless the project already has one.</summary>
     private static string AddGtkWinForms(string project)

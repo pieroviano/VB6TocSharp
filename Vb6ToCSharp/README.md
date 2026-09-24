@@ -30,9 +30,10 @@ Progress comes from `ConversionUtility.Progress` (wired in [App.xaml.cs](App.xam
 
 ## Settings
 
-The settings are stored in `VB6toCS.INI` next to the exe, under `[Settings]`: `VBPFile`, `OutputFolder`, `AssemblyName`, `UITarget`.
+The settings are stored in `VB6toCS.INI` next to the exe, under `[Settings]`: `VBPFile`, `OutputFolder`, `AssemblyName`, `UITarget`, `ADOTarget`.
 
 - The GUI has no control for the UI target. Set `UITarget=WinForms` in the INI, or use `Vb6ToCSharp.Console config --ui winforms`. The default is WPF.
+- Nor for the ADO target. A project that used ADO references the managed `Standard.AdoDb` package; set `ADOTarget=COM` in the INI, or use `Vb6ToCSharp.Console config --ado com`, for the ADODB `COMReference` instead.
 - When `OutputFolder` is not set, the output goes to `converted\` under the `.vbp` folder.
 - The optional project-specific sections and `'##` pragmas are described in the
   [library README](../Vb6ToCSharp.Library/README.md#project-specific-rules).

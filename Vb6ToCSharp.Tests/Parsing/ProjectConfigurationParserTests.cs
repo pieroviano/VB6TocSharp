@@ -1,5 +1,6 @@
 using System.IO;
 using Vb6ToCSharp.CodeConversion;
+using Vb6ToCSharp.CodeConversion.Model;
 using Vb6ToCSharp.Infrastructure;
 using Vb6ToCSharp.Parsing;
 
@@ -105,6 +106,40 @@ public class ProjectConfigurationParserTests : IClassFixture<ConverterFixture>
         Assert.Equal("// DisposeDA()", ProjectSpecificConverter.ApplyPostCodeLineRule("DisposeDA()", IniInterop.IniRead(ProjectConfigurationParser.iniSectionPostCodeLine, "1", sample)));
         Assert.Equal("IsIn(x, a)", ProjectSpecificConverter.ApplyPostCodeLineRule("IsIn(ref x, a)", IniInterop.IniRead(ProjectConfigurationParser.iniSectionPostCodeLine, "2", sample)));
         Assert.Equal("UGridIO", IniInterop.IniRead(ProjectConfigurationParser.iniSectionControls, "WinCDS.UGridIO", sample));
+    }
+
+    [Theory]
+    [InlineData("Package", AdoTarget.Package)]
+    [InlineData("nuget", AdoTarget.Package)]
+    [InlineData("COM", AdoTarget.Com)]
+    [InlineData(" comreference ", AdoTarget.Com)]
+    public void ParseAdoTarget_AcceptsEitherName(string name, AdoTarget expected) =>
+        Assert.Equal(expected, ProjectConfigurationParser.ParseAdoTarget(name));
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("ado")]
+    public void ParseAdoTarget_RejectsAnythingElse(string name)
+    {
+        Assert.Null(ProjectConfigurationParser.ParseAdoTarget(name));
+        Assert.Null(ProjectConfigurationParser.ParseAdoTarget(null!)); // an INI without the key reads as null
+    }
+
+    [Fact]
+    public void AdoTarget_IsThePackageUnlessTheIniSaysCom()
+    {
+        Assert.Equal(AdoTarget.Package, ProjectConfigurationParser.Ado); // no ADOTarget key: converted projects avoid COM
+        IniInterop.IniWrite(ProjectConfigurationParser.iniSectionSettings, ProjectConfigurationParser.iniKeyAdoTarget, "COM", Ini);
+        ProjectConfigurationParser.LoadSettings(true);
+        try
+        {
+            Assert.Equal(AdoTarget.Com, ProjectConfigurationParser.Ado);
+        }
+        finally // only this key: the fixture's project, output folder and assembly name live in the same section
+        {
+            IniInterop.IniWrite(ProjectConfigurationParser.iniSectionSettings, ProjectConfigurationParser.iniKeyAdoTarget, null!, Ini);
+            ProjectConfigurationParser.LoadSettings(true);
+        }
     }
 
     [Fact]

@@ -43,7 +43,7 @@ Or run `Vb6ToCSharp.exe`, set the project under `Config`, then click `ALL`.
 | Output | Content |
 |---|---|
 | `Modules\`, `Classes\`, `Forms\`, `UserControls\` | Converted code (WPF: `.xaml` + `.xaml.cs`; WinForms: `.cs` + `.Designer.cs` + `.resx`) |
-| `<project>.csproj` | SDK-style `net10.0-windows` project that references `Net4x.Vb6ToCSharp.WinForms.UpgradeHelpers` or `…WPF…` (the base package comes with it) |
+| `<project>.csproj` | SDK-style `net10.0-windows` project that references `Net4x.Vb6ToCSharp.WinForms.UpgradeHelpers` or `…WPF…` (the base package comes with it); a project that used ADO also references `Standard.AdoDb` |
 | `MigrationReport.md` | Remaining `TODO`s, grouped by category and file, with `file:line` links |
 
 When no output folder is set, the output goes to `converted\` under the `.vbp` folder. Files marked `### CONVERTED` are not overwritten.
@@ -52,7 +52,7 @@ When no output folder is set, the output goes to `converted\` under the `.vbp` f
 
 | Source | Content |
 |---|---|
-| `VB6toCS.INI` (next to the exe, or `--ini`) | `[Settings]`: `VBPFile`, `OutputFolder`, `AssemblyName`, `UITarget` |
+| `VB6toCS.INI` (next to the exe, or `--ini`) | `[Settings]`: `VBPFile`, `OutputFolder`, `AssemblyName`, `UITarget`, `ADOTarget` |
 | Same INI, optional sections | `[DataTypes]`, `[Controls]`, `[WinFormsControls]`, `[FormRenames]`, `[PostCodeLine]`; see the [library README](Vb6ToCSharp.Library/README.md#project-specific-rules) |
 | `'##` pragmas in the sources or `VBMigrationPartner.pragmas` | Per file / per project conversion options; see the [library README](Vb6ToCSharp.Library/README.md#pragmas) |
 
