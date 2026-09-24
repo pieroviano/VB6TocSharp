@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+    <Import Project="..\Vb6ToCSharp.Base.UpgradeHelpers.Shared\Vb6ToCSharp.Base.UpgradeHelpers.Shared.projitems" Label="Shared" />
+    <PropertyGroup>
+        <PackageOutputPath>$(SolutionDir)Packages/</PackageOutputPath>
+        <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+        <Version>$(VersionPrefix).$(VersionSuffix)</Version>
+        <OutputType>Library</OutputType>
+        <TargetFramework>net10.0</TargetFramework>
+        <!-- namespaces are shared with the base package: they stay Vb6ToCSharp.UpgradeHelpers.* -->
+        <RootNamespace>Vb6ToCSharp.UpgradeHelpers</RootNamespace>
+        <Copyright>Copyright (c) Piero Viano 2026. All rights reserved.</Copyright>
+        <Description>Gtk WinForms controls, helpers and common dialogs for VB6 programs converted to C# by Vb6ToCSharp.</Description>
+        <LangVersion>latest</LangVersion>
+        <PackageId>Net4x.$(MSBuildProjectName)</PackageId>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>
+        <DefineConstants>$(DefineConstants);GTK</DefineConstants>
+    </PropertyGroup>
+    <ItemGroup>
+        <InternalsVisibleTo Include="Vb6ToCSharp.Gtk.UpgradeHelpers.Tests" />
+    </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="Gtk.Windows.Forms.Base" Version="$(GTKWinFormsAppVersion).$(VersionBuildSuffix)" />
+        <PackageReference Include="Net4x.NuGetUtility" Version="$(NuGetUtilityVersion)" PrivateAssets="All" />
+    </ItemGroup>
+    <PropertyGroup>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+    </PropertyGroup>
+    <ItemGroup>
+        <None Remove="$(SolutionDir)README.md" />
+        <None Update="README.md" Pack="true" PackagePath="\" />
+        <Content Include="$(SolutionDir)License.txt" Link="License.txt" Pack="true" PackagePath="\License.txt" Condition="Exists('$(SolutionDir)License.txt')" />
+    </ItemGroup>
+</Project>

@@ -9,6 +9,7 @@
         <VersionBuildSuffix Condition="'$(VersionBuildSuffix)'==''">*</VersionBuildSuffix>
         <NuGetPackageRoot Condition="'$(NuGetPackageRoot)'==''">$(USERPROFILE)\.nuget\packages\</NuGetPackageRoot>
         <SystemDrawingCommonVersion Condition="'$(SystemDrawingCommonVersion)'==''">10.0.12</SystemDrawingCommonVersion>
+        <GTKWinFormsAppVersion>1.4.2464</GTKWinFormsAppVersion>
         <Net4xBaseTypesVersion>1.3.1</Net4xBaseTypesVersion>
         <ObfuscarVersion>2.2.37</ObfuscarVersion>
         <SystemDrawingCommonVersion>8.0.0</SystemDrawingCommonVersion>
