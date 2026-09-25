@@ -26,7 +26,7 @@ if (error == "") CodeConverter.ConvertProject(ProjectConfigurationParser.VbpFile
 
 | Entry point | Does |
 |---|---|
-| `CodeConverter.ConvertProject(vbp)` | Scan, `.csproj` + support files, every file, `MigrationReport.md` |
+| `CodeConverter.ConvertProject(vbp)` | Scan, `.csproj` + support files, every file, `MigrationReport.md`, into `<out>\<project>\` under a `.sln` (a `.vbg`: one folder per project) |
 | `CodeConverter.ConvertFile(path)` | One `.bas` / `.cls` / `.frm` / `.ctl`; `false` if not converted |
 | `CodeConverter.ConvertClassSource(source)` | A class module's source → C# text (no file I/O) |
 | `RefScanner.ScanRefs()` | Index the project's procedures, enums, forms (needed before converting files one by one) |

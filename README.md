@@ -40,13 +40,20 @@ Vb6ToCSharp.Console all
 
 Or run `Vb6ToCSharp.exe`, set the project under `Config`, then click `ALL`.
 
+The output is a solution with the project in a folder of its own, whether one `.vbp` or a whole `.vbg` was converted:
+`<out>\<project>.sln` (`<group>.sln` for a `.vbg`) with `<out>\<project>\` beside it. A project converted on its own
+takes the name of its `.csproj`, i.e. of the `.vbp` file; a project of a group takes the `.vbp`'s `Name`.
+
 | Output | Content |
 |---|---|
-| `Modules\`, `Classes\`, `Forms\`, `UserControls\` | Converted code (WPF: `.xaml` + `.xaml.cs`; WinForms: `.cs` + `.Designer.cs` + `.resx`) |
-| `<project>.csproj` | SDK-style `net10.0-windows` project that references `Net4x.Vb6ToCSharp.WinForms.UpgradeHelpers` or `…WPF…` (the base package comes with it); a project that used ADO also references `Standard.AdoDb` and the ADO.NET client its connection strings name (`Provider=MSOLEDBSQL` → `Microsoft.Data.SqlClient`) |
-| `MigrationReport.md` | Remaining `TODO`s, grouped by category and file, with `file:line` links |
+| `<project>.sln` | Visual Studio solution over the converted project(s) |
+| `<project>\Modules\`, `…\Classes\`, `…\Forms\`, `…\UserControls\` | Converted code (WPF: `.xaml` + `.xaml.cs`; WinForms: `.cs` + `.Designer.cs` + `.resx`) |
+| `<project>\<project>.csproj` | SDK-style `net10.0-windows` project that references `Net4x.Vb6ToCSharp.WinForms.UpgradeHelpers` or `…WPF…` (the base package comes with it); a project that used ADO also references `Standard.AdoDb` and the ADO.NET client its connection strings name (`Provider=MSOLEDBSQL` → `Microsoft.Data.SqlClient`) |
+| `MigrationReport.md` | Remaining `TODO`s, grouped by category and file, with `file:line` links; beside the `.sln` for one project, in each project's folder for a group |
 
-When no output folder is set, the output goes to `converted\` under the `.vbp` folder. Files marked `### CONVERTED` are not overwritten.
+When no output folder is set, the output goes to `converted\` under the `.vbp` folder. Files marked `### CONVERTED` are not
+overwritten. An output folder written before the project had a folder of its own has its project moved into the new
+subfolder on the next conversion.
 
 ## Settings
 

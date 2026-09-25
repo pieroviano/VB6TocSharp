@@ -17,8 +17,9 @@ internal static class Program
     private const string Usage = @"Usage: Vb6ToCSharp.Console <command> [arguments] [options]
 
 Commands:
-  all                  Scan, generate project/support files and convert the whole project;
-                       for a project group (.vbg): every project, plus a solution (.sln)
+  all                  Scan, generate project/support files and convert the whole project into
+                       <out>\<project>\, with <out>\<project>.sln beside it;
+                       for a project group (.vbg): every project, under one solution
   forms                Convert the project's forms
   modules              Convert the project's modules
   classes              Convert the project's classes
