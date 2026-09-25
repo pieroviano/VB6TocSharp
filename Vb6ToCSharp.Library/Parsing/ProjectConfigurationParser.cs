@@ -94,13 +94,14 @@ public static class ProjectConfigurationParser
     public static bool AssemblyNameOverridden => oAssemblyName != null;
 
     /// <summary>
-    /// Points the settings at one project of a group until disposed (project file, output folder and assembly name);
-    /// the previous overrides are restored afterwards.
+    /// Points the settings at one project until disposed (project file, output folder, and the assembly name when one
+    /// is given - a group names its projects, a lone project keeps whatever the run set); the previous overrides are
+    /// restored afterwards.
     /// </summary>
-    public static IDisposable ProjectScope(string vbpFile, string outputFolder, string assemblyName)
+    public static IDisposable ProjectScope(string vbpFile, string outputFolder, string assemblyName = null)
     {
         var saved = (oVbpFile, oOutputFolder, oAssemblyName, oUiTarget, oAdoTarget);
-        OverrideSettings(vbpFile, outputFolder, assemblyName, oUiTarget, oAdoTarget);
+        OverrideSettings(vbpFile, outputFolder, assemblyName ?? oAssemblyName, oUiTarget, oAdoTarget);
         return new Restore(() => OverrideSettings(saved.oVbpFile, saved.oOutputFolder, saved.oAssemblyName, saved.oUiTarget, saved.oAdoTarget));
     }
 

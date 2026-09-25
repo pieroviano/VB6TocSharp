@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using System.Linq;
 using Vb6ToCSharp.CodeGeneration;
 using Vb6ToCSharp.CodeConversion;
@@ -140,6 +140,84 @@ public class ProjectGroupTests
             StatementsConverter.ResetProjectCaches();
             ConversionUtility.Notify = notify;
         }
+    }
+
+    /// <summary>A .vbp converted on its own gets the same shape as a group, with one project in it.</summary>
+    [Fact]
+    public void SolutionFile_OneProject_PointsAtTheProjectFolder()
+    {
+        var sln = ProjectGroup.SolutionFile("Showcase", new[] { ("Showcase", "Showcase\\Showcase.csproj") });
+
+        Assert.Contains("= \"Showcase\", \"Showcase\\Showcase.csproj\", \"{", sln);
+        Assert.Equal(1, sln.Split("EndProject").Length - 1);
+        Assert.Contains("GlobalSection(ProjectConfigurationPlatforms)", sln);
+    }
+
+    [Fact]
+    public void ProjectGuid_IsStableAndDiffersPerProject()
+    {
+        Assert.Equal(ProjectGroup.ProjectGuid("S", "P"), ProjectGroup.ProjectGuid("s", "p")); // case-insensitive
+        Assert.NotEqual(ProjectGroup.ProjectGuid("S", "P"), ProjectGroup.ProjectGuid("S", "Q"));
+    }
+
+    /// <summary>
+    /// An output folder written before the project had a folder of its own: the project moves into it, and what the
+    /// conversion does not own stays where it is.
+    /// </summary>
+    [Fact]
+    public void MoveFlatConversion_MovesTheProjectAndLeavesTheRestAlone()
+    {
+        var root = TestUtil.TempDir() + "\\";
+        var folder = Path.Combine(root, "Sample") + "\\";
+        File.WriteAllText(root + "Sample.csproj", "old project");
+        File.WriteAllText(root + "Program.cs", "old program");
+        Directory.CreateDirectory(root + "Modules");
+        File.WriteAllText(root + "Modules\\modA.cs", "old module");
+        Directory.CreateDirectory(root + "Properties");
+        File.WriteAllText(root + "Properties\\AssemblyInfo.cs", "old info");
+        File.WriteAllText(root + "MigrationReport.md", "the report");
+        File.WriteAllText(root + "NuGet.config", "sources");
+        Directory.CreateDirectory(root + "obj");
+        File.WriteAllText(root + "obj\\project.assets.json", "build output");
+
+        ProjectGroup.MoveFlatConversion(root, folder, "Sample");
+
+        Assert.Equal("old project", File.ReadAllText(folder + "Sample.csproj"));
+        Assert.Equal("old program", File.ReadAllText(folder + "Program.cs"));
+        Assert.Equal("old module", File.ReadAllText(folder + "Modules\\modA.cs"));
+        Assert.Equal("old info", File.ReadAllText(folder + "Properties\\AssemblyInfo.cs"));
+        Assert.False(File.Exists(root + "Sample.csproj"));
+        Assert.False(Directory.Exists(root + "Modules"));
+        // not the conversion's to move: the report, the NuGet sources, and a build's own output
+        Assert.True(File.Exists(root + "MigrationReport.md"));
+        Assert.True(File.Exists(root + "NuGet.config"));
+        Assert.True(File.Exists(root + "obj\\project.assets.json"));
+    }
+
+    /// <summary>Converting twice into the same folder: the second run finds the project already in place.</summary>
+    [Fact]
+    public void MoveFlatConversion_KeepsWhatTheProjectFolderAlreadyHas()
+    {
+        var root = TestUtil.TempDir() + "\\";
+        var folder = Path.Combine(root, "Sample") + "\\";
+        Directory.CreateDirectory(folder);
+        File.WriteAllText(folder + "Program.cs", "current");
+        File.WriteAllText(root + "Program.cs", "stale");
+
+        ProjectGroup.MoveFlatConversion(root, folder, "Sample");
+
+        Assert.Equal("current", File.ReadAllText(folder + "Program.cs"));
+        Assert.False(File.Exists(root + "Program.cs"));
+    }
+
+    [Fact]
+    public void MoveFlatConversion_DoesNothingWhenThereIsNoFlatConversion()
+    {
+        var root = TestUtil.TempDir() + "\\";
+
+        ProjectGroup.MoveFlatConversion(root, Path.Combine(root, "Sample") + "\\", "Sample");
+
+        Assert.Empty(Directory.GetFileSystemEntries(root));
     }
 
     private static string RepoRoot()

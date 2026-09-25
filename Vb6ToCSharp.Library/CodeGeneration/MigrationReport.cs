@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -48,7 +48,7 @@ public static class MigrationReport
     {
         var r = new List<Issue>();
         if (!Directory.Exists(folder)) return r;
-        foreach (var path in Directory.GetFiles(folder, "*.cs", SearchOption.AllDirectories).OrderBy(p => p, StringComparer.OrdinalIgnoreCase))
+        foreach (var path in SourceFiles(folder))
         {
             var rel = path.Substring(folder.Length).TrimStart('\\', '/').Replace('\\', '/');
             var lines = File.ReadAllLines(path);
@@ -93,11 +93,24 @@ public static class MigrationReport
         return b.ToString();
     }
 
+    /// <summary>
+    /// The converted C# of an output folder: what a build leaves behind in bin\ and obj\ is generated, not converted,
+    /// and neither its count nor its own TODO comments belong in the report.
+    /// </summary>
+    private static IEnumerable<string> SourceFiles(string folder)
+    {
+        if (!Directory.Exists(folder)) return Enumerable.Empty<string>();
+        var build = new[] { "\\bin\\", "\\obj\\" };
+        return Directory.GetFiles(folder, "*.cs", SearchOption.AllDirectories)
+            .Where(p => !build.Any(b => p.Substring(folder.Length).Contains(b, StringComparison.OrdinalIgnoreCase)))
+            .OrderBy(p => p, StringComparer.OrdinalIgnoreCase);
+    }
+
     /// <summary>Writes the report of the converted project into its output folder; returns the report path.</summary>
     public static string Write(string folder = null)
     {
         folder = folder ?? OutputFolder();
-        var files = Directory.Exists(folder) ? Directory.GetFiles(folder, "*.cs", SearchOption.AllDirectories).Length : 0;
+        var files = SourceFiles(folder).Count();
         var path = Path.Combine(folder, ReportFile);
         File.WriteAllText(path, Render(Collect(folder), files, Path.GetFileNameWithoutExtension(VbpFile)));
         return path;

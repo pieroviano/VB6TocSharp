@@ -683,10 +683,14 @@ public class CodeConverterTests : IClassFixture<ConverterFixture>
             CodeConverter.ConvertProject(ProjectConfigurationParser.VbpFile);
             return 0;
         }, 60000));
-        Assert.Equal(new[] { "Complete." }, notes);
-        Assert.True(File.Exists(Out(fixture, @"Modules\modA.cs")));
-        Assert.True(File.Exists(Out(fixture, @"Forms\frmA.xaml")));
-        Assert.True(File.Exists(Out(fixture, @"Forms\frmA.xaml.cs")));
+        // one .vbp is laid out like a group: prj\ beside prj.sln, which the note names
+        Assert.EndsWith(@"out\prj.sln", Assert.Single(notes));
+        Assert.True(File.Exists(Out(fixture, @"prj.sln")));
+        Assert.True(File.Exists(Out(fixture, @"prj\prj.csproj")));
+        Assert.True(File.Exists(Out(fixture, @"prj\Modules\modA.cs")));
+        Assert.True(File.Exists(Out(fixture, @"prj\Forms\frmA.xaml")));
+        Assert.True(File.Exists(Out(fixture, @"prj\Forms\frmA.xaml.cs")));
+        Assert.True(File.Exists(Out(fixture, @"MigrationReport.md")), "the report belongs next to the solution");
     }
 
     // ---------------------------------------------------------------- call sites: ByRef, omitted arguments, type libraries

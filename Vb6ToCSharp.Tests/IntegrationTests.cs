@@ -174,15 +174,18 @@ public class IntegrationTests
         var root = RepoRoot();
         var output = Path.Combine(root, "Converted");
         ConvertWithConsole(Path.Combine(root, "VB6", "Showcase.vbp"), output, "--assembly Showcase");
-        var project = Path.Combine(output, "Showcase.csproj");
+        // a lone .vbp is laid out like a group: the project in a folder named after its .csproj, the .sln beside it
+        var solution = Path.Combine(output, "Showcase.sln");
+        var project = Path.Combine(output, "Showcase", "Showcase.csproj");
+        Assert.True(File.Exists(solution), "no solution generated");
         Assert.True(File.Exists(project), "no project generated");
-        Assert.True(File.Exists(Path.Combine(output, "MigrationReport.md")));
+        Assert.True(File.Exists(Path.Combine(output, "MigrationReport.md")), "the report belongs next to the solution");
 
-        Build(root, output, project);
+        Build(root, output, solution);
 
         // run it: the converted code of every module and class (RunAll; Main would also show the form).
         // The managed assembly is the .dll - on .NET the .exe is a native apphost.
-        var assembly = LoadFromBytes(Path.Combine(output, "bin", "Debug", ConvertedTargetFramework, "Showcase.dll"));
+        var assembly = LoadFromBytes(Path.Combine(output, "Showcase", "bin", "Debug", ConvertedTargetFramework, "Showcase.dll"));
         Assert.Equal(true, Call(assembly, "modMain", "RunAll"));
         // results that depend on VB6 semantics being kept
         Assert.Equal(43, Call(assembly, "modMain", "Classes")); // events, default member c(1), For Each on the class, interface method, CApp.Version
@@ -219,7 +222,9 @@ public class IntegrationTests
         var root = RepoRoot();
         var output = Path.Combine(root, "ConvertedVb6Ado");
         ConvertWithConsole(Path.Combine(root, "Vb6Ado", "Vbb6Ado.vbp"), output, "--assembly Vbb6Ado");
-        var project = Path.Combine(output, "Vbb6Ado.csproj");
+        var solution = Path.Combine(output, "Vbb6Ado.sln");
+        var project = Path.Combine(output, "Vbb6Ado", "Vbb6Ado.csproj");
+        Assert.True(File.Exists(solution), "no solution generated");
         Assert.True(File.Exists(project), "no project generated");
         Assert.True(File.Exists(Path.Combine(output, "MigrationReport.md")));
         // the VB6 project references Microsoft ActiveX Data Objects: the converted one references the managed ADODB package
@@ -230,13 +235,13 @@ public class IntegrationTests
         Assert.Contains("<PackageReference Include=\"Microsoft.Data.SqlClient\"", csproj);
 
         // a call that leaves an argument out is written out, not late bound: the managed package is not a COM object
-        var module = File.ReadAllText(Path.Combine(output, "Modules", "modMain.cs"));
+        var module = File.ReadAllText(Path.Combine(output, "Vbb6Ado", "Modules", "modMain.cs"));
         Assert.Contains("cmd.Execute(out _, options: adExecuteNoRecords);", module);
         Assert.Contains("cn.Execute(sql, out _, adExecuteNoRecords);", module);
         Assert.DoesNotContain("ComInvoke", module);
 
-        Build(root, output, project);
-        Assert.True(File.Exists(Path.Combine(output, "bin", "Debug", ConvertedTargetFramework, "Vbb6Ado.dll")), "not built");
+        Build(root, output, solution);
+        Assert.True(File.Exists(Path.Combine(output, "Vbb6Ado", "bin", "Debug", ConvertedTargetFramework, "Vbb6Ado.dll")), "not built");
     }
 
     /// <summary>The same end to end for a project group: VBG\Group.vbg (an EXE referencing an ActiveX DLL) into ConvertedGroup\.</summary>

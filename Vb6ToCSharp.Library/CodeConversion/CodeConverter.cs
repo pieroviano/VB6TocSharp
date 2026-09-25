@@ -54,17 +54,17 @@ public static class CodeConverter
     /// <summary>Converts a project (.vbp), or every project of a group (.vbg) into a solution.</summary>
     public static void ConvertProject(string vbpFile)
     {
-        if (ProjectGroup.IsGroupFile(vbpFile))
-        {
-            Notify("Complete: " + ProjectGroup.ConvertGroup(vbpFile));
-            return;
-        }
-        ConvertSingleProject(vbpFile);
-        Notify("Complete.");
+        Notify("Complete: " + (ProjectGroup.IsGroupFile(vbpFile)
+            ? ProjectGroup.ConvertGroup(vbpFile)
+            : ProjectGroup.ConvertProject(vbpFile)));
     }
 
-    /// <summary>Scan, project and support files, every file of the .vbp, migration report.</summary>
-    internal static void ConvertSingleProject(string vbpFile)
+    /// <summary>
+    /// Scan, project and support files, every file of the .vbp, migration report. The report goes into
+    /// <paramref name="reportFolder"/>, which is the project's own output folder unless the caller names the
+    /// solution's folder instead.
+    /// </summary>
+    internal static void ConvertSingleProject(string vbpFile, string reportFolder = null)
     {
         Prg(0, 1, "Preparing...");
         StatementsConverter.ResetProjectCaches(); // sources may have changed since the last run
@@ -72,7 +72,7 @@ public static class CodeConverter
         CreateProjectFile(vbpFile);
         CreateProjectSupportFiles();
         ConvertFileList(FilePath(vbpFile), VbpModules(vbpFile) + vbCrLf + VbpClasses(vbpFile) + vbCrLf + VbpForms(vbpFile) + vbCrLf + VbpUserControls(vbpFile));
-        MigrationReport.Write(); // what is left to review, per category and file
+        MigrationReport.Write(reportFolder); // what is left to review, per category and file
     }
 
     public static bool ConvertFileList(string path, string list, string sep = vbCrLf)

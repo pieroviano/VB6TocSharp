@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -13,9 +13,10 @@ using Vb6ToCSharp.Parsing.Model;
 namespace Vb6ToCSharp.CodeGeneration;
 
 /// <summary>
-/// Project groups and what VB6 projects see of each other: a .vbg becomes a .sln with one .csproj per .vbp
-/// (<c>&lt;out&gt;\&lt;Name&gt;\</c>), project references become ProjectReferences, and an ActiveX project exposes only
-/// its public classes and user controls.
+/// The solution the conversion writes, and what VB6 projects see of each other: a .vbg becomes a .sln with one
+/// .csproj per .vbp (<c>&lt;out&gt;\&lt;Name&gt;\</c>) and a lone .vbp the same with one project
+/// (<c>&lt;out&gt;\&lt;project&gt;\</c>), project references become ProjectReferences, and an ActiveX project
+/// exposes only its public classes and user controls.
 /// </summary>
 public static class ProjectGroup
 {
@@ -68,6 +69,64 @@ public static class ProjectGroup
         }
     }
 
+    /// <summary>
+    /// Converts one .vbp the way a group is laid out: the project into <c>&lt;output folder&gt;\&lt;project&gt;\</c>
+    /// and <c>&lt;project&gt;.sln</c> beside it, both named after the .csproj - which is named after the .vbp file, so
+    /// neither the .vbp's Name nor an assembly name override moves the project. Returns the solution's path.
+    /// </summary>
+    public static string ConvertProject(string vbpFile)
+    {
+        var root = OutputFolder(); // default: converted\ next to the .vbp
+        var name = Path.GetFileNameWithoutExtension(vbpFile); // the .csproj without its extension
+        var folder = root + name + "\\";
+        MoveFlatConversion(root, folder, name); // an output folder written before the project had a folder of its own
+        using (ProjectScope(vbpFile, folder))
+        {
+            CodeConverter.ConvertSingleProject(vbpFile, root); // the report belongs next to the solution
+        }
+        var sln = root + name + ".sln";
+        File.WriteAllText(sln, SolutionFile(name, new[] { (name, name + "\\" + name + ".csproj") }), new UTF8Encoding(true));
+        return sln;
+    }
+
+    /// <summary>What the conversion writes straight into a project's folder; everything else there is not its doing.</summary>
+    private static readonly string[] ProjectContent =
+    {
+        "Program.cs", CodeGeneration.AdoConstants.FileName, "Modules", "Classes", "Forms", "UserControls", "Properties",
+    };
+
+    /// <summary>
+    /// Moves a conversion made before the project had a folder of its own - the .csproj and the code beside it, at the
+    /// root of the output folder - into the project folder, merging into whatever is there. The report, a NuGet.config
+    /// and anything else the folder holds stay where they are, and so do bin\ and obj\: a moved obj\ names the old
+    /// location and breaks the next build.
+    /// </summary>
+    internal static void MoveFlatConversion(string root, string folder, string name)
+    {
+        foreach (var entry in new[] { name + ".csproj" }.Concat(ProjectContent))
+        {
+            Move(Path.Combine(root, entry), Path.Combine(folder, entry));
+        }
+    }
+
+    /// <summary>Moves a file, or the contents of a folder, leaving whatever already exists at the destination.</summary>
+    private static void Move(string from, string to)
+    {
+        if (File.Exists(from))
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(to));
+            if (!File.Exists(to)) File.Move(from, to);
+            else File.Delete(from); // the project folder already has it: the conversion is about to rewrite it anyway
+            return;
+        }
+        if (!Directory.Exists(from) || SamePath(from, to)) return;
+        foreach (var file in Directory.GetFiles(from, "*", SearchOption.AllDirectories))
+        {
+            Move(file, Path.Combine(to, file.Substring(from.Length).TrimStart('\\')));
+        }
+        try { Directory.Delete(from, true); } catch (IOException) { /* something else is in there: leave it */ }
+    }
+
     /// <summary>The .vbp's Name (its file name when unset): folder, assembly and root namespace of the converted project.</summary>
     public static string ProjectName(ProjectInfo projectInfo) => projectInfo.Name != "" ? projectInfo.Name : Path.GetFileNameWithoutExtension(projectInfo.Path);
 
@@ -75,9 +134,16 @@ public static class ProjectGroup
     public static string ProjectFilePath(ProjectInfo projectInfo) => ProjectName(projectInfo) + "\\" + Path.GetFileNameWithoutExtension(projectInfo.Path) + ".csproj";
 
     /// <summary>Visual Studio solution of the converted group; the startup project comes first (Visual Studio starts it).</summary>
-    public static string SolutionFile(string groupName, IEnumerable<ProjectInfo> projects)
+    public static string SolutionFile(string groupName, IEnumerable<ProjectInfo> projects) =>
+        SolutionFile(groupName, projects.Select(p => (ProjectName(p), ProjectFilePath(p))).ToList());
+
+    /// <summary>
+    /// Visual Studio solution over the given projects, each a display name and the path of its .csproj relative to
+    /// the .sln. The first comes first, which is the project Visual Studio starts.
+    /// </summary>
+    public static string SolutionFile(string solutionName, IReadOnlyList<(string Name, string Path)> projects)
     {
-        var list = projects.ToList();
+        var list = projects;
         var n = "\r\n";
         var s = new StringBuilder();
         s.Append(n + "Microsoft Visual Studio Solution File, Format Version 12.00" + n);
@@ -86,7 +152,7 @@ public static class ProjectGroup
         s.Append("MinimumVisualStudioVersion = 10.0.40219.1" + n);
         foreach (var p in list)
         {
-            s.Append("Project(\"" + CSharpProjectType + "\") = \"" + ProjectName(p) + "\", \"" + ProjectFilePath(p) + "\", \"" + ProjectGuid(groupName, p) + "\"" + n);
+            s.Append("Project(\"" + CSharpProjectType + "\") = \"" + p.Name + "\", \"" + p.Path + "\", \"" + ProjectGuid(solutionName, p.Name) + "\"" + n);
             s.Append("EndProject" + n);
         }
         s.Append("Global" + n);
@@ -97,7 +163,7 @@ public static class ProjectGroup
         s.Append("\tGlobalSection(ProjectConfigurationPlatforms) = postSolution" + n);
         foreach (var p in list)
         {
-            var g = ProjectGuid(groupName, p);
+            var g = ProjectGuid(solutionName, p.Name);
             foreach (var c in new[] { "Debug", "Release" })
             {
                 s.Append("\t\t" + g + "." + c + "|Any CPU.ActiveCfg = " + c + "|Any CPU" + n);
@@ -113,10 +179,13 @@ public static class ProjectGroup
     }
 
     /// <summary>A stable project GUID (the same on every conversion of the group).</summary>
-    public static string ProjectGuid(string groupName, ProjectInfo projectInfo)
+    public static string ProjectGuid(string groupName, ProjectInfo projectInfo) => ProjectGuid(groupName, ProjectName(projectInfo));
+
+    /// <summary>A stable project GUID: one solution and project name always give the same one.</summary>
+    public static string ProjectGuid(string solutionName, string projectName)
     {
         using var md5 = MD5.Create();
-        var hash = md5.ComputeHash(Encoding.UTF8.GetBytes(groupName.ToUpperInvariant() + "|" + ProjectName(projectInfo).ToUpperInvariant()));
+        var hash = md5.ComputeHash(Encoding.UTF8.GetBytes(solutionName.ToUpperInvariant() + "|" + projectName.ToUpperInvariant()));
         return "{" + new Guid(hash).ToString("D").ToUpperInvariant() + "}";
     }
 
