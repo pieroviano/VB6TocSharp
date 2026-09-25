@@ -219,6 +219,11 @@ public static class VbRuntime
     /// one for an <c>out</c> parameter of a COM method without knowing the signature, so the call is made late bound:
     /// <see cref="Missing"/> arguments reach the object as "not supplied", exactly as in VB6.
     /// </summary>
+    /// <remarks>
+    /// A COM object resolves an omitted argument itself, through IDispatch; a managed object - a type library
+    /// replaced by a managed package, say - has to be bound by hand, because reflection accepts
+    /// <see cref="Type.Missing"/> only for a parameter that declares a default value.
+    /// </remarks>
     public static object ComInvoke(object target, string member, params object[] args)
     {
         if (target == null) throw new ArgumentNullException(nameof(target));
@@ -227,10 +232,15 @@ public static class VbRuntime
         {
             if (a[i] is IVbLibraryConstant c) a[i] = c.Value; // a type library constant is a Long to COM
         }
+        var type = target.GetType();
+        if (!type.IsCOMObject)
+        {
+            return Internal.LateBinder.Invoke(target, member, a);
+        }
         // OptionalParamBinding lets a Missing argument take the parameter's default, as VB6 does
         const System.Reflection.BindingFlags how = System.Reflection.BindingFlags.InvokeMethod
                                                    | System.Reflection.BindingFlags.OptionalParamBinding;
-        return target.GetType().InvokeMember(member, how, null, target, a);
+        return type.InvokeMember(member, how, null, target, a);
     }
 
     /// <summary>VB6 Option Compare Text string comparison (case-insensitive, current culture): -1, 0, 1.</summary>

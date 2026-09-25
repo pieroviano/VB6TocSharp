@@ -83,6 +83,50 @@ public class VbRuntimeTests
     [Fact]
     public void ComInvoke_RefusesNoTarget() => Assert.Throws<ArgumentNullException>(() => VbRuntime.ComInvoke(null, "Join"));
 
+    /// <summary>
+    /// A ByRef parameter carries no default value in metadata, so reflection refuses Missing for it outright.
+    /// VB6 discards what the callee writes there, and so does the call: what matters is that it runs.
+    /// </summary>
+    [Fact]
+    public void ComInvoke_LeavesAnOmittedByRefArgumentUnsupplied()
+    {
+        Assert.Equal("x|3", VbRuntime.ComInvoke(new LateBound(), "Out2", "x", VbRuntime.Missing, 3));
+    }
+
+    /// <summary>A required parameter has no default either; VB6 passes the type's own empty value.</summary>
+    [Fact]
+    public void ComInvoke_PassesTheEmptyValueForAnOmittedRequiredArgument()
+    {
+        Assert.Equal("0|y", VbRuntime.ComInvoke(new LateBound(), "Required2", VbRuntime.Missing, "y"));
+    }
+
+    /// <summary>VB6 passes a late-bound argument as a Variant: a Long reaching an enum parameter is converted.</summary>
+    [Fact]
+    public void ComInvoke_ConvertsANumberToAnEnumParameter()
+    {
+        Assert.Equal(StringComparison.OrdinalIgnoreCase,
+            VbRuntime.ComInvoke(new LateBound(), "Enum1", (int)StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>The trailing params array of the resolved overload takes whatever is left, or nothing.</summary>
+    [Fact]
+    public void ComInvoke_FillsATrailingParamsArray()
+    {
+        Assert.Equal("x|", VbRuntime.ComInvoke(new LateBound(), "Rest", "x"));
+        Assert.Equal("x|a,b", VbRuntime.ComInvoke(new LateBound(), "Rest", "x", "a", "b"));
+    }
+
+    /// <summary>VB6 calls a parameterized property exactly as it calls a method.</summary>
+    [Fact]
+    public void ComInvoke_ReadsAParameterizedProperty()
+    {
+        Assert.Equal("[k]", VbRuntime.ComInvoke(new LateBound(), "Item", "k"));
+    }
+
+    [Fact]
+    public void ComInvoke_RefusesAnUnknownMember() =>
+        Assert.Throws<MissingMemberException>(() => VbRuntime.ComInvoke(new LateBound(), "NoSuchThing"));
+
     private sealed class Const7 : Vb6ToCSharp.UpgradeHelpers.Interop.IVbLibraryConstant
     {
         public int Value => 7;
@@ -93,5 +137,10 @@ public class VbRuntimeTests
         public string Join(string a, string b) => a + "|" + b;
         public int Number(int n) => n;
         public string Optional2(string a, string b = "-") => a + b;
+        public string Out2(string a, out int written, int b) { written = 1; return a + "|" + b; }
+        public string Required2(int a, string b) => a + "|" + b;
+        public StringComparison Enum1(StringComparison c) => c;
+        public string Rest(string a, params object[] rest) => a + "|" + string.Join(",", rest);
+        public string this[string key] => "[" + key + "]"; // a parameterized property is named Item
     }
 }

@@ -14,6 +14,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Arrays\IndexedProperty.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Arrays\VB6Array.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Internal\FileSystemListing.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Internal\LateBinder.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Internal\PropertyCloner.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Internal\SystemColorTable.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Internal\VbCompare.cs" />
