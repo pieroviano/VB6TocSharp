@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Vb6ToCSharp.Console": {
+      "commandName": "Project",
+      "commandLineArgs": "D:\\CommonLibrary\\Vb6ToCSharp\\Converted\\Showcase.csproj"
+    }
+  }
+}

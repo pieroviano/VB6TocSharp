@@ -37,6 +37,10 @@
     <File Path="VB6/modMain.bas" />
     <File Path="VB6/Showcase.vbp" />
   </Folder>
+  <Folder Name="/Vb6Ado/">
+    <File Path="Vb6Ado/modMain.bas" />
+    <File Path="Vb6Ado/Vbb6Ado.vbp" />
+  </Folder>
   <Folder Name="/VBG/">
     <File Path="VBG/Group.vbg" />
   </Folder>
