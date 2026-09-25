@@ -79,8 +79,18 @@ INI sections that tailor the conversion to a project:
 | `[WinFormsControls]` | `Lib.Ctl=WinFormsType[;container 0/1;default prop]` | WinForms control mapping |
 | `[FormRenames]` | `frmOld.frm=frmNew` | Renames a form listed in the `.vbp` |
 | `[PostCodeLine]` | `n=replace\|find\|repl`, `n=ifcontains\|trigger\|find\|repl`, `n=regex\|pattern\|repl`, `n=blankif\|trigger` | Rewrites every converted line, in order |
+| `[ADOProviders]` | `MSOLEDBSQL=Microsoft.Data.SqlClient;7.*` | The ADO.NET client an ADO `Provider=` token needs |
 
 `Vb6ToCSharp.sample.ini` is an example.
+
+### ADO
+
+A project that references Microsoft ActiveX Data Objects gets the managed `Standard.AdoDb` package (`[Settings]
+ADOTarget=COM` keeps the type library instead). That package resolves its `DbProviderFactory` by name, so the
+converted project also needs the ADO.NET client of the provider its connection strings name; the conversion reads
+the `Provider=` token (`Driver=` / `DSN=` mean ODBC) from the sources and from the `.ini` files beside the `.vbp`
+and references it. When the connection string is assembled at run time there is nothing to read: name the provider
+with `[Settings] DBProvider=`.
 
 ## Limits
 

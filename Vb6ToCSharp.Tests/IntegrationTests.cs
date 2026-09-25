@@ -226,6 +226,14 @@ public class IntegrationTests
         var csproj = File.ReadAllText(project);
         Assert.Contains("<PackageReference Include=\"Standard.AdoDb\"", csproj);
         Assert.DoesNotContain("COMReference", csproj);
+        // and the ADO.NET client for the provider its connection string names (Provider=MSOLEDBSQL)
+        Assert.Contains("<PackageReference Include=\"Microsoft.Data.SqlClient\"", csproj);
+
+        // a call that leaves an argument out is written out, not late bound: the managed package is not a COM object
+        var module = File.ReadAllText(Path.Combine(output, "Modules", "modMain.cs"));
+        Assert.Contains("cmd.Execute(out _, options: adExecuteNoRecords);", module);
+        Assert.Contains("cn.Execute(sql, out _, adExecuteNoRecords);", module);
+        Assert.DoesNotContain("ComInvoke", module);
 
         Build(root, output, project);
         Assert.True(File.Exists(Path.Combine(output, "bin", "Debug", ConvertedTargetFramework, "Vbb6Ado.dll")), "not built");
