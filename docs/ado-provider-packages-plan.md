@@ -1,4 +1,4 @@
-# ADO: provider client packages, and omitted arguments that actually run
+﻿# ADO: provider client packages, and omitted arguments that actually run
 
 Two defects and one feature, all reached through `Vb6Ado\Vbb6Ado.vbp`:
 
@@ -8,15 +8,16 @@ Two defects and one feature, all reached through `Vb6Ado\Vbb6Ado.vbp`:
 | 2 | Even bound correctly, `cmd.Execute , , adExecuteNoRecords` would pass `adExecuteNoRecords` as a *parameter value*, not as `Options` | `Standard.AdoDb`'s `Command.Execute(out, int options, params parameters)` swaps ADO's `(RecordsAffected, Parameters, Options)` | `NetStandard.AdoDb` |
 | 3 | The converted project must be hand-edited to add `Microsoft.Data.SqlClient` | nothing in the converter looks at connection strings | `Vb6ToCSharp.Library` |
 
-## Blocking verification, before coding
+## Blocking verification — done
 
-1. `Microsoft.Data.SqlClient 7.*`, `System.Data.Odbc/OleDb 10.*`, `Npgsql 8.*`, `MySql.Data 9.*`,
-   `Oracle.ManagedDataAccess.Core 23.*`, `Microsoft.Data.Sqlite 9.*`, `FirebirdSql.Data.FirebirdClient 10.*`
-   must all exist on nuget.org for `net10.0-windows`. A wrong major breaks restore of every converted project.
-   Verified by restoring `ConvertedVb6Ado\Vbb6Ado.csproj`; any miss is corrected in the catalog before commit.
-2. `Standard.AdoDb` is consumed from the local feed `Packages\` at `1.0.0.*`. Change #2 is a **breaking change**
-   in another repo: `NetStandard.AdoDb` must be rebuilt and its new `.nupkg` copied into
-   `Vb6ToCSharp\Packages\` before the ADO integration test can pass.
+1. Package majors checked on nuget.org before the catalog was written: `Microsoft.Data.SqlClient 7.*`,
+   `System.Data.Odbc/OleDb 10.*`, `Npgsql 10.*` (**not** 8.*), `MySql.Data 9.*`,
+   `Oracle.ManagedDataAccess.Core 23.*`, `Microsoft.Data.Sqlite 10.*` (**not** 9.*),
+   `FirebirdSql.Data.FirebirdClient 10.*`. A wrong major would break restore of every converted project.
+   Confirmed again by restoring `ConvertedVb6Ado\Vbb6Ado.csproj`.
+2. `Packages\` turned out to be a symlink to the shared feed `D:\Starb\Packages`, which all three repos publish
+   into, so rebuilding `NetStandard.AdoDb` put the new `Standard.AdoDb 1.0.0.26268` on the converter's feed with
+   no copy step. Change #2 is still a breaking change in that repo.
 
 ## Decisions taken
 
@@ -24,8 +25,8 @@ Two defects and one feature, all reached through `Vb6Ado\Vbb6Ado.vbp`:
 |---|---|
 | Fix both the converter (direct calls) and `ComInvoke` | a call on a known ADO type is compile-time checked; anything still late bound (an unknown type library) no longer throws |
 | `Standard.AdoDb` adopts ADO's parameter order | `Execute(out object, object? parameters = null, int options = …)`; the `params object?[]` tail is gone, so 7 call sites change. An old `Execute(out _, someInt)` now binds the int to `parameters` **silently** — every call site is audited, see Risks |
-| Provider detected from source literals, `*.ini` next to the `.vbp`, and `[Settings] DbProvider=` | three sources, the explicit setting wins; nothing detected → no package and a warning |
-| Built-in token→package table, `[AdoProviderPackages]`-overridable, floating versions | matches `ControlCatalog` / `[Controls]`; a provider the table misses needs no code change |
+| Provider detected from source literals, `*.ini` next to the `.vbp`, and `[Settings] DBProvider=` | three sources, the explicit setting wins; nothing detected → no package and a warning |
+| Built-in token→package table, `[ADOProviders]`-overridable, floating versions | matches `ControlCatalog` / `[Controls]`; a provider the table misses needs no code change |
 
 ## Changes
 
@@ -50,32 +51,40 @@ else to `LateBinder`.
 ### 2. `Vb6ToCSharp.Library` — a call on a known ADO type is not late bound
 
 `AdoInterop` ([AdoInterop.cs](../Vb6ToCSharp.Library/CodeConversion/AdoInterop.cs)) gains the library's
-omittable-argument signatures and `OmittedArgument(type, member, position)`:
+omittable-argument signatures and `Arguments(type, member, args)`:
 
 ```
-Connection.Open:ConnectionString=null,UserID=null,Password=null,Options=adConnectUnspecified
-Connection.Execute:CommandText,RecordsAffected=out,Options=adCmdUnknown
-Command.Execute:RecordsAffected=out,Parameters=null,Options=adCmdUnspecified
-Recordset.Open:Source=null,ActiveConnection=null,CursorType=adOpenUnspecified,LockType=adLockUnspecified,Options=adCmdUnspecified
-…
+Connection.Execute:CommandText,&RecordsAffected,Options
+Command.Execute:&RecordsAffected,Parameters,Options
+Recordset.Open:Source,ActiveConnection,CursorType,LockType,Options
+…                                       (& marks a ByRef parameter)
 ```
 
-Both places that write `Missing` consult it first, and emit a plain call when the signature is known:
+An omitted argument is written as **no argument at all**, and the ones after it become **named**, so the
+parameter's own default applies. That beats a placeholder value: the default is then the one the type library
+declares, which a `default` literal would get wrong (an omitted `CursorType` is `adOpenUnspecified`, not `0`).
+Only the parameter names are needed, so the table cannot drift out of step with the defaults.
+
+Both places that wrote `Missing` consult it first:
 
 | Site | Before | After |
 |---|---|---|
-| statement, [CodeConverter.cs:2457](../Vb6ToCSharp.Library/CodeConversion/CodeConverter.cs#L2457) | `ComInvoke(cmd, "Execute", Missing, Missing, adExecuteNoRecords)` | `cmd.Execute(out _, null, adExecuteNoRecords)` |
-| expression, [CodeConverter.cs:1952](../Vb6ToCSharp.Library/CodeConversion/CodeConverter.cs#L1952) | `cmd.Execute(Missing, Missing, adExecuteNoRecords)` — did not even compile | `cmd.Execute(out _, null, adExecuteNoRecords)` |
+| statement | `ComInvoke(cmd, "Execute", Missing, Missing, adExecuteNoRecords)` | `cmd.Execute(out _, options: adExecuteNoRecords)` |
+| expression | `cmd.Execute(Missing, Missing, adExecuteNoRecords)` — did not even compile | `cmd.Execute(out _, options: adExecuteNoRecords)` |
 
 An unknown type library still goes through `LateBoundCall` → `ComInvoke`, now working.
+
+**Not done:** a call that passes a *variable* to a ByRef parameter and reads it back (`cn.Execute sql, rows`)
+needs a temporary and a conversion back, which the line-by-line converter cannot express yet. Such a call stays
+late bound, so the value is discarded — as it was before.
 
 ### 3. `Vb6ToCSharp.Library` — the provider's client package
 
 New `CodeGeneration/AdoProviderPackages.cs`:
 
 - **Catalog**: every `Provider=` token `AdoProviderRegistry` knows → package + floating version;
-  overridable per token from `[AdoProviderPackages]` in `VB6toCS.INI`.
-- **Detection**, in order: `[Settings] DbProvider=` wins; otherwise `Provider=` / `Driver=` / `DSN=` in the
+  overridable per token from `[ADOProviders]` in `VB6toCS.INI`.
+- **Detection**, in order: `[Settings] DBProvider=` wins; otherwise `Provider=` / `Driver=` / `DSN=` in the
   `.vbp`'s sources and in `*.ini` beside it. Several engines → several packages.
 - Nothing found while ADO is referenced → no `PackageReference`, a `Notify` warning and a TODO comment in
   the `.csproj` naming the setting.
@@ -96,21 +105,23 @@ public Recordset? Execute(out object recordsAffected, object? parameters = null,
 Call sites updated: `Command.Execute()` (`Command.cs:112`), `Recordset.cs:510`, and
 `Net5x.AdoDb.Tests/CommandTests.cs` lines 103, 120, 138, 155.
 
-## Verification
+## Verification — results
 
-| Step | Command |
+| Step | Result |
 |---|---|
-| `NetStandard.AdoDb` builds and its tests pass | `dotnet test NetStandard.AdoDb.slnx` |
-| new `Standard.AdoDb` on the converter's feed | copy `Packages\Standard.AdoDb.*.nupkg` into `Vb6ToCSharp\Packages\` |
-| converter builds | `MSBuild.exe Vb6ToCSharp.slnx -restore` |
-| unit tests, incl. the new `ComInvoke` / `AdoInterop` / `AdoProviderPackages` ones | `dotnet test Vb6ToCSharp.slnx --no-build` |
-| the ADO sample converts, references `Microsoft.Data.SqlClient` and **runs** | integration test, then run `ConvertedVb6Ado\bin\…\Vbb6Ado.exe` against LocalDB |
+| `dotnet test NetStandard.AdoDb.slnx` | 769 passed |
+| `MSBuild.exe Vb6ToCSharp.slnx -restore` | succeeded |
+| `dotnet test Vb6ToCSharp.slnx --no-build` | 1299 passed (895 converter, both ADO integration tests included) |
+| the converted ADO sample runs against LocalDB | created the database, inserted and read back the GUID, showed it, dropped the database, exited 0 |
+
+One flake: `Group_ConvertsWithTheConsole…` failed once in a full-solution run right after the build had
+republished the shared package feed, and passed on its own and in two later full runs. Unrelated to ADO.
 
 ## Risks
 
 | Risk | Mitigation |
 |---|---|
-| `Execute(out _, 3)` silently binds `3` to `parameters` after the reorder | all 7 call sites audited; the 4 tests that passed options positionally are rewritten and keep asserting the option's effect |
+| `Execute(out _, 3)` silently binds `3` to `parameters` after the reorder | all 7 call sites audited and updated; a new test pins the parameter order by reflection |
 | a floating major that does not exist for `net10.0-windows` | restore of the converted project is part of the integration test; catalog is INI-overridable |
-| a connection string assembled at run time, or read from the registry, is undetectable | `[Settings] DbProvider=` escape hatch + warning |
+| a connection string assembled at run time, or read from the registry, is undetectable | `[Settings] DBProvider=` escape hatch + warning |
 | scanning `*.ini` beside the `.vbp` could pick up an unrelated `Provider=` | only values that parse as a connection string (`;`-separated `key=value`, a known token) count |
