@@ -5,18 +5,6 @@
 The Gtk package kept its own copy of the 14 WinForms helper files, six of them carrying 25 `#if GTK` blocks
 around API `Gtk.Windows.Forms.Base` lacked. The API was added there; the copies are gone.
 
-## What was measured
-
-A throwaway project compiled the 14 WinForms files plus the shared projitems (34 files) against the
-`Gtk.Windows.Forms.Base 1.4.2464.26267` **that was installed at the time**. One error:
-
-```
-CS0506: 'DriveListBox.OnSelectedIndexChanged(EventArgs)': cannot override inherited member
-        'ComboBox.OnSelectedIndexChanged(EventArgs)' because it is not marked virtual, abstract, or override
-```
-
-So all the other guards were stale and one small fix in the Gtk library would have unblocked the link-over.
-
 ## The gaps, and where each was closed
 
 Compiling the 14 WinForms files plus the shared projitems against the package gave **27 errors**. All were closed
@@ -48,7 +36,7 @@ and links the rest:
 <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
 ...
 <Compile Include="..\Vb6ToCSharp.WinForms.UpgradeHelpers\**\*.cs"
-         Exclude="..\Vb6ToCSharp.WinForms.UpgradeHelpers\obj\**\*.cs;..\Vb6ToCSharp.WinForms.UpgradeHelpersin\**\*.cs"
+         Exclude="..\Vb6ToCSharp.WinForms.UpgradeHelpers\obj\**\*.cs;..\Vb6ToCSharp.WinForms.UpgradeHelpers\bin\**\*.cs"
          Link="%(RecursiveDir)%(Filename)%(Extension)" />
 ```
 
