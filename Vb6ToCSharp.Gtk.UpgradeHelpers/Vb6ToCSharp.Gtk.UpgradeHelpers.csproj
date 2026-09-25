@@ -15,10 +15,16 @@
         <PackageId>Net4x.$(MSBuildProjectName)</PackageId>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>
-        <DefineConstants>$(DefineConstants);GTK</DefineConstants>
+        <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     </PropertyGroup>
     <ItemGroup>
-        <InternalsVisibleTo Include="Vb6ToCSharp.Gtk.UpgradeHelpers.Tests" />
+        <!--
+          This package is the WinForms package compiled against Gtk.Windows.Forms instead of
+          System.Windows.Forms: same sources, same namespaces, so it carries no code of its own. A file added
+          there reaches this package with no edit here, and anything Gtk.Windows.Forms cannot serve fails the
+          build here rather than drifting.
+        -->
+        <Compile Include="..\Vb6ToCSharp.WinForms.UpgradeHelpers\**\*.cs" Exclude="..\Vb6ToCSharp.WinForms.UpgradeHelpers\obj\**\*.cs;..\Vb6ToCSharp.WinForms.UpgradeHelpers\bin\**\*.cs" Link="%(RecursiveDir)%(Filename)%(Extension)" />
     </ItemGroup>
     <ItemGroup>
         <PackageReference Include="Gtk.Windows.Forms.Base" Version="$(GTKWinFormsAppVersion).$(VersionBuildSuffix)" />

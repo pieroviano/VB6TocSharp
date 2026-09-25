@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
@@ -102,16 +102,21 @@ public static class ListHelper
     public static int GetListCount(this Control list) => Items(list).Count;
 
     /// <summary>VB6 <c>Selected(index)</c>; for a check-box list (Style = 1) it is the checked state.</summary>
+    /// <remarks>
+    /// The check-box list is matched through <see cref="object"/>: WinForms derives CheckedListBox from ListBox,
+    /// the Gtk stack does not, and a direct pattern would not compile there. A stack where the two are unrelated
+    /// simply never reaches the check-box branch, which is right - it cannot pass one here in the first place.
+    /// </remarks>
     public static bool GetSelected(this ListBox list, int index)
     {
         Check(index, list.Items.Count);
-        return list is CheckedListBox cl ? cl.GetItemChecked(index) : list.GetSelected(index);
+        return (object)list is CheckedListBox cl ? cl.GetItemChecked(index) : list.GetSelected(index);
     }
 
     public static void SetSelected(this ListBox list, int index, bool value)
     {
         Check(index, list.Items.Count);
-        if (list is CheckedListBox cl) cl.SetItemChecked(index, value);
+        if ((object)list is CheckedListBox cl) cl.SetItemChecked(index, value);
         else list.SetSelected(index, value);
     }
 
