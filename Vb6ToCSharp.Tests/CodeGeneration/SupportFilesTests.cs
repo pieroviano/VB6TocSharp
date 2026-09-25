@@ -1,4 +1,4 @@
-using Vb6ToCSharp.CodeConversion.Model;
+﻿using Vb6ToCSharp.CodeConversion.Model;
 using Vb6ToCSharp.CodeGeneration;
 using Vb6ToCSharp.Parsing;
 using Vb6ToCSharp.Parsing.Model;
@@ -54,6 +54,28 @@ public class SupportFilesTests : IClassFixture<ConverterFixture>
         Assert.Contains("<COMReference Include=\"ADODB\">", csproj);
         Assert.Contains("<EmbedInteropTypes>True</EmbedInteropTypes>", csproj);
         Assert.DoesNotContain(SupportFiles.AdoPackage, csproj);
+    }
+
+    /// <summary>
+    /// The managed package resolves its factory by name, so the project has to carry the ADO.NET client itself;
+    /// the COM library reaches the database through the OLE DB provider Windows supplies.
+    /// </summary>
+    [Fact]
+    public void ProjectFile_Ado_Com_ReferencesNoClientPackage()
+    {
+        var csproj = ProjectFile(Project(AdoReference), AdoTarget.Com);
+
+        Assert.DoesNotContain("Microsoft.Data.SqlClient", csproj);
+        Assert.DoesNotContain("no ADO connection string found", csproj);
+    }
+
+    /// <summary>A project with no connection string to read still says how to name the provider.</summary>
+    [Fact]
+    public void ProjectFile_Ado_AsksForTheProviderWhenItFindsNone()
+    {
+        var csproj = ProjectFile(Project(AdoReference), AdoTarget.Package);
+
+        Assert.Contains(ProjectConfigurationParser.iniKeyDbProvider, csproj);
     }
 
     [Fact]

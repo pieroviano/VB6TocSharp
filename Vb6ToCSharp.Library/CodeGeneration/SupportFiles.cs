@@ -79,7 +79,9 @@ public static class SupportFiles
         if (UsesAdo(projectInfo))
         {
             s.Append("  <ItemGroup>" + n);
-            s.Append(Ado == AdoTarget.Com ? AdoComReference(n) : AdoPackageReference(n));
+            // the COM library reaches the database through the OLE DB provider the connection string names, which the
+            // operating system supplies; the managed package needs the ADO.NET client for that provider instead
+            s.Append(Ado == AdoTarget.Com ? AdoComReference(n) : AdoPackageReference(n) + AdoProviderPackages.References(projectInfo, n));
             s.Append("  </ItemGroup>" + n);
         }
         s.Append("</Project>" + n);

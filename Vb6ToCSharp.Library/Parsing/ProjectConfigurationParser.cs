@@ -34,6 +34,7 @@ public static class ProjectConfigurationParser
     public const string iniKeyAssemblyName = "AssemblyName";
     public const string iniKeyUiTarget = "UITarget";           // WPF (default) | WinForms
     public const string iniKeyAdoTarget = "ADOTarget";         // Package (default) | COM
+    public const string iniKeyDbProvider = "DBProvider";       // the ADO Provider= token, when the code builds its connection string at run time
 
     // Project-specific conversion rules (all optional, empty by default)
     public const string iniSectionFormRenames = "FormRenames";   // <vbp Form= entry>=<new name>
@@ -41,6 +42,7 @@ public static class ProjectConfigurationParser
     public const string iniSectionControls = "Controls";         // <VB control type>=<WPF type>[;<container 0|1>;<default property>;<features>]
     public const string iniSectionWinFormsControls = "WinFormsControls"; // <VB control type>=<WinForms type>[;<container 0|1>;<default property>]
     public const string iniSectionPostCodeLine = "PostCodeLine"; // <n>=<rule>, see ModProjectSpecific
+    public const string iniSectionAdoProviders = "ADOProviders"; // <ADO Provider= token>=<NuGet package>[;<version>]
     private static readonly Dictionary<string, List<KeyValuePair<string, string>>> sections = new Dictionary<string, List<KeyValuePair<string, string>>>();
 
     public static string VbpFile
