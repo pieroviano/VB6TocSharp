@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using Vb6ToCSharp.CodeGeneration;
 using Vb6ToCSharp.CodeConversion.Model;
 using Vb6ToCSharp.FormConversion;
@@ -1921,38 +1922,54 @@ public static class CodeConverter
         {
             var n = NextByPCt(ts, ",");
             var proc = ProcRef(name); // "" when the callee is not a procedure of this project
-            tb = tb + "(";
+            var argList = new List<string>(); // the arguments, to write a known signature out with
+            var omitted = false;
             for (var I = 1; I <= n; I++)
             {
-                if (I != 1)
-                {
-                    tb = tb + ", ";
-                }
                 var tv = NextByP(ts, ",", I);
+                string arg;
                 if (proc != "")
                 {
                     if (Trim(tv) == "")
                     {
-                        tb = tb + ConvertElement(FuncRefArgDefault(proc, I));
+                        arg = ConvertElement(FuncRefArgDefault(proc, I));
+                    }
+                    else if (FuncRefArgByRef(proc, I))
+                    {
+                        arg = RefArgument(ConvertValue(tv));
                     }
                     else
-                    {
-                        if (FuncRefArgByRef(proc, I))
-                        {
-                            tb = tb + RefArgument(ConvertValue(tv));
-                        }
-                        else
-                        { // a VB6 argument is converted to the parameter type (Integer parameter, Long argument)
-                            tb = tb + StatementsConverter.ImplicitConversion(Trim(SplitWord(FuncRefArgType(proc, I), 1, "=")), tv, ConvertValue(tv));
-                        }
+                    { // a VB6 argument is converted to the parameter type (Integer parameter, Long argument)
+                        arg = StatementsConverter.ImplicitConversion(Trim(SplitWord(FuncRefArgType(proc, I), 1, "=")), tv, ConvertValue(tv));
                     }
                 }
-                else
+                else if (Trim(tv) == "")
                 { // an unknown callee (a type library): an omitted argument is "not supplied", as VB6 passes it
-                    tb = tb + IIf(Trim(tv) == "", MissingArgument, ConvertValue(tv));
+                    arg = MissingArgument;
+                    omitted = true;
                 }
+                else
+                {
+                    arg = ConvertValue(tv);
+                }
+                argList.Add(arg);
             }
-            tb = tb + StatementsConverter.CompareArgument(name, n) + ")";
+            // an argument left out of a call on a type the conversion knows (ADO) is written out; C# has no syntax
+            // for an omitted argument, so without a signature the call has to be made through the runtime instead
+            var member = Mid(name, InStrRev(name, ".") + 1);
+            var known = omitted ? AdoInterop.Arguments(qualifier, member, argList) : null;
+            if (known != null)
+            {
+                tb = tb + "(" + known + StatementsConverter.CompareArgument(name, n) + ")";
+            }
+            else if (omitted && IsInStr(name, "."))
+            {
+                tb = LateBoundCall(name, string.Join(", ", argList));
+            }
+            else
+            {
+                tb = tb + "(" + string.Join(", ", argList) + StatementsConverter.CompareArgument(name, n) + ")";
+            }
         }
         var convertFunctionCall = tb;
         return convertFunctionCall;
@@ -2419,6 +2436,7 @@ public static class CodeConverter
             else if (StrQCnt(firstWord, "(") == 0)
             {
                 var args = "";
+                var argList = new List<string>(); // the same arguments, to write a known signature out with
                 var lateBound = false; // an argument left out of a call the conversion knows no signature for
                 var proc = ProcRef(firstWord); // "" when the callee is not a procedure of this project
                 var cnt = NextByPCt(rest, ", ");
@@ -2451,6 +2469,17 @@ public static class CodeConverter
                         arg = ConvertValue(b);
                     }
                     args = args + IIf(n == 1, "", ", ") + arg;
+                    argList.Add(arg);
+                }
+                // an argument left out of a call on a type the conversion knows (ADO) is written out, not late bound
+                var known = lateBound && IsInStr(firstWord, ".")
+                    ? AdoInterop.Arguments(SubParam(Left(firstWord, InStrRev(firstWord, ".") - 1)).asType,
+                        Mid(firstWord, InStrRev(firstWord, ".") + 1), argList)
+                    : null;
+                if (known != null)
+                {
+                    args = known;
+                    lateBound = false;
                 }
                 // the callee needs the same intrinsic-object mapping an expression gets: Err.Raise 5 -> Err().Raise(5)
                 convertCodeLine = lateBound && IsInStr(firstWord, ".")

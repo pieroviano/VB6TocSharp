@@ -746,6 +746,32 @@ public class CodeConverterTests : IClassFixture<ConverterFixture>
     }
 
     [Fact]
+    public void Call_WithAnOmittedArgument_WritesOutAKnownAdoSignature()
+    {
+        // ADO declares Command.Execute(RecordsAffected, Parameters, Options): the ByRef one becomes out _, the
+        // omitted Parameters is left off, and Options has to be named to keep its place
+        var cs = Convert(Sub("  Dim cmd As ADODB.Command", "  cmd.Execute , , 3"));
+        Assert.Contains("cmd.Execute(out _, options: 3);", cs);
+        Assert.DoesNotContain("ComInvoke", cs);
+    }
+
+    [Fact]
+    public void Call_WithAnOmittedByRefArgument_KeepsTheOtherArgumentsPositional()
+    {
+        var cs = Convert(Sub("  Dim cn As ADODB.Connection", "  Dim s As String", "  cn.Execute s, , 128"));
+        Assert.Contains("cn.Execute(s, out _, 128);", cs);
+    }
+
+    [Fact]
+    public void CallInAnExpression_WithAnOmittedArgument_WritesOutAKnownAdoSignature()
+    {
+        // an omitted argument in an expression used to be written as the runtime's Missing, which does not compile
+        var cs = Convert(Sub("  Dim cmd As ADODB.Command", "  Dim rs As ADODB.Recordset", "  Set rs = cmd.Execute(, , 1)"));
+        Assert.Contains("cmd.Execute(out _, options: 1)", cs);
+        Assert.DoesNotContain("Missing", cs);
+    }
+
+    [Fact]
     public void Call_WithAnOmittedArgument_UsesTheDefaultOfAKnownProcedure()
     {
         var cs = Convert(Sub("  Dim n As Long", "  n = Pair(, 5)"));
