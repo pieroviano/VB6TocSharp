@@ -1,9 +1,9 @@
-# Vb6ToCSharp.Gtk.UpgradeHelpers links the WinForms sources
+﻿# Vb6ToCSharp.Gtk.UpgradeHelpers links the WinForms sources
 
-**Status: blocked.** The converter side is not changed. See *What went wrong* below.
+**Status: done.** The Gtk package carries no sources of its own and no `#if GTK`.
 
-The Gtk package keeps its own copy of the 14 WinForms helper files, six of them carrying 25 `#if GTK` blocks
-around API `Gtk.Windows.Forms.Base` lacked. The goal is to delete the copies and link the WinForms files.
+The Gtk package kept its own copy of the 14 WinForms helper files, six of them carrying 25 `#if GTK` blocks
+around API `Gtk.Windows.Forms.Base` lacked. The API was added there; the copies are gone.
 
 ## What was measured
 
@@ -17,66 +17,56 @@ CS0506: 'DriveListBox.OnSelectedIndexChanged(EventArgs)': cannot override inheri
 
 So all the other guards were stale and one small fix in the Gtk library would have unblocked the link-over.
 
-## What went wrong
+## The gaps, and where each was closed
 
-The `1.4.2464.26267` that was installed is **not** the `1.4.2464.26267` on nuget.org. The installed one carried
-`DataGridView.RowHeadersVisible` / `ColumnCount` / `CurrentCell` / `HitTest`, `FontDialog.ShowEffects` and its
-eight siblings, `Form.ActiveForm`, `SaveFileDialog.OverwritePrompt` / `CreatePrompt`, `Control.FromHandle`,
-`CheckedListBox.GetItemChecked`, `ListBox.BeginUpdate` / `EndUpdate`. nuget.org's does not, and **no source in
-`Net4x.GtkWindowsForms` implements them** — not the generated tree, not `Gtk.Windows.Forms.LatestBackup`, not the
-`gtksystem-windows-forms` submodule, and not any commit in either history (the names appear only in
-`Resources/System.Windows.Forms.xml`, the Microsoft doc reference used for doc merging).
+Compiling the 14 WinForms files plus the shared projitems against the package gave **27 errors**. All were closed
+in `Net4x.GtkWindowsForms`; none needed a GtkSharp change (`GetPathAtPos`, `HeadersVisible`, `Get`/`SetCursor` and
+`ConvertWidgetToBinWindowCoords` are all bound already - `GetPathAtPos` is hand-written in
+`Source/Libs/GtkSharp/TreeView.cs`, which is why the generated api.xml marks it `hidden`).
 
-That package must therefore have been built from sources not in this checkout. Rebuilding
-`Gtk.Windows.Forms.csproj` here produces a package that is **missing that whole API surface**, so it is a
-regression, not an update.
-
-Worse: `Net4x.NuGetUtility`'s `Delete_OldPackageFiles` target deletes `$(PackageOutputPath)$(PackageId).*.nupkg`
-on every build, and `Delete_OldPackage` deletes `$(NuGetPackageRoot)$(PackageId)` — the whole extracted folder,
-all versions — after every pack. Building and packing the Gtk library therefore **deleted the good package from
-the shared feed `D:\Starb\Packages` and from the NuGet global cache**. Restoring `1.4.2464.26267` afterwards
-fetched nuget.org's poorer build under the same version number. No copy of the good assembly survives on disk
-(searched `D:\CommonLibrary` and `D:\Starb` for any `Gtk.Windows.Forms.dll` containing `RowHeadersVisible`).
-
-Measured A/B, same probe, only the package version changed:
-
-| Referenced package | Errors |
+| Commit / patch | Closed |
 |---|---|
-| the `26267` that was installed before | 1 (the `virtual` one) |
-| nuget.org `26267`, and any local rebuild | ~20, the list above |
+| `6a0ce9d5` / `0150` | `ComboBox` and `ListBox` `OnSelected{Index,Item,Value}Changed` → `protected virtual` |
+| `fa921407` / `0151` | 11 `FontDialog` properties; `SaveFileDialog.OverwritePrompt`/`CreatePrompt`; `Form.ActiveForm`; `Control.FromHandle`; `ComboBox.BeginUpdate`/`EndUpdate`; `TreeNode.TreeView` public; `TreeNodeCollection.Find(key, searchAllChildren)` |
+| `06e30804` / `0152` | `DataGridView.ColumnHeadersVisible` (the tree view's `HeadersVisible`), `CurrentCell` (its cursor), `HitTest` (`GetPathAtPos`), `ColumnCount`, `RowHeadersVisible` |
+| `38956b3e` / `0153` | `CheckedListBox.GetItemChecked` - `SetItemChecked` was there with no getter |
+| `96cdce1e` / `0154` | `ToolStripMenuItem` derives from `ToolStripDropDownItem`, where `DropDown` lives, as in WinForms; `ToolStripDropDown` gains `Closing`/`Closed` |
 
-## What is committed
+`CheckedListBox` was **not** rebased onto `ListBox`. WinForms derives it from `ListBox`, but this one declares its
+own `self`, `Items`, `SelectedItems`, `SelectedIndexChanged` and `SelectedItemChanged` - all of which `ListBox`
+also declares - so rebasing is a rewrite of the control, not a base-class swap. Instead `ListHelper` matches it
+through `object`, which compiles on both stacks; a stack where the two are unrelated never reaches that branch,
+which is correct, because it cannot pass a `CheckedListBox` to a `ListBox` extension in the first place.
 
-| Repository | State |
-|---|---|
-| `Net4x.GtkWindowsForms` | two commits kept: `ComboBox`/`ListBox` `OnSelected{Index,Item,Value}Changed` made `protected virtual` (WinForms declares all six virtual; the library already had 377 virtual `OnXxx` against 9 that were not), plus `patches/0150-*.patch` so the prepare pipeline reapplies it. Correct and independently useful; it only takes effect when the library is next built from the right sources. |
-| `Vb6ToCSharp` | **unchanged**. The Gtk project keeps its 14 files and its `#if GTK` blocks, the solution builds, the working tree is clean. |
-| the shared feed | the `26268` packages I built were removed again; nothing now resolves to the regressed build. |
+## The converter side
 
-## To finish this
-
-1. Restore or rebuild `Gtk.Windows.Forms.Base` from the sources that produced the installed `26267` — another
-   machine, another branch, or a `PrepareProjects` run against the right upstream revision — and put it on the
-   shared feed under a **new** build number. Publishing it also fixes a latent hazard: the feed and nuget.org
-   disagreeing about what `1.4.2464.26267` contains.
-2. Apply `patches/0150` (or rebuild after it) so `ComboBox.OnSelectedIndexChanged` is virtual.
-3. Then the converter-side change is small and already designed: delete the 14 files under
-   `Vb6ToCSharp.Gtk.UpgradeHelpers/`, drop `<DefineConstants>…;GTK</DefineConstants>` and the stale
-   `InternalsVisibleTo Vb6ToCSharp.Gtk.UpgradeHelpers.Tests`, keep the `Import` of the shared projitems, and add:
+`Vb6ToCSharp.Gtk.UpgradeHelpers` lost all 14 files. Its project keeps the `Import` of
+`Vb6ToCSharp.Base.UpgradeHelpers.Shared.projitems` - what the WinForms package gets from its `ProjectReference` -
+and links the rest:
 
 ```xml
-<ItemGroup>
-    <Compile Include="..\Vb6ToCSharp.WinForms.UpgradeHelpers\**\*.cs"
-             Exclude="..\Vb6ToCSharp.WinForms.UpgradeHelpers\obj\**\*.cs;..\Vb6ToCSharp.WinForms.UpgradeHelpers\bin\**\*.cs"
-             Link="%(RecursiveDir)%(Filename)%(Extension)" />
-</ItemGroup>
+<EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+...
+<Compile Include="..\Vb6ToCSharp.WinForms.UpgradeHelpers\**\*.cs"
+         Exclude="..\Vb6ToCSharp.WinForms.UpgradeHelpers\obj\**\*.cs;..\Vb6ToCSharp.WinForms.UpgradeHelpersin\**\*.cs"
+         Link="%(RecursiveDir)%(Filename)%(Extension)" />
 ```
 
-A glob, so a file added to the WinForms package reaches the Gtk one with no further edit, and anything
-`Gtk.Windows.Forms` cannot serve fails the build instead of drifting.
+A glob, so a file added to the WinForms package reaches the Gtk one with no edit here, and anything
+`Gtk.Windows.Forms` cannot serve fails this build rather than drifting. `<DefineConstants>…;GTK</DefineConstants>`
+and the `InternalsVisibleTo` for a test project that does not exist are gone.
 
-## Note for whoever builds that repo next
+## Verification
 
-`dotnet pack` defaults to **Release**; `dotnet build` defaults to Debug. The Release path also runs
-`PrepareObfuscate`. Packing without `-c` therefore packs whatever stale Release output is lying around — that cost
-an hour here.
+| Step | Result |
+|---|---|
+| `dotnet test Gtk.Windows.Forms.Tests` after every batch | 2787 passed, 22 skipped |
+| `MSBuild Vb6ToCSharp.slnx -restore` | succeeded |
+| `dotnet test Vb6ToCSharp.slnx --no-build` | 1304 passed |
+| `grep -r "#if" Vb6ToCSharp.Gtk.UpgradeHelpers` | nothing - the project has no sources of its own |
+
+## Note for whoever builds the Gtk repo next
+
+`dotnet pack` defaults to **Release** while `dotnet build` defaults to Debug, and the Release path also runs
+`PrepareObfuscate`. Packing without `-c Debug` packs whatever stale Release output is lying around; the shipped
+packages are Debug builds.
