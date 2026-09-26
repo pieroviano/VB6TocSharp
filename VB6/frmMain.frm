@@ -19,15 +19,15 @@ Begin VB.Form frmMain
       Top             =   3840
    End
    Begin VB.ComboBox cboShade
-      Height          =   315
+      Height          =   345
       Left            =   120
       Style           =   2  'Dropdown List
       TabIndex        =   7
-      Top             =   1080
+      Top             =   1260
       Width           =   2415
    End
    Begin VB.ListBox lstLog
-      Height          =   1815
+      Height          =   1635
       Left            =   2760
       TabIndex        =   6
       Top             =   120
@@ -38,7 +38,7 @@ Begin VB.Form frmMain
       Height          =   975
       Left            =   120
       TabIndex        =   3
-      Top             =   1560
+      Top             =   1845
       Width           =   2415
       Begin VB.OptionButton optB
          Caption         =   "Detailed"
@@ -59,7 +59,7 @@ Begin VB.Form frmMain
       End
    End
    Begin VB.TextBox txtName
-      Height          =   315
+      Height          =   345
       Left            =   120
       TabIndex        =   0
       Text            =   "World"
@@ -72,7 +72,7 @@ Begin VB.Form frmMain
       Height          =   375
       Left            =   4680
       TabIndex        =   2
-      Top             =   3840
+      Top             =   3780
       Width           =   1215
    End
    Begin VB.CommandButton cmdRun
@@ -81,7 +81,7 @@ Begin VB.Form frmMain
       Height          =   375
       Left            =   3360
       TabIndex        =   1
-      Top             =   3840
+      Top             =   3780
       Width           =   1215
    End
    Begin VB.Label lblResult
@@ -89,7 +89,7 @@ Begin VB.Form frmMain
       Height          =   255
       Left            =   120
       TabIndex        =   8
-      Top             =   2760
+      Top             =   3060
       Width           =   5895
    End
    Begin VB.Label lblName
