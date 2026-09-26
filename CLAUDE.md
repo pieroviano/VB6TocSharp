@@ -95,7 +95,7 @@ Partner's rules. See [README.md](README.md) and the per-project READMEs for user
   references the managed `Standard.AdoDb` package, or the ADODB `COMReference` when `ADOTarget=COM`); `ProjectGroup` writes the
   `.sln` and project references for a `.vbg`. `MigrationReport.Write()` collects every `// TODO:` in the output into
   `MigrationReport.md`.
-- **Runtime (three packages).** This is what converted code calls, split by UI stack; namespaces are shared
+- **Runtime (four packages).** This is what converted code calls, split by UI stack; namespaces are shared
   (`Vb6ToCSharp.UpgradeHelpers.*`) and mirror folders, so only the assembly/package names say which half a type is in:
 
   | Project / package (`Net4x.` + name) | Holds |
@@ -103,8 +103,12 @@ Partner's rules. See [README.md](README.md) and the per-project READMEs for user
   | [Vb6ToCSharp.Base.UpgradeHelpers](Vb6ToCSharp.Base.UpgradeHelpers/) | the root (`VbRuntime`, `IVbStruct`, `IVbUiBridge`), `.Arrays`, `.Interop`, `.Model`, `.Internal`; no WinForms/WPF (`System.Drawing.Common` for colors and twips) |
   | [Vb6ToCSharp.WinForms.UpgradeHelpers](Vb6ToCSharp.WinForms.UpgradeHelpers/) | `.Dialogs` (`CommonDialog`, used by WPF too), `.WinForms.Controls`, `.WinForms.Helpers`; depends on Base |
   | [Vb6ToCSharp.WPF.UpgradeHelpers](Vb6ToCSharp.WPF.UpgradeHelpers/) | `.Wpf.Controls`, `.Wpf.Helpers`; depends on WinForms (for `CommonDialog`) and so on Base |
+  | [Vb6ToCSharp.Gtk.UpgradeHelpers](Vb6ToCSharp.Gtk.UpgradeHelpers/) | no sources of its own: globs the WinForms project's `**\*.cs` and imports `Vb6ToCSharp.Base.UpgradeHelpers.Shared`, compiled against `Gtk.Windows.Forms.Base` for `net10.0`. Add helpers to the WinForms project, never here; what Gtk cannot serve fails this build |
 
-  A converted project references only its UI package. `DoEvents` / `Load` / `Unload` and the WPF OCX conversions
+  A converted project references only its UI package. [ProcessForGtk](ProcessForGtk/) rewrites a converted
+  `.csproj`/`.sln` from the WinForms package to the Gtk one (dropping `-windows` and `UseWindowsForms`), so a
+  converted program runs on Linux and macOS; its package/version constants live in `ProcessForGtk/ProjectRewriter.cs`.
+  [Resources/Vb6ToCSharp.Article.md](Resources/Vb6ToCSharp.Article.md) documents that route and its boundary. `DoEvents` / `Load` / `Unload` and the WPF OCX conversions
   live in the UI packages and reach `VbRuntime` / `OcxHelper` through `IVbUiBridge` / `IOcxValueConverter`,
   registered from a module initializer (the runtime loads the UI package on first use if it has not run yet).
   This is distinct from `Vb6ToCSharp.Library`'s own `Runtime` namespace, which serves the converter's
@@ -114,7 +118,6 @@ Partner's rules. See [README.md](README.md) and the per-project READMEs for user
   `HelpersAssembly*` constants in `FormConversion/ControlCatalog.cs` (used by both emitters and by `SupportFiles`
   for the `PackageReference`), the XAML `clr-namespace` in `FormConversion/WpfEmitter.cs`, and `CompileUsings` in
   `Vb6ToCSharp.Tests/Fixtures/ConverterTestHelpers.cs`. A new runtime API needs matching emission in the library.
-- **Extras** is an independent optional package (`Recordset`, `FixedWidthRecord`, `CsvRecord`). The converter doesn't use it.
 
 ## Conventions
 
