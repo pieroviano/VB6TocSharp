@@ -215,13 +215,14 @@ anything.
 
 ## Verify it yourself
 
-Be clear-eyed about what is and is not proven for *your* application:
+The route is covered up to the build; running is not. Be clear-eyed about what is and is not proven for *your* application:
 
 | Proven by | What |
 |---|---|
-| This repository's integration tests | VB6 → C# → build → **run**, on Windows, asserting on VB6 semantics (`Showcase.vbp`, the `.vbg` group, the ADO sample) |
+| This repository's integration tests | VB6 → C# → build → **run** on Windows, asserting on VB6 semantics (`Showcase.vbp`, the `.vbg` group, the ADO sample) |
+| The same, for this route | VB6 → C# → `ProcessForGtk` → **build** against Gtk.Windows.Forms (`ConvertedGtk\`): the converted sample compiles with no `System.Windows.Forms` anywhere in its output |
 | The GTK layer's own suites | `System.Windows.Forms` / `System.Drawing` behaviour on GTK (`API-COMPLETENESS.md`, `EMULATION-GAPS.md`) |
-| Nothing, yet | The two halves joined: there is **no** automated test in this repository that builds a Gtk-retargeted converted project, let alone runs one on Linux or macOS |
+| Nothing, yet | A converted program **running** off Windows: the Gtk build is never executed, on any platform, by any test |
 
 So make that your acceptance step, not an assumption. Convert, retarget, then build and run on each target OS
 early, on a real machine or container, while the schedule can still absorb the answer.

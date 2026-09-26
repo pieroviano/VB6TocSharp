@@ -24,7 +24,10 @@ Partner's rules. See [README.md](README.md) and the per-project READMEs for user
   VB6 feature, extend the `VB6\` sample and these assertions. The same test for project groups converts `VBG\Group.vbg`
   (`Exe\` referencing the ActiveX DLL `Lib\`) into `ConvertedGroup\` and builds `Group.sln`. A third converts the ADO
   sample `Vb6Ado\Vbb6Ado.vbp` into `ConvertedVb6Ado\` and only builds it: it talks to SQL Server LocalDB and shows
-  message boxes, so it cannot run unattended.
+  message boxes, so it cannot run unattended. A fourth converts `Showcase.vbp` again into `ConvertedGtk\`, runs
+  the `ProcessForGtk` exe over `Showcase.sln` and builds that: it pins the cross-platform route, i.e. that converted code
+  compiles against `Gtk.Windows.Forms` with no `System.Windows.Forms`. It is not run - that needs the native GTK runtime
+  and a process of its own.
 - Test parallelization is disabled ([AssemblyInfo.cs](Vb6ToCSharp.Tests/Properties/AssemblyInfo.cs)): the converter uses
   process-wide static state.
 - **Each test project mirrors the folders, namespaces and type names of the project it tests.** A test for
