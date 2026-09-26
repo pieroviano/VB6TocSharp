@@ -12,6 +12,7 @@
         <UseWPF>true</UseWPF>
         <UseWindowsForms>true</UseWindowsForms>
         <LangVersion>latest</LangVersion>
+        <NoWarn>$(NoWarn);NETSDK1137</NoWarn>
     </PropertyGroup>
     <ItemGroup>
         <ProjectReference Include="..\Vb6ToCSharp.Library\Vb6ToCSharp.Library.csproj" />

@@ -15,6 +15,7 @@
         <UseWindowsForms>true</UseWindowsForms>
         <LangVersion>latest</LangVersion>
         <PackageId>Net4x.$(MSBuildProjectName)</PackageId>
+        <NoWarn>$(NoWarn);NETSDK1137;NU1510</NoWarn>
     </PropertyGroup>
     <ItemGroup>
         <PackageReference Include="Microsoft.CSharp" Version="4.7.0.$(VersionBuildSuffix)" />
