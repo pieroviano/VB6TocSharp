@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using ProcessForGtk;
 using Vb6ToCSharp.CodeGeneration;
 using Vb6ToCSharp.Tests.Fixtures;
 
@@ -8,7 +9,8 @@ namespace Vb6ToCSharp.Tests;
 
 /// <summary>
 /// End to end: Vb6ToCSharp.Console converts the VB6 samples under the repository root (VB6\Showcase.vbp into Converted\,
-/// the project group VBG\Group.vbg into ConvertedGroup\, the ADO sample Vb6Ado\Vbb6Ado.vbp into ConvertedVb6Ado\);
+/// the project group VBG\Group.vbg into ConvertedGroup\, the ADO sample Vb6Ado\Vbb6Ado.vbp into ConvertedVb6Ado\,
+/// and Showcase again into ConvertedGtk\, retargeted at Gtk);
 /// the result builds and, where it can run unattended, runs.
 /// </summary>
 [Trait("Category", "Integration")]
@@ -46,6 +48,13 @@ public class IntegrationTests
     /// <summary>The target framework the converter emits (SupportFiles.ProjectFile): the converted output lands in bin\Debug\&lt;this&gt;.</summary>
     private const string ConvertedTargetFramework = "net10.0-windows";
 
+    /// <summary>
+    /// The target framework a project retargeted by ProcessForGtk carries: the converted one without its Windows
+    /// platform, which is what lets it build off Windows.
+    /// </summary>
+    private static readonly string GtkTargetFramework =
+        System.Text.RegularExpressions.Regex.Replace(ConvertedTargetFramework, "-windows[0-9.]*$", string.Empty);
+
     /// <summary>MSBuild of the newest Visual Studio (via vswhere), else null (dotnet msbuild is used).</summary>
     private static string? FindMsBuild()
     {
@@ -77,6 +86,18 @@ public class IntegrationTests
         var ini = Path.Combine(TestUtil.TempDir(), "VB6toCS.INI");
         var convert = Run(console, $"all --ini \"{ini}\" --vbp \"{source}\" --out \"{output}\" {options} --ui winforms --quiet", output, 300000);
         Assert.True(convert.Code == 0, "conversion failed (" + convert.Code + "):\n" + convert.Output);
+    }
+
+    /// <summary>
+    /// Retargets a converted project or solution at Gtk with ProcessForGtk (copied next to the tests), in place.
+    /// </summary>
+    private static void RetargetAtGtk(string output, string target)
+    {
+        var exe = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ProcessForGtk.exe");
+        Assert.True(File.Exists(exe), exe);
+        var retarget = Run(exe, $"\"{target}\"", output, 60000);
+        Assert.True(retarget.Code == 0, "retargeting at Gtk failed (" + retarget.Code + "):\n" + retarget.Output);
+        Assert.Contains("rewritten", retarget.Output); // a freshly converted project always has something to change
     }
 
     /// <summary>
@@ -209,6 +230,40 @@ public class IntegrationTests
             ((System.Windows.Forms.Button)control("cmdClose")).PerformClick(); // Unload Me
             Assert.False(form.Visible);
         });
+    }
+
+    /// <summary>
+    /// The cross-platform route, end to end: VB6\Showcase.vbp into ConvertedGtk\, retargeted at Gtk by ProcessForGtk,
+    /// then built - so a converted program is proven to compile against Gtk.Windows.Forms, not only against the real
+    /// Windows Forms. The result is not run here: it needs the native GTK 3 runtime and a process of its own, since
+    /// this test host has already loaded the real System.Windows.Forms.
+    /// </summary>
+    [Fact]
+    public void ShowcaseGtk_ConvertsWithTheConsole_IsRetargetedAtGtk_AndBuilds()
+    {
+        var root = RepoRoot();
+        var output = Path.Combine(root, "ConvertedGtk");
+        ConvertWithConsole(Path.Combine(root, "VB6", "Showcase.vbp"), output, "--assembly Showcase");
+        var solution = Path.Combine(output, "Showcase.sln");
+        var project = Path.Combine(output, "Showcase", "Showcase.csproj");
+        Assert.True(File.Exists(solution), "no solution generated");
+        Assert.True(File.Exists(project), "no project generated");
+
+        // the whole solution at once, as a converted project group would be retargeted
+        RetargetAtGtk(output, solution);
+
+        // the edits that make the project buildable off Windows, asserted against the tool's own constants
+        var csproj = File.ReadAllText(project);
+        Assert.Contains("<TargetFramework>" + GtkTargetFramework + "</TargetFramework>", csproj);
+        Assert.DoesNotContain("UseWindowsForms", csproj);
+        Assert.DoesNotContain(ProjectRewriter.WinFormsPackage, csproj);
+        Assert.Contains("<PackageReference Include=\"" + ProjectRewriter.GtkPackage + "\"", csproj);
+        Assert.Contains("<PackageReference Include=\"" + ProjectRewriter.GtkWinFormsPackage + "\"", csproj);
+
+        Build(root, output, solution);
+
+        Assert.True(File.Exists(Path.Combine(output, "Showcase", "bin", "Debug", GtkTargetFramework, "Showcase.dll")),
+            "the Gtk build produced no assembly");
     }
 
     /// <summary>

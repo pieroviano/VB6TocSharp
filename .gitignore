@@ -403,4 +403,5 @@ FodyWeavers.xsd
 # integration test output (VB6 sample converted)
 /Converted/
 /ConvertedGroup/
+/ConvertedGtk/
 /ConvertedVb6Ado/

@@ -26,6 +26,8 @@
 		<ProjectReference Include="..\Vb6ToCSharp.WPF.UpgradeHelpers\Vb6ToCSharp.WPF.UpgradeHelpers.csproj" />
 		<!-- integration test: the console converts the VB6 sample (copied next to the tests) -->
 		<ProjectReference Include="..\Vb6ToCSharp.Console\Vb6ToCSharp.Console.csproj" />
+		<!-- integration test: ProcessForGtk retargets the converted project at Gtk -->
+		<ProjectReference Include="..\ProcessForGtk\ProcessForGtk.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>

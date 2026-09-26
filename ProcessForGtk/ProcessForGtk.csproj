@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
         <Version>$(VersionPrefix).$(VersionSuffix)</Version>
@@ -10,6 +10,10 @@
         <LangVersion>latest</LangVersion>
         <IsPackable>false</IsPackable>
     </PropertyGroup>
+    <ItemGroup>
+      <!-- the integration test asserts against this tool's own package and version constants -->
+      <InternalsVisibleTo Include="Vb6ToCSharp.Tests" />
+    </ItemGroup>
     <ItemGroup>
       <None Remove="Properties\launchSettings.json" />
     </ItemGroup>
